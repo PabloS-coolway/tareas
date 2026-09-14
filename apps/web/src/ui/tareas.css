@@ -117,3 +117,7 @@
 .equipo-matriz td, .equipo-matriz th { padding: 10px 12px; }
 .equipo-fila { cursor: pointer; }
 .equipo-fila:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+
+/* Lista de tareas (tablero en modo lista y "Todas las tareas"): el título es la columna que respira, el resto no parte. */
+.page-board .table td { white-space: nowrap; }
+.page-board .table td:has(.lista-titulo) { white-space: normal; min-width: 280px; width: 100%; }

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BoxArrowRight, HouseDoorFill, Key, KanbanFill, ListCheck, People, PeopleFill, PersonCircle, Plugin, ShieldLock } from 'react-bootstrap-icons';
+import { BoxArrowRight, HouseDoorFill, Key, KanbanFill, ListCheck, ListUl, People, PeopleFill, PersonCircle, Plugin, ShieldLock } from 'react-bootstrap-icons';
 import { useState, type ReactNode } from 'react';
 import type { Feature } from '@yorga/contracts';
 import { Button } from 'react-bootstrap';
@@ -57,6 +57,10 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
           <NavLink to="/proyectos" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span className="nav-ico"><KanbanFill /></span>
             <span className="nav-label">Todos los proyectos</span>
+          </NavLink>
+          <NavLink to="/tareas" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span className="nav-ico"><ListUl /></span>
+            <span className="nav-label">Todas las tareas</span>
           </NavLink>
           {proyectos.map((p) => (
             <NavLink key={p.id} to={`/p/${p.key}`} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={p.name}>

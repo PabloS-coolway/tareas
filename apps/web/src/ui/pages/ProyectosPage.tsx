@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, Card, Form, Modal, Spinner } from 'react-bootstrap';
-import { ArrowDown, ArrowUp, CloudUpload, Gear, Plus, Trash } from 'react-bootstrap-icons';
+import { ArrowDown, ArrowUp, CloudUpload, Gear, ListUl, Plus, Trash } from 'react-bootstrap-icons';
 import { STATUS_CATEGORIES, STATUS_CATEGORY_LABELS, type ClickUpImportResultDto, type ProjectDto, type StatusCategory, type UpsertStatusDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
@@ -33,12 +33,15 @@ export function ProyectosPage() {
           <h1 className="h4 mb-1">Proyectos</h1>
           <p className="text-secondary mb-0">Un tablero por proyecto. Cada tarea lleva la clave del suyo (COOL-12).</p>
         </div>
-        {gestiona && (
-          <div className="d-flex gap-2">
-            <Button variant="outline-secondary" onClick={() => setImportar(true)}><CloudUpload className="me-1" /> Importar de ClickUp</Button>
-            <Button className="btn-brand" onClick={() => setNuevo(true)}><Plus /> Nuevo proyecto</Button>
-          </div>
-        )}
+        <div className="d-flex gap-2 flex-wrap">
+          <Link to="/tareas" className="btn btn-outline-secondary"><ListUl className="me-1" /> Todas las tareas</Link>
+          {gestiona && (
+            <>
+              <Button variant="outline-secondary" onClick={() => setImportar(true)}><CloudUpload className="me-1" /> Importar de ClickUp</Button>
+              <Button className="btn-brand" onClick={() => setNuevo(true)}><Plus /> Nuevo proyecto</Button>
+            </>
+          )}
+        </div>
       </header>
 
       <Form.Check type="switch" id="pr-arch" className="mb-3 small" label="Ver archivados" checked={verArchivados} onChange={(e) => toggleArchivados(e.target.checked)} />
