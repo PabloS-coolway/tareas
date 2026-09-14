@@ -88,7 +88,7 @@ export interface ProjectStatusDto {
 
 export interface ProjectDto {
   id: number;
-  /** Prefijo de las claves de tarea: COOLWAY → COOLWAY-12. Por convención, el nombre del proyecto en mayúsculas. */
+  /** Prefijo de las claves de tarea: COOL → COOL-12. Corto, tipo Jira. */
   key: string;
   name: string;
   description: string;
@@ -110,7 +110,7 @@ export interface CreateProjectDto {
 }
 
 export interface UpdateProjectDto {
-  /** Cambiarla renombra las claves de todas sus tareas (COOL-12 → COOLWAY-12). */
+  /** Cambiarla renombra las claves de todas sus tareas (COOL-12 → CW-12). */
   key?: string;
   name?: string;
   description?: string;

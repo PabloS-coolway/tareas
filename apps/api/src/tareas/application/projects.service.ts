@@ -40,7 +40,7 @@ export class ProjectsService {
 
   async create(dto: CreateProjectDto, userId: number): Promise<ProjectDto> {
     const key = normalizarClaveProyecto(dto.key ?? '');
-    if (!esClaveProyectoValida(key)) throw new BadRequestException('La clave debe tener 2-24 letras/números (guiones entre tramos) y empezar por letra, p. ej. COOLWAY o SASS-IA.');
+    if (!esClaveProyectoValida(key)) throw new BadRequestException('La clave debe tener 2-24 letras/números (guiones entre tramos) y empezar por letra, p. ej. COOL o INC.');
     const name = dto.name?.trim();
     if (!name) throw new BadRequestException('Indica el nombre del proyecto.');
     if (await this.prisma.project.findUnique({ where: { key } })) throw new ConflictException(`Ya existe un proyecto con la clave ${key}.`);
@@ -61,7 +61,7 @@ export class ProjectsService {
     const data: { key?: string; name?: string; description?: string; color?: string; archived?: boolean } = {};
     if (dto.key !== undefined) {
       const key = normalizarClaveProyecto(dto.key);
-      if (!esClaveProyectoValida(key)) throw new BadRequestException('La clave debe tener 2-24 letras/números (guiones entre tramos) y empezar por letra, p. ej. COOLWAY o SASS-IA.');
+      if (!esClaveProyectoValida(key)) throw new BadRequestException('La clave debe tener 2-24 letras/números (guiones entre tramos) y empezar por letra, p. ej. COOL o INC.');
       const otro = await this.prisma.project.findUnique({ where: { key } });
       if (otro && otro.id !== id) throw new ConflictException(`Ya existe un proyecto con la clave ${key}.`);
       data.key = key; // las tareas se renumeran solas: la clave COOLWAY-12 se compone al leer

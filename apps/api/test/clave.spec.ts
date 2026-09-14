@@ -17,18 +17,18 @@ describe('claves de proyecto', () => {
     expect(normalizarClaveProyecto('sass-ia')).toBe('SASS-IA');
     expect(normalizarClaveProyecto('  Coolway  ')).toBe('COOLWAY');
   });
-  it('propone la clave = nombre y no repite', () => {
-    expect(proponerClave('Coolway')).toBe('COOLWAY');
-    expect(proponerClave('Atención al Cliente')).toBe('ATENCION-AL-CLIENTE');
-    expect(proponerClave('sass-ia')).toBe('SASS-IA');
-    expect(proponerClave('Coolway', new Set(['COOLWAY']))).toBe('COOLWAY-2');
+  it('propone claves cortas y no repetidas', () => {
+    expect(proponerClave('Coolway')).toBe('COOL');
+    expect(proponerClave('Atención al Cliente')).toBe('AC');
+    expect(proponerClave('sass-ia')).toBe('SI');
+    expect(proponerClave('Coolway', new Set(['COOL']))).toBe('COOL2');
   });
 });
 
 describe('claves de tarea', () => {
-  it('compone y parsea COOLWAY-12 y SASS-IA-3', () => {
-    expect(claveTarea('COOLWAY', 12)).toBe('COOLWAY-12');
-    expect(parsearClaveTarea('coolway-12')).toEqual({ projectKey: 'COOLWAY', number: 12 });
+  it('compone y parsea COOL-12 y SASS-IA-3', () => {
+    expect(claveTarea('COOL', 12)).toBe('COOL-12');
+    expect(parsearClaveTarea('cool-12')).toEqual({ projectKey: 'COOL', number: 12 });
     expect(parsearClaveTarea('SASS-IA-3')).toEqual({ projectKey: 'SASS-IA', number: 3 });
     expect(parsearClaveTarea('12')).toBeNull();
     expect(parsearClaveTarea('COOL-')).toBeNull();

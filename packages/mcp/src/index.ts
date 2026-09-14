@@ -78,12 +78,12 @@ server.tool(
   'listar_tareas',
   'Busca tareas. Filtra por proyecto (clave), asignado ("me", "none" o email), estado, prioridad, tipo, sprint o texto.',
   {
-    proyecto: z.string().optional().describe('Clave del proyecto, p. ej. COOLWAY'),
+    proyecto: z.string().optional().describe('Clave del proyecto, p. ej. COOL'),
     asignado: z.string().optional().describe('"me", "none" o el email/nombre de una persona'),
     estado: z.string().optional().describe('Clave o nombre del estado (requiere proyecto)'),
     prioridad: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).optional(),
     tipo: z.enum(['EPIC', 'TASK', 'BUG', 'INCIDENT']).optional(),
-    texto: z.string().optional().describe('Texto en el título o clave (COOLWAY-12)'),
+    texto: z.string().optional().describe('Texto en el título o clave (COOL-12)'),
     sprint: z.string().optional().describe('Nombre/id del sprint, o "none" para el backlog'),
     incluirTerminadas: z.boolean().optional(),
     limite: z.number().int().min(1).max(500).optional(),
@@ -116,7 +116,7 @@ server.tool('mis_tareas', 'Mis tareas abiertas (las del dueño del token).', {},
   return texto(page.items.map(resumenTarea).join('\n') || 'No tienes tareas abiertas.');
 });
 
-server.tool('ver_tarea', 'Detalle completo de una tarea por clave (COOLWAY-12): descripción, subtareas y comentarios.', { clave: z.string() }, async ({ clave }) => {
+server.tool('ver_tarea', 'Detalle completo de una tarea por clave (COOL-12): descripción, subtareas y comentarios.', { clave: z.string() }, async ({ clave }) => {
   const t = await api<Task>(`/tasks/${encodeURIComponent(clave)}`);
   const [subs, comments] = await Promise.all([api<Task[]>(`/tasks/${t.id}/subtasks`), api<{ author: UserRef; body: string; createdAt: string }[]>(`/tasks/${t.id}/comments`)]);
   const out = [
@@ -144,7 +144,7 @@ server.tool(
     estado: z.string().optional().describe('Clave del estado inicial (por defecto el primero)'),
     asignado: z.string().optional().describe('Email o nombre de quien la hará'),
     vence: z.string().optional().describe('AAAA-MM-DD'),
-    padre: z.string().optional().describe('Clave de la épica o tarea padre (COOLWAY-3)'),
+    padre: z.string().optional().describe('Clave de la épica o tarea padre (COOL-3)'),
     etiquetas: z.array(z.string()).optional(),
     sprint: z.string().optional().describe('Nombre (o id) del sprint en el que planificarla'),
   },

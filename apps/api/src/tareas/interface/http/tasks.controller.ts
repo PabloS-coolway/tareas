@@ -47,7 +47,7 @@ export class TasksController {
     return this.tasks.resumen(me.sub);
   }
 
-  /** Por clave (COOLWAY-12) o por id numérico. */
+  /** Por clave (COOL-12) o por id numérico. */
   @Get(':idOrKey')
   @RequireFeature('tareas.ver')
   get(@Param('idOrKey') idOrKey: string): Promise<TaskDto> {
