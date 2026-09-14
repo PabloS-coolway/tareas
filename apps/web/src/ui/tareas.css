@@ -1,0 +1,113 @@
+/* ===== Tareas: tablero, tarjetas, detalle ===== */
+
+.page-board { max-width: none; }
+
+.board { display: flex; gap: 14px; overflow-x: auto; align-items: flex-start; padding: 4px 2px 12px; }
+.board-col {
+  flex: 0 0 276px; width: 276px; background: var(--kpi-bg); border: 1px solid var(--border); border-radius: 14px;
+  display: flex; flex-direction: column; max-height: calc(100vh - 230px);
+}
+.board-col-head { padding: 11px 12px 8px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink); }
+.board-col-head .count { margin-left: auto; font-weight: 600; color: var(--muted); font-size: 0.78rem; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; }
+.board-col-body { padding: 4px 8px 8px; overflow-y: auto; flex: 1; min-height: 48px; border-radius: 0 0 14px 14px; transition: background 0.15s; }
+.board-col-body.over { background: color-mix(in srgb, var(--brand) 8%, transparent); }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+.board-card {
+  display: block; color: inherit; text-decoration: none; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(20, 20, 40, 0.04);
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.board-card:hover { border-color: var(--brand-2); color: inherit; }
+.board-card.dragging { box-shadow: 0 10px 28px rgba(20, 20, 40, 0.18); border-color: var(--brand); transform: rotate(0.6deg); }
+.board-card .title { font-weight: 600; font-size: 0.92rem; line-height: 1.3; margin: 2px 0 6px; }
+.board-card .meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.74rem; color: var(--muted); }
+.board-card .meta .right { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.task-key { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.01em; }
+.task-key.big { font-size: 0.85rem; }
+
+/* Prioridad y tipo: píldoras compactas */
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em; border-radius: 999px; padding: 2px 8px; line-height: 1.3; white-space: nowrap; }
+.prio-URGENT { color: #b91c1c; background: rgba(185, 28, 28, 0.12); }
+.prio-HIGH { color: #c2410c; background: rgba(194, 65, 12, 0.12); }
+.prio-NORMAL { color: #2563eb; background: rgba(37, 99, 235, 0.1); }
+.prio-LOW { color: #6b7280; background: rgba(107, 114, 128, 0.14); }
+.tipo-EPIC { color: #7c3aed; background: rgba(124, 58, 237, 0.12); }
+.tipo-TASK { color: #0f766e; background: rgba(15, 118, 110, 0.12); }
+.tipo-BUG { color: #b91c1c; background: rgba(185, 28, 28, 0.1); }
+.tipo-INCIDENT { color: #a16207; background: rgba(161, 98, 7, 0.14); }
+.estado-pill { color: #fff; }
+.vence { font-variant-numeric: tabular-nums; }
+.vence.late { color: #b91c1c; font-weight: 700; }
+.vence.soon { color: #c2410c; font-weight: 600; }
+
+.avatar { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.02em; flex-shrink: 0; }
+.avatar.lg { width: 34px; height: 34px; font-size: 0.82rem; }
+.avatar.empty { background: transparent; border: 1px dashed var(--border); color: var(--muted); }
+
+.subprogress { display: inline-flex; align-items: center; gap: 5px; }
+.subprogress .bar { width: 46px; height: 5px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.subprogress .bar i { display: block; height: 100%; background: #16a34a; }
+
+/* Barra de filtros del tablero */
+.board-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.board-toolbar .form-control { width: auto; min-width: 140px; }
+.board-toolbar .form-select { width: auto; min-width: 200px; padding-right: 2.4rem; }
+.board-toolbar .grow { flex: 1 1 220px; }
+.view-toggle .btn { border-color: var(--border); }
+
+/* Detalle de tarea */
+.tarea-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+@media (max-width: 992px) { .tarea-layout { grid-template-columns: 1fr; } }
+.tarea-title { font-size: 1.45rem; font-weight: 700; border: 1px solid transparent; border-radius: 10px; padding: 6px 10px; width: 100%; background: transparent; color: var(--ink); }
+.tarea-title:hover { border-color: var(--border); }
+.tarea-title:focus { border-color: var(--brand-2); outline: none; background: var(--field-bg); }
+.tarea-desc { min-height: 140px; font-family: inherit; }
+.tarea-desc-view { white-space: pre-wrap; line-height: 1.55; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; cursor: text; min-height: 60px; }
+.tarea-desc-view:hover { border-color: var(--border); }
+.tarea-desc-view.empty { color: var(--muted); font-style: italic; }
+.tarea-side .field { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.9rem; }
+.tarea-side .field > label { color: var(--muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin: 0; }
+.tarea-side .form-select-sm, .tarea-side .form-control-sm { border-radius: 8px; }
+.tarea-side .stamp { font-size: 0.78rem; color: var(--muted); }
+
+.sub-row { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
+.sub-row:last-child { border-bottom: 0; }
+.sub-row:hover { background: color-mix(in srgb, var(--brand) 6%, transparent); color: inherit; }
+.sub-row .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub-row.done .title { text-decoration: line-through; color: var(--muted); }
+
+.comment { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.comment:last-child { border-bottom: 0; }
+.comment .body { white-space: pre-wrap; line-height: 1.5; }
+.comment .head { display: flex; align-items: baseline; gap: 8px; font-size: 0.82rem; color: var(--muted); margin-bottom: 2px; }
+.comment .head b { color: var(--ink); }
+
+.activity { list-style: none; padding: 0; margin: 0; }
+.activity li { display: flex; gap: 8px; padding: 6px 0; font-size: 0.84rem; border-bottom: 1px dashed var(--border); }
+.activity li:last-child { border-bottom: 0; }
+.activity .when { color: var(--muted); white-space: nowrap; font-size: 0.76rem; padding-top: 2px; min-width: 96px; }
+.activity .chg { background: var(--kpi-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0 5px; font-size: 0.8rem; }
+
+.adjunto { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+.adjunto:last-child { border-bottom: 0; }
+.adjunto .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adjunto .size { color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+
+/* Mis tareas y listados */
+.task-row { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 8px 6px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
+.task-row:hover { background: color-mix(in srgb, var(--brand) 6%, transparent); color: inherit; }
+.task-row:last-child { border-bottom: 0; }
+.task-row .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+@media (max-width: 720px) { .task-row { grid-template-columns: 70px minmax(0, 1fr) auto; } .task-row .hide-sm { display: none; } }
+
+/* Proyectos */
+.proj-card { text-decoration: none; color: inherit; display: block; height: 100%; }
+.proj-card .card { height: 100%; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.proj-card:hover .card { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(20, 20, 40, 0.1); }
+.proj-color { width: 12px; height: 12px; border-radius: 4px; display: inline-block; flex-shrink: 0; }
+.proj-key { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; color: var(--muted); }
+.nav-proj-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+/* Token recién creado */
+.token-box { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85rem; background: var(--kpi-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; word-break: break-all; }

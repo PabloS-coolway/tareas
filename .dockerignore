@@ -1,0 +1,21 @@
+# No copiar a la imagen lo que no hace falta (build más rápido y ligero).
+# Secretos locales: NUNCA en la imagen (llevan el JWT de dev y pisarían la config de producción).
+.env
+**/.env
+!**/.env.example
+
+node_modules
+**/node_modules
+**/dist
+.turbo
+**/.turbo
+**/coverage
+.git
+.github
+.claude
+.agents
+# La info cruda (PDFs, Excels de prueba) no va en la imagen de producción.
+docs
+diseño
+*.md
+!README.md

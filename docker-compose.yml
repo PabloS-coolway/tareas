@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: yorga-tareas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tareas
+      POSTGRES_PASSWORD: tareas
+      POSTGRES_DB: tareas
+    ports:
+      - '5545:5432' # host 5545 (5544 lo usa automatizaciones)
+    volumes:
+      - tareas_pgdata:/var/lib/postgresql/data
+
+volumes:
+  tareas_pgdata:

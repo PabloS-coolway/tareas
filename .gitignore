@@ -1,0 +1,53 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Python (futuras apps)
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Node (futuras apps)
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# Informes de cobertura (se regeneran con `npm test`)
+coverage/
+
+# Temporales de Office
+~$*
+
+# Marcas de "descargado de internet" que añade Windows al copiar ficheros (basura)
+*:Zone.Identifier
+
+# Restos de sesiones de navegador (Playwright MCP)
+.playwright-mcp/
+
+# Skills instalados: el contenido no se versiona (lo hace skills-lock.json).
+# Restaurar en un clon nuevo con: npx skills experimental_install
+.agents/
+# Ojo: se ignora el CONTENIDO (no el directorio), porque git no puede reincluir
+# ficheros dentro de un directorio excluido. Así los skills PROPIOS sí viajan.
+.claude/skills/*
+!.claude/skills/pr-coolway/
+!.claude/skills/bug-correo-tarea/
+!.claude/skills/requerimiento-correo-tarea/
+!.claude/skills/bug-tarea/
+!.claude/skills/requerimiento-tarea/
+uploads/
+
+# PII de RRHH (DNIs de empleados) — no versionar (REQ-012)
+docs/requerimientos/REGISTRO HORARIO PRUEBA.xlsx
+
+# Exportaciones de ClickUp (datos del equipo, no se versionan)
+docs/import/*.json
+uploads/

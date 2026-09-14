@@ -1,0 +1,25 @@
+{
+  "name": "@yorga/tareas-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Servidor MCP (stdio) para que Claude trabaje con las tareas del Grupo Yorga a través de la API.",
+  "type": "module",
+  "bin": {
+    "tareas-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "echo \"(mcp: sin tests)\" && exit 0",
+    "lint": "echo ok",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0"
+  }
+}

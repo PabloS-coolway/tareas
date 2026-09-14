@@ -1,0 +1,89 @@
+# DigitalOcean App Platform · una sola "app" con tres componentes.
+#
+#   static_site "web"  →  ruta /       (el front, build de Vite)
+#   service     "api"  →  ruta /api    (NestJS, con Dockerfile)
+#   database    "db"      Managed Postgres (dev database, con backups)
+#
+# El front llama a /api con rutas RELATIVAS: App Platform enruta /api → service y el resto → static_site.
+#
+#   doctl apps create --spec .do/app.yaml          # primera vez
+#   doctl apps update <APP_ID> --spec .do/app.yaml  # cambios posteriores
+#
+# Secretos (se ponen en el panel o con doctl, nunca aquí): JWT_SECRET, ADMIN_PASSWORD, SPACES_KEY, SPACES_SECRET.
+
+name: tareas-yorga
+region: fra
+
+services:
+  - name: api
+    dockerfile_path: apps/api/Dockerfile
+    source_dir: /
+    github:
+      repo: PabloS-coolway/tareas
+      branch: main
+      deploy_on_push: true
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    # Nest usa globalPrefix "/api": el servicio debe recibir la ruta ENTERA.
+    routes:
+      - path: /api
+        preserve_path_prefix: true
+    health_check:
+      http_path: /api/health
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: ${db.DATABASE_URL}
+        scope: RUN_TIME
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_EXPIRES_IN
+        value: 12h
+        scope: RUN_TIME
+      # Primer admin (idempotente). Una vez creado, se pueden quitar.
+      - key: ADMIN_EMAIL
+        value: pablo.silva@coolway.com
+        scope: RUN_TIME
+      - key: ADMIN_NAME
+        value: PabloS
+        scope: RUN_TIME
+      - key: ADMIN_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+      # Adjuntos en Spaces (S3). Sin esto, la subida queda deshabilitada (avisa).
+      - key: SPACES_ENDPOINT
+        value: https://fra1.digitaloceanspaces.com
+        scope: RUN_TIME
+      - key: SPACES_REGION
+        value: fra1
+        scope: RUN_TIME
+      - key: SPACES_BUCKET
+        value: yorga-tareas
+        scope: RUN_TIME
+      - key: SPACES_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+static_sites:
+  - name: web
+    source_dir: /
+    github:
+      repo: PabloS-coolway/tareas
+      branch: main
+      deploy_on_push: true
+    build_command: npm ci && npm run build -w @yorga/tareas-web
+    output_dir: apps/web/dist
+    routes:
+      - path: /
+    catchall_document: index.html
+
+databases:
+  - name: db
+    engine: PG
+    version: "16"

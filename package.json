@@ -1,0 +1,31 @@
+{
+  "name": "yorga-tareas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gestor de tareas del Grupo Yorga (proyectos, tablero, comentarios, adjuntos, API + MCP).",
+  "packageManager": "npm@10.9.7",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "setup": "npm install && npm run preflight && npm run db:up && npm run db:generate && npm run db:migrate",
+    "preflight": "node scripts/preflight.mjs",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "dev": "turbo run dev",
+    "db:up": "docker compose up -d && until docker exec yorga-tareas-db pg_isready -U tareas >/dev/null 2>&1; do sleep 1; done",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "db:generate": "npm run prisma:generate -w @yorga/tareas-api",
+    "db:migrate": "npm run prisma:deploy -w @yorga/tareas-api",
+    "db:migrate:new": "npm run prisma:migrate -w @yorga/tareas-api",
+    "db:studio": "npm run prisma:studio -w @yorga/tareas-api",
+    "clickup:export": "node scripts/clickup-export.mjs"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.0"
+  }
+}
