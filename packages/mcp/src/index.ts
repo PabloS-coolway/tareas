@@ -36,10 +36,11 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 interface Status { id: number; key: string; name: string; category: string }
 interface Project { id: number; key: string; name: string; statuses: Status[]; openCount: number; mineCount: number }
 interface UserRef { id: number; name: string; email: string }
+interface Sprint { id: number; name: string; goal: string; startDate: string | null; endDate: string | null; status: string; total: number; done: number }
 interface Task {
   id: number; key: string; title: string; description: string; type: string; priority: string; status: Status;
   assignee: UserRef | null; parentKey: string | null; dueDate: string | null; tags: string[]; projectKey: string;
-  subtaskCount: number; doneSubtaskCount: number; commentCount: number; updatedAt: string;
+  subtaskCount: number; doneSubtaskCount: number; commentCount: number; updatedAt: string; sprintId: number | null; sprintName: string | null;
 }
 
 const proyecto = async (key: string): Promise<Project> => api<Project>(`/projects/${encodeURIComponent(key)}`);
@@ -54,10 +55,16 @@ const estado = (p: Project, keyOrName: string): Status => {
   if (!s) throw new Error(`Estado "${keyOrName}" no existe en ${p.key}. Estados: ${p.statuses.map((x) => x.key).join(', ')}.`);
   return s;
 };
+const sprintPorNombre = async (nombreOId: string): Promise<Sprint> => {
+  const ss = await api<Sprint[]>('/sprints');
+  const s = ss.find((x) => String(x.id) === nombreOId) ?? ss.find((x) => x.name.toLowerCase() === nombreOId.toLowerCase()) ?? ss.find((x) => x.name.toLowerCase().includes(nombreOId.toLowerCase()));
+  if (!s) throw new Error(`No encuentro el sprint "${nombreOId}" (abiertos: ${ss.map((x) => x.name).join(', ') || 'ninguno'}).`);
+  return s;
+};
 const resumenTarea = (t: Task) =>
   `${t.key} [${t.status.name}] (${t.priority}${t.type !== 'TASK' ? `, ${t.type}` : ''}) ${t.title}` +
   `${t.assignee ? ` → ${t.assignee.name}` : ''}${t.dueDate ? ` · vence ${t.dueDate}` : ''}${t.parentKey ? ` · padre ${t.parentKey}` : ''}` +
-  `${t.subtaskCount ? ` · sub ${t.doneSubtaskCount}/${t.subtaskCount}` : ''}`;
+  `${t.subtaskCount ? ` · sub ${t.doneSubtaskCount}/${t.subtaskCount}` : ''}${t.sprintName ? ` · sprint ${t.sprintName}` : ''}`;
 const texto = (s: string) => ({ content: [{ type: 'text' as const, text: s }] });
 
 const server = new McpServer({ name: 'tareas-yorga', version: '0.1.0' });
@@ -69,7 +76,7 @@ server.tool('listar_proyectos', 'Lista los proyectos con sus estados y cuántas 
 
 server.tool(
   'listar_tareas',
-  'Busca tareas. Filtra por proyecto (clave), asignado ("me", "none" o email), estado, prioridad, tipo o texto.',
+  'Busca tareas. Filtra por proyecto (clave), asignado ("me", "none" o email), estado, prioridad, tipo, sprint o texto.',
   {
     proyecto: z.string().optional().describe('Clave del proyecto, p. ej. COOL'),
     asignado: z.string().optional().describe('"me", "none" o el email/nombre de una persona'),
@@ -77,11 +84,13 @@ server.tool(
     prioridad: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).optional(),
     tipo: z.enum(['EPIC', 'TASK', 'BUG', 'INCIDENT']).optional(),
     texto: z.string().optional().describe('Texto en el título o clave (COOL-12)'),
+    sprint: z.string().optional().describe('Nombre/id del sprint, o "none" para el backlog'),
     incluirTerminadas: z.boolean().optional(),
     limite: z.number().int().min(1).max(500).optional(),
   },
   async (a) => {
     const q = new URLSearchParams();
+    if (a.sprint) q.set('sprintId', a.sprint === 'none' ? 'none' : String((await sprintPorNombre(a.sprint)).id));
     let p: Project | null = null;
     if (a.proyecto) {
       p = await proyecto(a.proyecto);
@@ -137,6 +146,7 @@ server.tool(
     vence: z.string().optional().describe('AAAA-MM-DD'),
     padre: z.string().optional().describe('Clave de la épica o tarea padre (COOL-3)'),
     etiquetas: z.array(z.string()).optional(),
+    sprint: z.string().optional().describe('Nombre (o id) del sprint en el que planificarla'),
   },
   async (a) => {
     const p = await proyecto(a.proyecto);
@@ -144,6 +154,7 @@ server.tool(
     if (a.estado) body.statusId = estado(p, a.estado).id;
     if (a.asignado) body.assigneeId = (await porEmail(a.asignado)).id;
     if (a.padre) body.parentId = (await api<Task>(`/tasks/${encodeURIComponent(a.padre)}`)).id;
+    if (a.sprint) body.sprintId = (await sprintPorNombre(a.sprint)).id;
     const t = await api<Task>('/tasks', { method: 'POST', body: JSON.stringify(body) });
     return texto(`Creada ${resumenTarea(t)}`);
   },
@@ -151,7 +162,7 @@ server.tool(
 
 server.tool(
   'editar_tarea',
-  'Cambia campos de una tarea: título, descripción, estado, prioridad, tipo, asignado, fecha, padre o etiquetas.',
+  'Cambia campos de una tarea: título, descripción, estado, prioridad, tipo, asignado, fecha, padre, etiquetas o sprint.',
   {
     clave: z.string(),
     titulo: z.string().optional(),
@@ -163,6 +174,7 @@ server.tool(
     vence: z.string().optional().describe('AAAA-MM-DD o "" para quitar'),
     padre: z.string().optional().describe('Clave del padre, o "" para quitar'),
     etiquetas: z.array(z.string()).optional(),
+    sprint: z.string().optional().describe('Nombre (o id) del sprint, o "" para mandarla al backlog'),
   },
   async (a) => {
     const t = await api<Task>(`/tasks/${encodeURIComponent(a.clave)}`);
@@ -171,6 +183,7 @@ server.tool(
     if (a.estado) body.statusId = estado(await proyecto(t.projectKey), a.estado).id;
     if (a.asignado !== undefined) body.assigneeId = a.asignado === 'none' || a.asignado === '' ? null : (await porEmail(a.asignado)).id;
     if (a.padre !== undefined) body.parentId = a.padre ? (await api<Task>(`/tasks/${encodeURIComponent(a.padre)}`)).id : null;
+    if (a.sprint !== undefined) body.sprintId = a.sprint ? (await sprintPorNombre(a.sprint)).id : null;
     const u = await api<Task>(`/tasks/${t.id}`, { method: 'PATCH', body: JSON.stringify(body) });
     return texto(`Actualizada ${resumenTarea(u)}`);
   },
@@ -181,6 +194,22 @@ server.tool('comentar', 'Añade un comentario a una tarea.', { clave: z.string()
   await api(`/tasks/${t.id}/comments`, { method: 'POST', body: JSON.stringify({ body: a.texto }) });
   return texto(`Comentario publicado en ${t.key}.`);
 });
+
+server.tool('listar_sprints', 'Sprints de trabajo (abiertos; con cerrados=true, todos) y su progreso.', { cerrados: z.boolean().optional() }, async ({ cerrados }) => {
+  const ss = await api<Sprint[]>(`/sprints${cerrados ? '?closed=true' : ''}`);
+  if (!ss.length) return texto('No hay sprints.');
+  return texto(ss.map((s) => `#${s.id} ${s.name} [${s.status}] ${s.startDate ?? '…'} → ${s.endDate ?? '…'} · ${s.done}/${s.total} terminadas${s.goal ? ` · objetivo: ${s.goal}` : ''}`).join('\n'));
+});
+
+server.tool(
+  'crear_sprint',
+  'Crea un sprint de trabajo (transversal a los proyectos).',
+  { nombre: z.string(), objetivo: z.string().optional(), empieza: z.string().optional().describe('AAAA-MM-DD'), termina: z.string().optional().describe('AAAA-MM-DD') },
+  async (a) => {
+    const s = await api<Sprint>('/sprints', { method: 'POST', body: JSON.stringify({ name: a.nombre, goal: a.objetivo, startDate: a.empieza, endDate: a.termina }) });
+    return texto(`Creado el sprint #${s.id} ${s.name}.`);
+  },
+);
 
 server.tool('equipo', 'Personas del equipo (para asignar tareas).', {}, async () => {
   const dir = await api<UserRef[]>('/users/directorio');

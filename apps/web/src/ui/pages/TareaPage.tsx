@@ -16,6 +16,7 @@ import {
   type TaskType,
   type UpdateTaskDto,
   type UserRefDto,
+  type SprintDto,
 } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
@@ -31,6 +32,7 @@ const CAMPOS: Record<string, string> = {
   status: 'el estado',
   assignee: 'el asignado',
   parent: 'el padre',
+  sprint: 'el sprint',
   dueDate: 'la fecha de vencimiento',
   startDate: 'la fecha de inicio',
   tags: 'las etiquetas',
@@ -78,6 +80,7 @@ export function TareaPage() {
   const [actividad, setActividad] = useState<ActivityDto[]>([]);
   const [equipo, setEquipo] = useState<UserRefDto[]>([]);
   const [epicas, setEpicas] = useState<TaskDto[]>([]);
+  const [sprints, setSprints] = useState<SprintDto[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -123,6 +126,7 @@ export function TareaPage() {
 
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
+    tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
   }, []);
 
   async function guardar(dto: UpdateTaskDto) {
@@ -360,6 +364,14 @@ export function TareaPage() {
                 <Form.Select id="t-assignee" size="sm" value={task.assignee?.id ?? ''} disabled={!puedeEditar} onChange={(e) => guardar({ assigneeId: e.target.value ? Number(e.target.value) : null })}>
                   <option value="">Sin asignar</option>
                   {equipo.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </Form.Select>
+              </div>
+              <div className="field">
+                <label htmlFor="t-sprint">Sprint</label>
+                <Form.Select id="t-sprint" size="sm" value={task.sprintId ?? ''} disabled={!puedeEditar} onChange={(e) => guardar({ sprintId: e.target.value ? Number(e.target.value) : null })}>
+                  <option value="">Backlog (sin sprint)</option>
+                  {sprints.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>)}
+                  {task.sprintId && !sprints.some((sp) => sp.id === task.sprintId) && <option value={task.sprintId}>{task.sprintName} (cerrado)</option>}
                 </Form.Select>
               </div>
               <div className="field">

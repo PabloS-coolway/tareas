@@ -1,0 +1,128 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, Sprint } from '@prisma/client';
+import { CloseSprintDto, CreateSprintDto, SPRINT_STATUSES, SprintDto, UpdateSprintDto } from '@yorga/contracts';
+import { PrismaService } from '../../infrastructure/db/prisma.service';
+import { ActivityService } from './activity.service';
+
+const fecha = (d: Date | null): string | null => (d ? d.toISOString().slice(0, 10) : null);
+const parseFecha = (s: string | null | undefined): Date | null | undefined => {
+  if (s === undefined) return undefined;
+  if (s === null || s === '') return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) throw new BadRequestException(`Fecha inválida: ${s} (usa AAAA-MM-DD).`);
+  return new Date(`${s}T00:00:00.000Z`);
+};
+
+/** Sprints de trabajo: transversales a los proyectos. */
+@Injectable()
+export class SprintsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activity: ActivityService,
+  ) {}
+
+  async list(includeClosed = false): Promise<SprintDto[]> {
+    const rows = await this.prisma.sprint.findMany({
+      where: includeClosed ? {} : { status: { not: 'CLOSED' } },
+      orderBy: [{ status: 'asc' }, { startDate: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
+    });
+    return this.toDtos(rows);
+  }
+
+  async get(id: number): Promise<SprintDto> {
+    const row = await this.prisma.sprint.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException('Sprint no encontrado.');
+    return (await this.toDtos([row]))[0];
+  }
+
+  async create(dto: CreateSprintDto): Promise<SprintDto> {
+    const name = dto.name?.trim();
+    if (!name) throw new BadRequestException('Indica el nombre del sprint.');
+    const startDate = parseFecha(dto.startDate) ?? null;
+    const endDate = parseFecha(dto.endDate) ?? null;
+    if (startDate && endDate && endDate < startDate) throw new BadRequestException('El sprint no puede terminar antes de empezar.');
+    const row = await this.prisma.sprint.create({ data: { name, goal: dto.goal?.trim() ?? '', startDate, endDate } });
+    return this.get(row.id);
+  }
+
+  async update(id: number, dto: UpdateSprintDto): Promise<SprintDto> {
+    const cur = await this.prisma.sprint.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException('Sprint no encontrado.');
+    const data: Prisma.SprintUpdateInput = {};
+    if (dto.name !== undefined) {
+      const n = dto.name.trim();
+      if (!n) throw new BadRequestException('El nombre no puede quedar vacío.');
+      data.name = n;
+    }
+    if (dto.goal !== undefined) data.goal = dto.goal.trim();
+    const start = parseFecha(dto.startDate);
+    if (start !== undefined) data.startDate = start;
+    const end = parseFecha(dto.endDate);
+    if (end !== undefined) data.endDate = end;
+    const s = start === undefined ? cur.startDate : start;
+    const e = end === undefined ? cur.endDate : end;
+    if (s && e && e < s) throw new BadRequestException('El sprint no puede terminar antes de empezar.');
+    if (dto.status !== undefined) {
+      if (!SPRINT_STATUSES.includes(dto.status)) throw new BadRequestException('Estado de sprint no válido.');
+      if (dto.status === 'CLOSED') throw new BadRequestException('Para cerrar un sprint usa la acción de cerrar (decide qué pasa con lo pendiente).');
+      data.status = dto.status;
+      if (cur.status === 'CLOSED') data.closedAt = null; // reabrir
+    }
+    await this.prisma.sprint.update({ where: { id }, data });
+    return this.get(id);
+  }
+
+  /** Cierra el sprint; lo no terminado va a otro sprint (`moveOpenTo`) o al backlog (`null`). */
+  async close(id: number, dto: CloseSprintDto, actorId: number): Promise<SprintDto> {
+    const cur = await this.prisma.sprint.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException('Sprint no encontrado.');
+    if (cur.status === 'CLOSED') throw new BadRequestException('El sprint ya está cerrado.');
+    let destino: Sprint | null = null;
+    if (dto.moveOpenTo) {
+      destino = await this.prisma.sprint.findUnique({ where: { id: dto.moveOpenTo } });
+      if (!destino || destino.id === id || destino.status === 'CLOSED') throw new BadRequestException('Sprint de destino no válido.');
+    }
+    const abiertas = await this.prisma.task.findMany({ where: { sprintId: id, status: { category: { not: 'DONE' } } }, select: { id: true } });
+    await this.prisma.$transaction(async (tx) => {
+      if (abiertas.length) {
+        await tx.task.updateMany({ where: { id: { in: abiertas.map((t) => t.id) } }, data: { sprintId: destino?.id ?? null } });
+        await this.activity.record(
+          abiertas.map((t) => ({ taskId: t.id, actorId, action: 'sprint', field: 'sprint', before: cur.name, after: destino?.name ?? null })),
+          tx,
+        );
+      }
+      await tx.sprint.update({ where: { id }, data: { status: 'CLOSED', closedAt: new Date() } });
+    });
+    return this.get(id);
+  }
+
+  async remove(id: number): Promise<void> {
+    const cur = await this.prisma.sprint.findUnique({ where: { id }, include: { _count: { select: { tasks: true } } } });
+    if (!cur) throw new NotFoundException('Sprint no encontrado.');
+    if (cur._count.tasks > 0) throw new BadRequestException('El sprint tiene tareas; muévelas o ciérralo en vez de borrarlo.');
+    await this.prisma.sprint.delete({ where: { id } });
+  }
+
+  private async toDtos(rows: Sprint[]): Promise<SprintDto[]> {
+    const ids = rows.map((r) => r.id);
+    const [total, done] = ids.length
+      ? await Promise.all([
+          this.prisma.task.groupBy({ by: ['sprintId'], where: { sprintId: { in: ids } }, _count: { _all: true } }),
+          this.prisma.task.groupBy({ by: ['sprintId'], where: { sprintId: { in: ids }, status: { category: 'DONE' } }, _count: { _all: true } }),
+        ])
+      : [[], []];
+    const t = new Map(total.map((x) => [x.sprintId, x._count._all]));
+    const d = new Map(done.map((x) => [x.sprintId, x._count._all]));
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      goal: r.goal,
+      startDate: fecha(r.startDate),
+      endDate: fecha(r.endDate),
+      status: r.status,
+      total: t.get(r.id) ?? 0,
+      done: d.get(r.id) ?? 0,
+      closedAt: r.closedAt?.toISOString() ?? null,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  }
+}

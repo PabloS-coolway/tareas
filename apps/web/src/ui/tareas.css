@@ -121,3 +121,16 @@
 /* Lista de tareas (tablero en modo lista y "Todas las tareas"): el título es la columna que respira, el resto no parte. */
 .page-board .table td { white-space: nowrap; }
 .page-board .table td:has(.lista-titulo) { white-space: normal; min-width: 280px; width: 100%; }
+
+/* ---------- Sprints ---------- */
+.sprint-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.sprint-card.active { border-color: var(--brand); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 25%, transparent); }
+.sprint-goal { white-space: pre-wrap; color: var(--ink); }
+.sprint-progress { height: 6px; }
+.backlog-list { display: flex; flex-direction: column; }
+.backlog-row { display: grid; grid-template-columns: auto 88px minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 6px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.backlog-row:hover, .backlog-row.sel { background: color-mix(in srgb, var(--brand) 6%, transparent); }
+.backlog-row .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.backlog-row .form-check { margin: 0; min-height: 0; }
+.proj-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
+.proj-chip .nav-proj-dot { width: 8px; height: 8px; }

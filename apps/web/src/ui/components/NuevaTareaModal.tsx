@@ -7,6 +7,7 @@ import {
   TASK_TYPE_LABELS,
   type Priority,
   type ProjectDto,
+  type SprintDto,
   type TaskDto,
   type TaskType,
   type UserRefDto,
@@ -15,13 +16,15 @@ import { tareasGateway } from '../composition';
 
 interface Props {
   project: ProjectDto;
+  /** Sprint preseleccionado (p. ej. al crear desde un sprint). */
+  sprintId?: number | null;
   /** Si se da, la nueva tarea nace como hija (subtarea o hija de épica). */
   parent?: TaskDto | null;
   onClose: () => void;
   onCreated: (t: TaskDto) => void;
 }
 
-export function NuevaTareaModal({ project, parent, onClose, onCreated }: Props) {
+export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onClose, onCreated }: Props) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<TaskType>('TASK');
@@ -32,11 +35,14 @@ export function NuevaTareaModal({ project, parent, onClose, onCreated }: Props) 
   const [parentId, setParentId] = useState<string>(parent ? String(parent.id) : '');
   const [equipo, setEquipo] = useState<UserRefDto[]>([]);
   const [epicas, setEpicas] = useState<TaskDto[]>([]);
+  const [sprints, setSprints] = useState<SprintDto[]>([]);
+  const [sprintId, setSprintId] = useState<string>(sprintInicial ? String(sprintInicial) : '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
+    tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
     if (!parent) {
       tareasGateway
         .tareas({ projectId: project.id, type: 'EPIC', includeDone: false, pageSize: 200 })
@@ -59,6 +65,7 @@ export function NuevaTareaModal({ project, parent, onClose, onCreated }: Props) 
         statusId,
         assigneeId: assigneeId ? Number(assigneeId) : null,
         parentId: parentId ? Number(parentId) : null,
+        sprintId: sprintId ? Number(sprintId) : null,
         dueDate: dueDate || null,
       });
       onCreated(t);
@@ -118,6 +125,15 @@ export function NuevaTareaModal({ project, parent, onClose, onCreated }: Props) 
                 <option value="">Sin asignar</option>
                 {equipo.map((u) => (
                   <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </Form.Select>
+            </div>
+            <div className="col-md-6">
+              <Form.Label className="small">Sprint</Form.Label>
+              <Form.Select id="nt-sprint" value={sprintId} onChange={(e) => setSprintId(e.target.value)}>
+                <option value="">Backlog (sin sprint)</option>
+                {sprints.map((sp) => (
+                  <option key={sp.id} value={sp.id}>{sp.name}{sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>
                 ))}
               </Form.Select>
             </div>

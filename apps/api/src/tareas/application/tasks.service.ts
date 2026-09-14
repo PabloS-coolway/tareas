@@ -28,6 +28,7 @@ const includeTask = {
   reporter: userRef,
   project: { select: { key: true } },
   parent: { select: { id: true, number: true, title: true, project: { select: { key: true } } } },
+  sprint: { select: { id: true, name: true } },
   _count: { select: { comments: true, attachments: true, subtasks: true } },
 } satisfies Prisma.TaskInclude;
 
@@ -60,6 +61,8 @@ export class TasksService {
     if (f.priority) where.priority = f.priority;
     if (f.type) where.type = f.type;
     if (f.parentId !== undefined) where.parentId = f.parentId;
+    if (f.sprintId === 'none') where.sprintId = null;
+    else if (typeof f.sprintId === 'number') where.sprintId = f.sprintId;
     if (f.board) {
       // Tablero: tarjetas = trabajo real. Sin épicas; sin subtareas de tareas (se ven dentro del padre).
       where.type = f.type ?? { not: 'EPIC' };
@@ -156,6 +159,7 @@ export class TasksService {
     if (dto.priority && !PRIORITIES.includes(dto.priority)) throw new BadRequestException('Prioridad no válida.');
     if (dto.parentId) await this.ensureParent(dto.parentId, project.id, null);
     if (dto.assigneeId) await this.ensureUser(dto.assigneeId);
+    if (dto.sprintId) await this.ensureSprint(dto.sprintId);
 
     const id = await this.prisma.$transaction(async (tx) => {
       // El número se reserva en la MISMA transacción: dos altas a la vez no pueden compartir COOL-<n>.
@@ -173,6 +177,7 @@ export class TasksService {
           assigneeId: dto.assigneeId ?? null,
           reporterId: actorId,
           parentId: dto.parentId ?? null,
+          sprintId: dto.sprintId ?? null,
           dueDate: parseFecha(dto.dueDate) ?? null,
           startDate: parseFecha(dto.startDate) ?? null,
           tags: limpiarTags(dto.tags),
@@ -187,7 +192,7 @@ export class TasksService {
   }
 
   async update(id: number, dto: UpdateTaskDto, actorId: number): Promise<TaskDto> {
-    const cur = await this.prisma.task.findUnique({ where: { id }, include: { status: true, assignee: userRef, parent: { select: { id: true, number: true, project: { select: { key: true } } } }, project: { select: { key: true } } } });
+    const cur = await this.prisma.task.findUnique({ where: { id }, include: { status: true, assignee: userRef, parent: { select: { id: true, number: true, project: { select: { key: true } } } }, project: { select: { key: true } }, sprint: { select: { id: true, name: true } } } });
     if (!cur) throw new NotFoundException('Tarea no encontrada.');
 
     const data: Prisma.TaskUncheckedUpdateInput = {};
@@ -236,6 +241,11 @@ export class TasksService {
       const antes = cur.parent ? claveTarea(cur.parent.project.key, cur.parent.number) : null;
       const despues = dto.parentId ? await this.claveDe(dto.parentId) : null;
       log('parent', antes, despues);
+    }
+    if (dto.sprintId !== undefined && dto.sprintId !== cur.sprintId) {
+      const sp = dto.sprintId ? await this.ensureSprint(dto.sprintId) : null;
+      data.sprintId = sp?.id ?? null;
+      log('sprint', cur.sprint?.name ?? null, sp?.name ?? null);
     }
     const due = parseFecha(dto.dueDate);
     if (due !== undefined && fecha(due) !== fecha(cur.dueDate)) {
@@ -306,6 +316,12 @@ export class TasksService {
     return u;
   }
 
+  private async ensureSprint(id: number): Promise<{ id: number; name: string }> {
+    const sp = await this.prisma.sprint.findFirst({ where: { id, status: { not: 'CLOSED' } }, select: { id: true, name: true } });
+    if (!sp) throw new BadRequestException('Sprint no válido (no existe o está cerrado).');
+    return sp;
+  }
+
   private async ensureParent(parentId: number, projectId: number, selfId: number | null): Promise<void> {
     if (parentId === selfId) throw new BadRequestException('Una tarea no puede ser su propio padre.');
     const p = await this.prisma.task.findFirst({ where: { id: parentId, projectId }, select: { id: true, parentId: true } });
@@ -342,6 +358,8 @@ export class TasksService {
       parentId: r.parentId,
       parentKey: r.parent ? claveTarea(r.parent.project.key, r.parent.number) : null,
       parentTitle: r.parent?.title ?? null,
+      sprintId: r.sprint?.id ?? null,
+      sprintName: r.sprint?.name ?? null,
       dueDate: fecha(r.dueDate),
       startDate: fecha(r.startDate),
       tags: r.tags,

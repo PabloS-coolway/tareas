@@ -1,48 +1,73 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Card, Form } from 'react-bootstrap';
-import { PRIORITIES, PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS, type Priority, type TaskDto, type TaskType, type UserRefDto } from '@yorga/contracts';
+import { Alert, Button, ButtonGroup, Card, Form } from 'react-bootstrap';
+import { Kanban, ListUl } from 'react-bootstrap-icons';
+import { PRIORITIES, PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS, type Priority, type SprintDto, type TaskDto, type TaskType, type UserRefDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { Avatar, EstadoPill, PrioridadPill, TipoPill, Vence } from '../components/tareas-ui';
 import { Column, DataTable, useMemoryTable } from '../components/table';
 import { Skeleton } from '../components/Skeleton';
+import { TableroGlobal } from '../components/TableroGlobal';
 import { useProyectos } from '../proyectos/ProyectosContext';
 
-/** Todas las tareas de todos los proyectos en una sola lista, con filtros. */
+type Vista = 'tablero' | 'lista';
+const VISTA_KEY = 'tareas.vista.global';
+
+/** Todas las tareas de todos los proyectos: tablero (mismos estados en todos) o lista, con filtros. */
 export function TodasTareasPage() {
   const { proyectos } = useProyectos();
   const [tasks, setTasks] = useState<TaskDto[] | null>(null);
   const [equipo, setEquipo] = useState<UserRefDto[]>([]);
+  const [sprints, setSprints] = useState<SprintDto[]>([]);
   const [error, setError] = useState('');
+  const [vista, setVista] = useState<Vista>(() => (localStorage.getItem(VISTA_KEY) as Vista) || 'tablero');
 
-  // filtros (los que resuelve el servidor)
+  // filtros (los resuelve el servidor)
   const [q, setQ] = useState('');
   const [projectId, setProjectId] = useState('');
   const [assignee, setAssignee] = useState('');
   const [priority, setPriority] = useState('');
   const [type, setType] = useState('');
+  const [sprint, setSprint] = useState('');
   const [includeDone, setIncludeDone] = useState(false);
+
+  const cambiarVista = (v: Vista) => {
+    setVista(v);
+    localStorage.setItem(VISTA_KEY, v);
+  };
 
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
+    tareasGateway.sprints(true).then(setSprints).catch(() => setSprints([]));
   }, []);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     setError('');
-    tareasGateway
-      .tareas({
+    try {
+      const p = await tareasGateway.tareas({
         projectId: projectId ? Number(projectId) : undefined,
         assigneeId: assignee === 'me' || assignee === 'none' ? assignee : assignee ? Number(assignee) : undefined,
         priority: (priority as Priority) || undefined,
         type: (type as TaskType) || undefined,
+        sprintId: sprint === 'none' ? 'none' : sprint ? Number(sprint) : undefined,
         q: q || undefined,
-        includeDone,
-        doneDays: includeDone ? 30 : undefined,
+        // En tablero: sin épicas ni subtareas (como en el de cada proyecto) y las terminadas de los últimos 14 días.
+        board: vista === 'tablero',
+        includeDone: vista === 'tablero' ? true : includeDone,
+        doneDays: vista === 'tablero' ? 14 : includeDone ? 30 : undefined,
         pageSize: 1000,
-      })
-      .then((p) => setTasks(p.items))
-      .catch((e) => setError((e as Error).message));
-  }, [q, projectId, assignee, priority, type, includeDone]);
+      });
+      setTasks(p.items);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [q, projectId, assignee, priority, type, sprint, includeDone, vista]);
+
+  useEffect(() => {
+    setTasks(null);
+    const t = setTimeout(() => void load(), q ? 250 : 0);
+    return () => clearTimeout(t);
+  }, [load, q]);
 
   const proyectoDe = useMemo(() => new Map(proyectos.map((p) => [p.id, p])), [proyectos]);
 
@@ -67,6 +92,7 @@ export function TodasTareasPage() {
       { key: 'status', label: 'estado', value: (t) => t.status.name, render: (t) => <EstadoPill s={t.status} /> },
       { key: 'priority', label: 'prioridad', value: (t) => PRIORITY_LABELS[t.priority], render: (t) => <PrioridadPill p={t.priority} /> },
       { key: 'assignee', label: 'asignado', value: (t) => t.assignee?.name ?? '', render: (t) => <span className="d-inline-flex align-items-center gap-2"><Avatar user={t.assignee} />{t.assignee?.name ?? <span className="text-secondary">—</span>}</span> },
+      { key: 'sprint', label: 'sprint', value: (t) => t.sprintName ?? '', render: (t) => (t.sprintId ? <Link to={`/sprints/${t.sprintId}`} className="text-decoration-none text-nowrap">{t.sprintName}</Link> : <span className="text-secondary">—</span>) },
       { key: 'due', label: 'vence', value: (t) => t.dueDate ?? '', render: (t) => <Vence date={t.dueDate} done={t.status.category === 'DONE'} /> },
       { key: 'parent', label: 'épica / padre', value: (t) => t.parentKey ?? '', render: (t) => (t.parentKey ? <Link to={`/t/${t.parentKey}`} className="task-key">{t.parentKey}</Link> : null) },
     ],
@@ -84,11 +110,17 @@ export function TodasTareasPage() {
         <div>
           <h1 className="h4 mb-0">Todas las tareas</h1>
           <div className="small text-secondary">
-            Todos los proyectos en una sola lista
+            Todos los proyectos, un solo tablero
             {tasks && <> · {abiertas} abiertas{vencidas > 0 && <span className="text-danger"> · {vencidas} vencidas</span>}</>}
           </div>
         </div>
-        <Form.Check type="switch" id="tt-done" label="Incluir terminadas (30 días)" checked={includeDone} onChange={(e) => setIncludeDone(e.target.checked)} />
+        <div className="d-flex align-items-center gap-3 flex-wrap">
+          {vista === 'lista' && <Form.Check type="switch" id="tt-done" label="Incluir terminadas (30 días)" checked={includeDone} onChange={(e) => setIncludeDone(e.target.checked)} />}
+          <ButtonGroup className="view-toggle">
+            <Button variant={vista === 'tablero' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('tablero')} title="Tablero"><Kanban /></Button>
+            <Button variant={vista === 'lista' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('lista')} title="Lista"><ListUl /></Button>
+          </ButtonGroup>
+        </div>
       </header>
 
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>⚠ {error}</Alert>}
@@ -98,6 +130,11 @@ export function TodasTareasPage() {
         <Form.Select id="tt-project" size="sm" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
           <option value="">Todos los proyectos</option>
           {proyectos.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </Form.Select>
+        <Form.Select id="tt-sprint" size="sm" value={sprint} onChange={(e) => setSprint(e.target.value)}>
+          <option value="">Cualquier sprint</option>
+          <option value="none">Backlog (sin sprint)</option>
+          {sprints.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.status === 'CLOSED' ? ' (cerrado)' : sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>)}
         </Form.Select>
         <Form.Select id="tt-assignee" size="sm" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
           <option value="">Cualquier asignado</option>
@@ -116,7 +153,9 @@ export function TodasTareasPage() {
       </div>
 
       {!tasks ? (
-        <Skeleton className="skeleton-rounded" width="100%" height={240} />
+        <div className="board">{[0, 1, 2].map((i) => <div key={i} className="board-col p-2"><Skeleton className="skeleton-rounded" width="100%" height={160} /></div>)}</div>
+      ) : vista === 'tablero' ? (
+        <TableroGlobal tasks={tasks} setTasks={setTasks} onChanged={() => void load()} />
       ) : (
         <Card>
           <Card.Body className="p-3">

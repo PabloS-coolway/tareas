@@ -88,6 +88,29 @@ enum Priority {
   LOW
 }
 
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  CLOSED
+}
+
+/// Sprint de trabajo: transversal a los proyectos (una tarea de cualquier proyecto puede entrar en él).
+model Sprint {
+  id        Int          @id @default(autoincrement())
+  name      String
+  goal      String       @default("")
+  startDate DateTime?    @map("start_date") @db.Date
+  endDate   DateTime?    @map("end_date") @db.Date
+  status    SprintStatus @default(PLANNED)
+  closedAt  DateTime?    @map("closed_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  tasks Task[]
+
+  @@map("sprint")
+}
+
 model Project {
   id            Int      @id @default(autoincrement())
   /// Prefijo de las claves de tarea (COOL → COOL-12).
@@ -145,6 +168,9 @@ model Task {
   parentId    Int?      @map("parent_id")
   parent      Task?     @relation("subtasks", fields: [parentId], references: [id], onDelete: SetNull)
   subtasks    Task[]    @relation("subtasks")
+  /// Sprint al que está planificada (o ninguno = backlog).
+  sprintId    Int?      @map("sprint_id")
+  sprint      Sprint?   @relation(fields: [sprintId], references: [id], onDelete: SetNull)
   dueDate     DateTime? @map("due_date") @db.Date
   startDate   DateTime? @map("start_date") @db.Date
   tags        String[]
@@ -164,6 +190,7 @@ model Task {
   @@index([projectId, statusId, order])
   @@index([assigneeId])
   @@index([parentId])
+  @@index([sprintId])
   @@map("task")
 }
 

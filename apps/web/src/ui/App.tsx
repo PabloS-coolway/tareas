@@ -10,6 +10,8 @@ import { TareaPage } from './pages/TareaPage';
 import { MisTareasPage } from './pages/MisTareasPage';
 import { EquipoPage } from './pages/EquipoPage';
 import { TodasTareasPage } from './pages/TodasTareasPage';
+import { SprintsPage } from './pages/SprintsPage';
+import { SprintPage } from './pages/SprintPage';
 import { TokensPage } from './pages/TokensPage';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth, RequireFeature } from './auth/RequireAuth';
@@ -29,6 +31,8 @@ export function App() {
               <Route path="/equipo/:userId" element={<EquipoPage />} />
               <Route path="/proyectos" element={<ProyectosPage />} />
               <Route path="/tareas" element={<TodasTareasPage />} />
+              <Route path="/sprints" element={<SprintsPage />} />
+              <Route path="/sprints/:id" element={<SprintPage />} />
               <Route path="/p/:key" element={<TableroPage />} />
               <Route path="/t/:key" element={<TareaPage />} />
               <Route path="/tokens" element={<TokensPage />} />

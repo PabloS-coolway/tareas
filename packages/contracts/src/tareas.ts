@@ -29,6 +29,52 @@ export const STATUS_CATEGORY_LABELS: Record<StatusCategory, string> = {
   DONE: 'Terminado',
 };
 
+// ---------- Sprints ----------
+
+export const SPRINT_STATUSES = ['PLANNED', 'ACTIVE', 'CLOSED'] as const;
+export type SprintStatus = (typeof SPRINT_STATUSES)[number];
+export const SPRINT_STATUS_LABELS: Record<SprintStatus, string> = {
+  PLANNED: 'Planificado',
+  ACTIVE: 'En curso',
+  CLOSED: 'Cerrado',
+};
+
+/** Sprint de trabajo, transversal a los proyectos. */
+export interface SprintDto {
+  id: number;
+  name: string;
+  goal: string;
+  /** ISO date (YYYY-MM-DD) o null. */
+  startDate: string | null;
+  endDate: string | null;
+  status: SprintStatus;
+  /** Tareas del sprint (todas / terminadas). */
+  total: number;
+  done: number;
+  closedAt: string | null;
+  createdAt: string;
+}
+
+export interface CreateSprintDto {
+  name: string;
+  goal?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+export interface UpdateSprintDto {
+  name?: string;
+  goal?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  status?: SprintStatus;
+}
+
+/** Cerrar un sprint: qué hacer con las tareas que no se terminaron (a otro sprint, o `null` = al backlog). */
+export interface CloseSprintDto {
+  moveOpenTo?: number | null;
+}
+
 // ---------- Proyectos ----------
 
 export interface ProjectStatusDto {
@@ -98,6 +144,8 @@ export interface TaskDto {
   parentId: number | null;
   parentKey: string | null;
   parentTitle: string | null;
+  sprintId: number | null;
+  sprintName: string | null;
   /** ISO date (YYYY-MM-DD) o null. */
   dueDate: string | null;
   startDate: string | null;
@@ -123,6 +171,7 @@ export interface CreateTaskDto {
   priority?: Priority;
   assigneeId?: number | null;
   parentId?: number | null;
+  sprintId?: number | null;
   dueDate?: string | null;
   startDate?: string | null;
   tags?: string[];
@@ -136,6 +185,7 @@ export interface UpdateTaskDto {
   priority?: Priority;
   assigneeId?: number | null;
   parentId?: number | null;
+  sprintId?: number | null;
   dueDate?: string | null;
   startDate?: string | null;
   tags?: string[];
@@ -157,6 +207,8 @@ export interface TaskFilter {
   /** Texto en título o clave (COOL-12). */
   q?: string;
   parentId?: number | null;
+  /** Sprint; `none` = backlog (sin sprint). */
+  sprintId?: number | 'none';
   /** Modo tablero: sin épicas y sin subtareas (se ven dentro de su padre). */
   board?: boolean;
   /** Incluir terminadas. En tablero, sólo las cerradas en los últimos `doneDays` días. */

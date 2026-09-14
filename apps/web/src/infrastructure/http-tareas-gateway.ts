@@ -2,16 +2,20 @@ import type {
   ActivityDto,
   AttachmentDto,
   ClickUpImportResultDto,
+  CloseSprintDto,
   CommentDto,
+  CreateSprintDto,
   CreateProjectDto,
   CreateTaskDto,
   MoveTaskDto,
   ProjectDto,
   ResumenDto,
+  SprintDto,
   TaskDto,
   TaskFilter,
   TaskPageDto,
   UpdateProjectDto,
+  UpdateSprintDto,
   UpdateTaskDto,
   UpsertStatusDto,
   UserRefDto,
@@ -52,6 +56,26 @@ export class HttpTareasGateway {
   }
   async guardarEstados(id: number, statuses: UpsertStatusDto[]): Promise<ProjectDto> {
     return ok(await apiFetch(`/projects/${id}/statuses`, json('PUT', statuses)), 'No se pudieron guardar los estados.');
+  }
+
+  // --- sprints ---
+  async sprints(includeClosed = false): Promise<SprintDto[]> {
+    return ok(await apiFetch(`/sprints${includeClosed ? '?closed=true' : ''}`), 'No se pudieron cargar los sprints.');
+  }
+  async sprint(id: number): Promise<SprintDto> {
+    return ok(await apiFetch(`/sprints/${id}`), 'Sprint no encontrado.');
+  }
+  async crearSprint(dto: CreateSprintDto): Promise<SprintDto> {
+    return ok(await apiFetch('/sprints', json('POST', dto)), 'No se pudo crear el sprint.');
+  }
+  async editarSprint(id: number, dto: UpdateSprintDto): Promise<SprintDto> {
+    return ok(await apiFetch(`/sprints/${id}`, json('PATCH', dto)), 'No se pudo guardar el sprint.');
+  }
+  async cerrarSprint(id: number, dto: CloseSprintDto): Promise<SprintDto> {
+    return ok(await apiFetch(`/sprints/${id}/close`, json('POST', dto)), 'No se pudo cerrar el sprint.');
+  }
+  async borrarSprint(id: number): Promise<void> {
+    return ok(await apiFetch(`/sprints/${id}`, { method: 'DELETE' }), 'No se pudo borrar el sprint.');
   }
 
   // --- tareas ---

@@ -18,6 +18,7 @@ function parseFilter(q: Record<string, string | undefined>): TaskFilter {
     type: q.type as TaskType | undefined,
     q: q.q,
     parentId: q.parentId === 'null' ? null : num(q.parentId),
+    sprintId: q.sprintId === 'none' ? 'none' : num(q.sprintId),
     board: q.board === 'true',
     includeDone: q.includeDone === 'true',
     doneDays: num(q.doneDays),
