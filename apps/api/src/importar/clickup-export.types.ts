@@ -70,8 +70,14 @@ export interface ClickUpExport {
   lists: CuList[];
 }
 
-/** Opciones del import: claves por lista (si no, se proponen) y si descargar adjuntos. */
+/** Opciones del import: claves por lista (si no, se proponen), si descargar adjuntos y si unificar estados. */
 export interface ClickUpImportOptions {
   keys?: Record<string, string>;
   adjuntos?: boolean;
+  /**
+   * `true` (por defecto): todos los proyectos nacen con los estados estándar de la app (Pendiente / En curso /
+   * Bloqueada / Completado) y cada estado de ClickUp se traduce por su categoría. `false`: se copian los
+   * estados de cada lista de ClickUp tal cual.
+   */
+  estadosEstandar?: boolean;
 }

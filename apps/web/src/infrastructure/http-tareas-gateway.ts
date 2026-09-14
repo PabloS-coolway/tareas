@@ -129,7 +129,7 @@ export class HttpTareasGateway {
   }
 
   // --- import ---
-  async importarClickUp(data: unknown, options: { keys?: Record<string, string>; adjuntos?: boolean }): Promise<ClickUpImportResultDto> {
+  async importarClickUp(data: unknown, options: { keys?: Record<string, string>; adjuntos?: boolean; estadosEstandar?: boolean }): Promise<ClickUpImportResultDto> {
     return ok(await apiFetch('/import/clickup', json('POST', { data, options })), 'La importación falló.');
   }
 }

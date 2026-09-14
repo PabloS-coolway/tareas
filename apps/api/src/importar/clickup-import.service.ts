@@ -4,6 +4,7 @@ import { ClickUpImportResultDto, Priority, StatusCategory } from '@yorga/contrac
 import { PASSWORD_HASHER, PasswordHasher } from '../auth/application/ports';
 import { PrismaService } from '../infrastructure/db/prisma.service';
 import { AttachmentsService } from '../tareas/application/attachments.service';
+import { ESTADOS_POR_DEFECTO } from '../tareas/application/projects.service';
 import { proponerClave } from '../tareas/domain/clave';
 import { ClickUpExport, ClickUpImportOptions, CuStatus, CuTask, CuUser } from './clickup-export.types';
 
@@ -33,6 +34,7 @@ export class ClickUpImportService {
     const userId = (u?: CuUser | null): number | null => (u ? (usuarios.get(String(u.id)) ?? null) : null);
 
     // 2) Listas → proyectos (con sus estados).
+    const estandar = opts.estadosEstandar !== false;
     const ocupadas = new Set((await this.prisma.project.findMany({ select: { key: true } })).map((p) => p.key));
     for (const list of data.lists) {
       let project = await this.prisma.project.findUnique({ where: { clickupListId: list.id }, include: { statuses: true } });
@@ -40,25 +42,36 @@ export class ClickUpImportService {
         const key = (opts.keys?.[list.id] ?? proponerClave(list.name, ocupadas)).toUpperCase();
         ocupadas.add(key);
         const estados = (list.statuses?.length ? list.statuses : estadosDeTareas(list.tasks)).sort((a, b) => (a.orderindex ?? 0) - (b.orderindex ?? 0));
+        const statuses = estandar
+          ? ESTADOS_POR_DEFECTO.map((s, order) => ({ ...s, order }))
+          : estados.map((s, order) => ({ key: claveEstado(s.status), name: s.status, color: s.color ?? '#6b7280', order, category: categoria(s) }));
         project = await this.prisma.project.create({
-          data: {
-            key,
-            name: list.name,
-            clickupListId: list.id,
-            statuses: { create: estados.map((s, order) => ({ key: claveEstado(s.status), name: s.status, color: s.color ?? '#6b7280', order, category: categoria(s) })) },
-          },
+          data: { key, name: list.name, clickupListId: list.id, statuses: { create: statuses } },
           include: { statuses: true },
         });
         res.proyectos++;
       }
-      const estadoPorNombre = new Map(project.statuses.map((s) => [s.name.toLowerCase(), s]));
-      const primerEstado = [...project.statuses].sort((a, b) => a.order - b.order)[0];
+      const ordenados = [...project.statuses].sort((a, b) => a.order - b.order);
+      const estadoPorNombre = new Map(ordenados.map((s) => [s.name.toLowerCase(), s]));
+      const primerEstado = ordenados[0];
+      const tiposDeLista = new Map((list.statuses ?? []).map((s) => [s.status.toLowerCase(), s]));
+      /** Estado del proyecto para una tarea: por nombre si coincide; si no, por categoría (TODO/DOING/DONE) del estado de ClickUp. */
+      const estadoPara = (t: CuTask) => {
+        const nombre = (t.status?.status ?? '').toLowerCase();
+        const porNombre = estadoPorNombre.get(nombre);
+        if (porNombre) return porNombre;
+        const cu = tiposDeLista.get(nombre) ?? t.status;
+        if (!cu) return primerEstado;
+        const cat = categoria(cu);
+        if (cat === 'DOING' && /bloq|block/.test(nombre)) return ordenados.find((s) => /bloq/.test(s.key)) ?? ordenados.find((s) => s.category === 'DOING') ?? primerEstado;
+        return ordenados.find((s) => s.category === cat) ?? primerEstado;
+      };
 
       // 3) Tareas: primero las que no tienen padre, luego las hijas (para poder enlazar).
       const tareas = [...list.tasks].sort((a, b) => (a.parent ? 1 : 0) - (b.parent ? 1 : 0) || Number(a.orderindex ?? 0) - Number(b.orderindex ?? 0));
       const idPorClickup = new Map<string, number>();
       for (const t of tareas) {
-        const estado = estadoPorNombre.get((t.status?.status ?? '').toLowerCase()) ?? primerEstado;
+        const estado = estadoPara(t);
         if (!estado) {
           res.avisos.push(`Tarea "${t.name}" sin estado mapeable; saltada.`);
           continue;

@@ -236,6 +236,7 @@ function ImportarClickUpModal({ onClose, onDone }: { onClose: () => void; onDone
   const [file, setFile] = useState<File | null>(null);
   const [keys, setKeys] = useState('');
   const [adjuntos, setAdjuntos] = useState(true);
+  const [estadosEstandar, setEstadosEstandar] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ClickUpImportResultDto | null>(null);
@@ -251,7 +252,7 @@ function ImportarClickUpModal({ onClose, onDone }: { onClose: () => void; onDone
         const [id, k] = line.split('=').map((x) => x.trim());
         if (id && k) map[id] = k.toUpperCase();
       }
-      setResult(await tareasGateway.importarClickUp(data, { keys: map, adjuntos }));
+      setResult(await tareasGateway.importarClickUp(data, { keys: map, adjuntos, estadosEstandar }));
       await onDone();
     } catch (err) {
       setError((err as Error).message);
@@ -268,7 +269,7 @@ function ImportarClickUpModal({ onClose, onDone }: { onClose: () => void; onDone
         {!result ? (
           <>
             <p className="small text-secondary">
-              Sube el fichero que genera <code>npm run clickup:export</code> (necesita un token de la API de ClickUp). Cada lista se convierte en un proyecto con sus estados, tareas, subtareas, comentarios y adjuntos. Se puede repetir sin duplicar.
+              Sube el fichero que genera <code>npm run clickup:export</code> (necesita un token de la API de ClickUp). Cada lista se convierte en un proyecto con sus tareas, subtareas, comentarios y adjuntos. Se puede repetir sin duplicar.
             </p>
             <Form.Group className="mb-3">
               <Form.Label className="small">Fichero JSON</Form.Label>
@@ -278,6 +279,7 @@ function ImportarClickUpModal({ onClose, onDone }: { onClose: () => void; onDone
               <Form.Label className="small">Claves por lista (opcional) — una por línea: <code>idLista=CLAVE</code></Form.Label>
               <Form.Control id="ic-keys" as="textarea" rows={3} value={keys} onChange={(e) => setKeys(e.target.value)} placeholder={'901219597731=COOL\n901219752843=ULK'} />
             </Form.Group>
+            <Form.Check type="switch" id="ic-std" className="mb-2" label="Mismo tablero en todos los proyectos (Pendiente · En curso · Bloqueada · Completado); los estados de ClickUp se traducen por su categoría" checked={estadosEstandar} onChange={(e) => setEstadosEstandar(e.target.checked)} />
             <Form.Check type="switch" id="ic-adj" label="Descargar adjuntos (más lento)" checked={adjuntos} onChange={(e) => setAdjuntos(e.target.checked)} />
           </>
         ) : (
