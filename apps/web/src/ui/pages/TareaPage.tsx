@@ -23,6 +23,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Avatar, EstadoPill, TipoPill, fmtFechaHora, hace } from '../components/tareas-ui';
 import { NuevaTareaModal } from '../components/NuevaTareaModal';
 import { Skeleton } from '../components/Skeleton';
+import { Markdown } from '../components/Markdown';
 
 const CAMPOS: Record<string, string> = {
   title: 'el título',
@@ -253,7 +254,8 @@ export function TareaPage() {
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <Card.Title className="mb-0">Descripción</Card.Title>
                 {editandoDesc && (
-                  <div className="d-flex gap-2">
+                  <div className="d-flex gap-2 align-items-center">
+                    <span className="small text-secondary me-1">Markdown: **negrita**, listas, tablas, enlaces</span>
                     <Button size="sm" variant="outline-secondary" onClick={() => { setDesc(task.description); setEditandoDesc(false); }}>Cancelar</Button>
                     <Button size="sm" className="btn-brand" onClick={async () => { await guardar({ description: desc }); setEditandoDesc(false); }}>Guardar</Button>
                   </div>
@@ -263,7 +265,7 @@ export function TareaPage() {
                 <Form.Control id="t-desc" as="textarea" className="tarea-desc" autoFocus value={desc} onChange={(e) => setDesc(e.target.value)} />
               ) : (
                 <div className={`tarea-desc-view ${task.description ? '' : 'empty'}`} onClick={() => puedeEditar && setEditandoDesc(true)}>
-                  {task.description || (puedeEditar ? 'Sin descripción. Haz clic para escribir.' : 'Sin descripción.')}
+                  {task.description ? <Markdown text={task.description} /> : puedeEditar ? 'Sin descripción. Haz clic para escribir.' : 'Sin descripción.'}
                 </div>
               )}
             </Card.Body>
@@ -334,7 +336,7 @@ export function TareaPage() {
                         <button type="button" className="btn btn-link btn-sm p-0 ms-auto text-danger" title="Borrar" onClick={() => borrarComentario(c)}><Trash /></button>
                       )}
                     </div>
-                    <div className="body">{c.body}</div>
+                    <div className="body"><Markdown text={c.body} /></div>
                   </div>
                 </div>
               ))}

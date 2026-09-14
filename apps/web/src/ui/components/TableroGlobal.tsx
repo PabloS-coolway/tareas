@@ -55,6 +55,7 @@ export function TableroGlobal({ tasks, onChanged, setTasks, extra }: Props) {
   const puede = hasFeature('tareas.editar');
 
   const columnas = useMemo(() => columnasGlobales(proyectos, tasks), [proyectos, tasks]);
+  const proyectoDe = useMemo(() => new Map(proyectos.map((p) => [p.id, p])), [proyectos]);
   const porColumna = useMemo(() => {
     const m = new Map<string, TaskDto[]>();
     for (const c of columnas) m.set(c.key, []);
@@ -116,15 +117,29 @@ export function TableroGlobal({ tasks, onChanged, setTasks, extra }: Props) {
                 <Droppable droppableId={c.key} isDropDisabled={!puede}>
                   {(prov, snap) => (
                     <div ref={prov.innerRef} {...prov.droppableProps} className={`board-col-body ${snap.isDraggingOver ? 'over' : ''}`}>
-                      {col.map((t, i) => (
-                        <Draggable key={t.id} draggableId={String(t.id)} index={i} isDragDisabled={!puede}>
-                          {(dp, ds) => (
-                            <div ref={dp.innerRef} {...dp.draggableProps} {...dp.dragHandleProps}>
-                              <TaskCard task={t} dragging={ds.isDragging} extra={extra ? extra(t) : <ProyectoChip task={t} />} />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
+                      {col.map((t, i) => {
+                        // Las tarjetas van ordenadas por proyecto: cabecera con su nombre al empezar cada grupo.
+                        const nuevoGrupo = i === 0 || col[i - 1].projectId !== t.projectId;
+                        const p = proyectoDe.get(t.projectId);
+                        return (
+                          <div key={t.id}>
+                            {nuevoGrupo && !snap.isDraggingOver && (
+                              <div className="board-group">
+                                <span className="nav-proj-dot" style={{ background: p?.color ?? 'var(--muted)' }} />
+                                {p?.name ?? t.projectKey}
+                                <span className="count">{col.filter((x) => x.projectId === t.projectId).length}</span>
+                              </div>
+                            )}
+                            <Draggable draggableId={String(t.id)} index={i} isDragDisabled={!puede}>
+                              {(dp, ds) => (
+                                <div ref={dp.innerRef} {...dp.draggableProps} {...dp.dragHandleProps}>
+                                  <TaskCard task={t} dragging={ds.isDragging} extra={extra ? extra(t) : ds.isDragging ? <ProyectoChip task={t} /> : null} />
+                                </div>
+                              )}
+                            </Draggable>
+                          </div>
+                        );
+                      })}
                       {prov.placeholder}
                       {col.length === 0 && !snap.isDraggingOver && <div className="text-secondary small text-center py-3">vacío</div>}
                     </div>

@@ -63,7 +63,7 @@
 .tarea-title:hover { border-color: var(--border); }
 .tarea-title:focus { border-color: var(--brand-2); outline: none; background: var(--field-bg); }
 .tarea-desc { min-height: 140px; font-family: inherit; }
-.tarea-desc-view { white-space: pre-wrap; line-height: 1.55; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; cursor: text; min-height: 60px; }
+.tarea-desc-view { line-height: 1.55; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; cursor: text; min-height: 60px; }
 .tarea-desc-view:hover { border-color: var(--border); }
 .tarea-desc-view.empty { color: var(--muted); font-style: italic; }
 .tarea-side .field { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.9rem; }
@@ -79,7 +79,7 @@
 
 .comment { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .comment:last-child { border-bottom: 0; }
-.comment .body { white-space: pre-wrap; line-height: 1.5; }
+.comment .body { line-height: 1.5; }
 .comment .head { display: flex; align-items: baseline; gap: 8px; font-size: 0.82rem; color: var(--muted); margin-bottom: 2px; }
 .comment .head b { color: var(--ink); }
 
@@ -134,3 +134,29 @@
 .backlog-row .form-check { margin: 0; min-height: 0; }
 .proj-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
 .proj-chip .nav-proj-dot { width: 8px; height: 8px; }
+
+/* Tablero global: cabecera de grupo por proyecto dentro de cada columna */
+.board-group { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); padding: 10px 4px 4px; }
+.board-group:first-child { padding-top: 4px; }
+.board-group .count { margin-left: auto; font-weight: 600; font-size: 0.7rem; }
+.board-group .nav-proj-dot { width: 8px; height: 8px; }
+
+/* ---------- Markdown (descripción y comentarios) ---------- */
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md p { margin: 0 0 0.6em; }
+.md h1, .md h2, .md h3, .md h4 { font-weight: 700; line-height: 1.25; margin: 1em 0 0.4em; }
+.md h1 { font-size: 1.25rem; } .md h2 { font-size: 1.12rem; } .md h3 { font-size: 1rem; } .md h4 { font-size: 0.95rem; }
+.md ul, .md ol { padding-left: 1.4em; margin: 0 0 0.6em; }
+.md li { margin: 0.15em 0; }
+.md li.task-list-item { list-style: none; margin-left: -1.4em; }
+.md code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; background: color-mix(in srgb, var(--ink) 7%, transparent); padding: 1px 5px; border-radius: 4px; }
+.md pre { background: color-mix(in srgb, var(--ink) 6%, transparent); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; overflow-x: auto; font-size: 0.85em; }
+.md pre code { background: none; padding: 0; }
+.md blockquote { border-left: 3px solid var(--border); margin: 0 0 0.6em; padding: 2px 12px; color: var(--muted); }
+.md hr { border: 0; border-top: 1px solid var(--border); margin: 0.9em 0; }
+.md table { border-collapse: collapse; margin: 0 0 0.8em; font-size: 0.9em; display: block; max-width: 100%; overflow-x: auto; }
+.md th, .md td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; vertical-align: top; }
+.md th { background: color-mix(in srgb, var(--ink) 5%, transparent); font-weight: 600; }
+.md img { max-width: 100%; border-radius: 6px; }
+.md a { word-break: break-word; }
