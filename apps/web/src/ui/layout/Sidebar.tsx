@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BoxArrowRight, HouseDoorFill, Key, KanbanFill, ListCheck, People, PersonCircle, Plugin, ShieldLock } from 'react-bootstrap-icons';
+import { BoxArrowRight, HouseDoorFill, Key, KanbanFill, ListCheck, People, PeopleFill, PersonCircle, Plugin, ShieldLock } from 'react-bootstrap-icons';
 import { useState, type ReactNode } from 'react';
 import type { Feature } from '@yorga/contracts';
 import { Button } from 'react-bootstrap';
@@ -26,6 +26,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
   const principal: NavItem[] = [
     { to: '/inicio', label: 'Inicio', icon: <HouseDoorFill /> },
     { to: '/mis-tareas', label: 'Mis tareas', icon: <ListCheck /> },
+    { to: '/equipo', label: 'Equipo', icon: <PeopleFill /> },
   ];
   const admin: NavItem[] = [
     { to: '/usuarios', label: 'Usuarios', icon: <People />, feature: 'usuarios.gestionar' },

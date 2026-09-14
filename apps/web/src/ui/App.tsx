@@ -8,6 +8,7 @@ import { ProyectosPage } from './pages/ProyectosPage';
 import { TableroPage } from './pages/TableroPage';
 import { TareaPage } from './pages/TareaPage';
 import { MisTareasPage } from './pages/MisTareasPage';
+import { EquipoPage } from './pages/EquipoPage';
 import { TokensPage } from './pages/TokensPage';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth, RequireFeature } from './auth/RequireAuth';
@@ -23,6 +24,8 @@ export function App() {
               <Route index element={<Navigate to="/inicio" replace />} />
               <Route path="/inicio" element={<InicioPage />} />
               <Route path="/mis-tareas" element={<MisTareasPage />} />
+              <Route path="/equipo" element={<EquipoPage />} />
+              <Route path="/equipo/:userId" element={<EquipoPage />} />
               <Route path="/proyectos" element={<ProyectosPage />} />
               <Route path="/p/:key" element={<TableroPage />} />
               <Route path="/t/:key" element={<TareaPage />} />

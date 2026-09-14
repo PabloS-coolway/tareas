@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Spinner } from 'react-bootstrap';
-import { KeyFill, PersonPlus } from 'react-bootstrap-icons';
+import { KeyFill, ListCheck, PersonPlus } from 'react-bootstrap-icons';
+import { Link } from 'react-router-dom';
 import type { RoleDto, UserDto } from '@yorga/contracts';
 import { rolesGateway, usersGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
@@ -113,6 +114,7 @@ export function UsuariosPage() {
           const busy = busyId === u.id;
           return (
             <div className="d-inline-flex gap-2 align-items-center">
+              <Link to={`/equipo/${u.id}`} className="btn btn-sm btn-outline-secondary" title={`Tareas de ${u.name}`}><ListCheck /></Link>
               <Form.Select size="sm" style={{ width: 'auto' }} value={u.role} disabled={busy || isMe} aria-label={`Rol de ${u.email}`} onChange={(e) => patch(u.id, { role: e.target.value }, `${u.email} ahora es ${roleName(e.target.value)}.`)}>
                 {activos.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
                 {!activos.some((r) => r.key === u.role) && <option value={u.role}>{roleName(u.role)}</option>}
