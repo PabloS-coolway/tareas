@@ -20,10 +20,11 @@ import {
 } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
-import { Avatar, EstadoPill, TipoPill, fmtFechaHora, hace } from '../components/tareas-ui';
+import { Avatar, TipoPill, fmtFechaHora, hace } from '../components/tareas-ui';
 import { NuevaTareaModal } from '../components/NuevaTareaModal';
 import { Skeleton } from '../components/Skeleton';
 import { Markdown } from '../components/Markdown';
+import { SubtareasArbol } from '../components/SubtareasArbol';
 
 const CAMPOS: Record<string, string> = {
   title: 'el título',
@@ -280,18 +281,7 @@ export function TareaPage() {
                 </Card.Title>
                 {puedeEditar && <Button size="sm" variant="outline-secondary" onClick={() => setNuevaSub(true)}><Plus /> Añadir</Button>}
               </div>
-              {subtareas.length === 0 ? (
-                <div className="text-secondary small">Ninguna todavía.</div>
-              ) : (
-                subtareas.map((s) => (
-                  <Link key={s.id} to={`/t/${s.key}`} className={`sub-row ${s.status.category === 'DONE' ? 'done' : ''}`}>
-                    <span className="task-key">{s.key}</span>
-                    <span className="title">{s.title}</span>
-                    <EstadoPill s={s.status} />
-                    <Avatar user={s.assignee} />
-                  </Link>
-                ))
-              )}
+              <SubtareasArbol parent={task} project={project} items={subtareas} puedeEditar={puedeEditar} onChanged={() => void load()} onError={setError} />
             </Card.Body>
           </Card>
 

@@ -1,7 +1,7 @@
 # Tareas · Grupo Yorga
 
 Gestor de tareas propio del equipo (sustituye a ClickUp). Un punto intermedio entre Jira y ClickUp, básico
-y funcional: proyectos con clave (`COOL-12`), tablero kanban con estados configurables, lista, tareas con
+y funcional: proyectos con clave = nombre (`COOLWAY-12`), tablero kanban con estados configurables, lista, tareas con
 tipo/prioridad/asignado/fecha/etiquetas, épicas y subtareas, comentarios, adjuntos, historial de cambios,
 **sprints de trabajo** transversales a los proyectos (mismo tablero para todos), **API con tokens personales** y **servidor MCP** para que Claude trabaje con las tareas. Importa todo lo
 que había en ClickUp.

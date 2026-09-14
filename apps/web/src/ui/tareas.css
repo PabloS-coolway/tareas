@@ -23,7 +23,7 @@
 .board-card .title { font-weight: 600; font-size: 0.92rem; line-height: 1.3; margin: 2px 0 6px; }
 .board-card .meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.74rem; color: var(--muted); }
 .board-card .meta .right { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
-.task-key { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.01em; }
+.task-key { white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.01em; }
 .task-key.big { font-size: 0.85rem; }
 
 /* Prioridad y tipo: píldoras compactas */
@@ -58,6 +58,7 @@
 
 /* Detalle de tarea */
 .tarea-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.tarea-layout > * { min-width: 0; }
 @media (max-width: 992px) { .tarea-layout { grid-template-columns: 1fr; } }
 .tarea-title { font-size: 1.45rem; font-weight: 700; border: 1px solid transparent; border-radius: 10px; padding: 6px 10px; width: 100%; background: transparent; color: var(--ink); }
 .tarea-title:hover { border-color: var(--border); }
@@ -84,10 +85,11 @@
 .comment .head b { color: var(--ink); }
 
 .activity { list-style: none; padding: 0; margin: 0; }
-.activity li { display: flex; gap: 8px; padding: 6px 0; font-size: 0.84rem; border-bottom: 1px dashed var(--border); }
+.activity li { display: flex; gap: 8px; padding: 6px 0; font-size: 0.84rem; border-bottom: 1px dashed var(--border); min-width: 0; }
+.activity li > :last-child { min-width: 0; overflow-wrap: anywhere; }
 .activity li:last-child { border-bottom: 0; }
 .activity .when { color: var(--muted); white-space: nowrap; font-size: 0.76rem; padding-top: 2px; min-width: 96px; }
-.activity .chg { background: var(--kpi-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0 5px; font-size: 0.8rem; }
+.activity .chg { background: var(--kpi-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0 5px; font-size: 0.8rem; overflow-wrap: anywhere; }
 
 .adjunto { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
 .adjunto:last-child { border-bottom: 0; }
@@ -95,11 +97,11 @@
 .adjunto .size { color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
 
 /* Mis tareas y listados */
-.task-row { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 8px 6px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
+.task-row { display: grid; grid-template-columns: minmax(88px, auto) minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 8px 6px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
 .task-row:hover { background: color-mix(in srgb, var(--brand) 6%, transparent); color: inherit; }
 .task-row:last-child { border-bottom: 0; }
 .task-row .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-@media (max-width: 720px) { .task-row { grid-template-columns: 70px minmax(0, 1fr) auto; } .task-row .hide-sm { display: none; } }
+@media (max-width: 720px) { .task-row { grid-template-columns: minmax(70px, auto) minmax(0, 1fr) auto; } .task-row .hide-sm { display: none; } }
 
 /* Proyectos */
 .proj-card { text-decoration: none; color: inherit; display: block; height: 100%; }
@@ -128,7 +130,7 @@
 .sprint-goal { white-space: pre-wrap; color: var(--ink); }
 .sprint-progress { height: 6px; }
 .backlog-list { display: flex; flex-direction: column; }
-.backlog-row { display: grid; grid-template-columns: auto 88px minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 6px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.backlog-row { display: grid; grid-template-columns: auto minmax(88px, auto) minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 6px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
 .backlog-row:hover, .backlog-row.sel { background: color-mix(in srgb, var(--brand) 6%, transparent); }
 .backlog-row .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .backlog-row .form-check { margin: 0; min-height: 0; }
@@ -160,3 +162,19 @@
 .md th { background: color-mix(in srgb, var(--ink) 5%, transparent); font-weight: 600; }
 .md img { max-width: 100%; border-radius: 6px; }
 .md a { word-break: break-word; }
+
+/* ---------- Subtareas en árbol ---------- */
+.subtree-list { list-style: none; margin: 0; padding: 0; }
+.subtree-row { display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-bottom: 1px solid var(--border); min-width: 0; }
+.subtree-node:last-child > .subtree-row { border-bottom: 0; }
+.subtree-row:hover { background: color-mix(in srgb, var(--brand) 6%, transparent); }
+.subtree-caret { border: 0; background: none; padding: 0; width: 18px; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+.subtree-check { border: 0; background: none; padding: 0; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); font-size: 1.05rem; }
+.subtree-check:hover:not(:disabled) { color: var(--brand); }
+.subtree-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
+.subtree-title .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.subtree-node.done > .subtree-row .subtree-title .title { text-decoration: line-through; color: var(--muted); }
+.subtree-add { color: var(--muted); opacity: 0; transition: opacity 0.15s; }
+.subtree-row:hover .subtree-add { opacity: 1; }
+.subtree-alta { display: flex; align-items: center; gap: 8px; padding: 6px 4px 2px 22px; }
+.subtree-alta .form-control { max-width: 460px; }

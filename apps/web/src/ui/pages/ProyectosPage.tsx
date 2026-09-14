@@ -31,7 +31,7 @@ export function ProyectosPage() {
       <header className="page-head mb-4 d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
           <h1 className="h4 mb-1">Proyectos</h1>
-          <p className="text-secondary mb-0">Un tablero por proyecto. Cada tarea lleva la clave del suyo (COOL-12).</p>
+          <p className="text-secondary mb-0">Un tablero por proyecto. Cada tarea lleva el nombre del suyo (COOLWAY-12).</p>
         </div>
         <div className="d-flex gap-2 flex-wrap">
           <Link to="/tareas" className="btn btn-outline-secondary"><ListUl className="me-1" /> Todas las tareas</Link>
@@ -122,7 +122,7 @@ function NuevoProyectoModal({ onClose, onDone }: { onClose: () => void; onDone: 
             </div>
             <div className="col-4">
               <Form.Label className="small">Clave</Form.Label>
-              <Form.Control id="np-key" value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} placeholder="COOL" maxLength={8} required />
+              <Form.Control id="np-key" value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} placeholder="COOLWAY" maxLength={24} required />
             </div>
           </div>
           <Form.Group className="mt-3">
@@ -276,8 +276,8 @@ function ImportarClickUpModal({ onClose, onDone }: { onClose: () => void; onDone
               <Form.Control id="ic-file" type="file" accept="application/json,.json" onChange={(e) => setFile((e.target as HTMLInputElement).files?.[0] ?? null)} />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label className="small">Claves por lista (opcional) — una por línea: <code>idLista=CLAVE</code></Form.Label>
-              <Form.Control id="ic-keys" as="textarea" rows={3} value={keys} onChange={(e) => setKeys(e.target.value)} placeholder={'901219597731=COOL\n901219752843=ULK'} />
+              <Form.Label className="small">Claves por lista (opcional; por defecto, el nombre de la lista) — una por línea: <code>idLista=CLAVE</code></Form.Label>
+              <Form.Control id="ic-keys" as="textarea" rows={3} value={keys} onChange={(e) => setKeys(e.target.value)} placeholder={'901219597731=COOLWAY\n901219752843=ULANKA'} />
             </Form.Group>
             <Form.Check type="switch" id="ic-std" className="mb-2" label="Mismo tablero en todos los proyectos (Pendiente · En curso · Bloqueada · Completado); los estados de ClickUp se traducen por su categoría" checked={estadosEstandar} onChange={(e) => setEstadosEstandar(e.target.checked)} />
             <Form.Check type="switch" id="ic-adj" label="Descargar adjuntos (más lento)" checked={adjuntos} onChange={(e) => setAdjuntos(e.target.checked)} />
