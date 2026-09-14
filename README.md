@@ -23,7 +23,9 @@ puedes dejarlas). Roles de sistema: `admin` (todo) y `miembro` (ver y editar tar
 2. `CLICKUP_TOKEN=pk_… npm run clickup:export` → `docs/import/clickup-export.json` (no se versiona).
    Es incremental y respeta el límite de 100 peticiones/min del plan gratuito.
 3. En la app: *Proyectos → Importar de ClickUp*, sube el JSON. Cada lista pasa a ser un proyecto (puedes
-   fijar la clave de cada uno); se importan estados, tareas, subtareas, comentarios y adjuntos. Los miembros
+   fijar la clave de cada uno); se importan tareas, subtareas, comentarios y adjuntos. Por defecto todos los
+   proyectos nacen con el mismo tablero (Pendiente · En curso · Bloqueada · Completado) y los estados de ClickUp
+   se traducen por categoría; desactiva el interruptor para copiar los estados de cada lista tal cual. Los miembros
    que no existan se crean con contraseña temporal (se muestra al terminar). Repetirlo no duplica.
 
 ## Claude / MCP
