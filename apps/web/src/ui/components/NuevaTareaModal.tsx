@@ -32,6 +32,9 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
   const [statusId, setStatusId] = useState<number>(project.statuses[0]?.id ?? 0);
   const [assigneeId, setAssigneeId] = useState<string>('');
   const [dueDate, setDueDate] = useState('');
+  const [tags, setTags] = useState('');
+  const [estimate, setEstimate] = useState('');
+  const [etiquetasUsadas, setEtiquetasUsadas] = useState<string[]>([]);
   const [parentId, setParentId] = useState<string>(parent ? String(parent.id) : '');
   const [equipo, setEquipo] = useState<UserRefDto[]>([]);
   const [epicas, setEpicas] = useState<TaskDto[]>([]);
@@ -43,6 +46,7 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
     tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
+    tareasGateway.etiquetas(project.id).then((ts) => setEtiquetasUsadas(ts.map((t) => t.tag))).catch(() => setEtiquetasUsadas([]));
     if (!parent) {
       tareasGateway
         .tareas({ projectId: project.id, type: 'EPIC', includeDone: false, pageSize: 200 })
@@ -67,6 +71,8 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
         parentId: parentId ? Number(parentId) : null,
         sprintId: sprintId ? Number(sprintId) : null,
         dueDate: dueDate || null,
+        tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
+        estimate: estimate === '' ? null : Number(estimate),
       });
       onCreated(t);
     } catch (err) {
@@ -127,6 +133,15 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </Form.Select>
+            </div>
+            <div className="col-md-8">
+              <Form.Label className="small">Etiquetas</Form.Label>
+              <Form.Control id="nt-tags" list="nt-tags-list" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="separadas por comas" />
+              <datalist id="nt-tags-list">{etiquetasUsadas.map((t) => <option key={t} value={t} />)}</datalist>
+            </div>
+            <div className="col-md-4">
+              <Form.Label className="small">Puntos</Form.Label>
+              <Form.Control id="nt-estimate" type="number" min={0} max={999} value={estimate} onChange={(e) => setEstimate(e.target.value)} placeholder="sin estimar" />
             </div>
             <div className="col-md-6">
               <Form.Label className="small">Sprint</Form.Label>

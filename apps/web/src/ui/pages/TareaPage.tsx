@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, Form, Spinner } from 'react-bootstrap';
-import { BoxArrowUpRight, Paperclip, Plus, Trash } from 'react-bootstrap-icons';
+import { BoxArrowUpRight, Files, Paperclip, Plus, Trash } from 'react-bootstrap-icons';
 import {
   PRIORITIES,
   PRIORITY_LABELS,
@@ -20,51 +20,12 @@ import {
 } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
-import { Avatar, TipoPill, fmtFechaHora, hace } from '../components/tareas-ui';
+import { Avatar, Etiquetas, TipoPill, fmtFechaHora, hace } from '../components/tareas-ui';
 import { NuevaTareaModal } from '../components/NuevaTareaModal';
 import { Skeleton } from '../components/Skeleton';
 import { Markdown } from '../components/Markdown';
 import { SubtareasArbol } from '../components/SubtareasArbol';
-
-const CAMPOS: Record<string, string> = {
-  title: 'el título',
-  description: 'la descripción',
-  type: 'el tipo',
-  priority: 'la prioridad',
-  status: 'el estado',
-  assignee: 'el asignado',
-  parent: 'el padre',
-  sprint: 'el sprint',
-  dueDate: 'la fecha de vencimiento',
-  startDate: 'la fecha de inicio',
-  tags: 'las etiquetas',
-};
-
-function textoActividad(a: ActivityDto) {
-  const quien = a.actor?.name ?? 'Alguien';
-  switch (a.action) {
-    case 'created':
-      return <><b>{quien}</b> creó la tarea</>;
-    case 'imported':
-      return <><b>{quien}</b> la importó de ClickUp</>;
-    case 'comment':
-      return <><b>{quien}</b> comentó</>;
-    case 'attachment':
-      return <><b>{quien}</b> adjuntó <span className="chg">{a.after}</span></>;
-    case 'attachment_removed':
-      return <><b>{quien}</b> quitó el adjunto <span className="chg">{a.before}</span></>;
-    case 'description':
-      return <><b>{quien}</b> editó la descripción</>;
-    default:
-      return (
-        <>
-          <b>{quien}</b> cambió {CAMPOS[a.action] ?? a.action}
-          {a.before !== null && <> de <span className="chg">{a.before || '—'}</span></>}
-          {a.after !== null && <> a <span className="chg">{a.after || '—'}</span></>}
-        </>
-      );
-  }
-}
+import { ActividadTexto } from '../components/ActividadTexto';
 
 const fmtBytes = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
@@ -83,6 +44,7 @@ export function TareaPage() {
   const [equipo, setEquipo] = useState<UserRefDto[]>([]);
   const [epicas, setEpicas] = useState<TaskDto[]>([]);
   const [sprints, setSprints] = useState<SprintDto[]>([]);
+  const [etiquetasUsadas, setEtiquetasUsadas] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -129,6 +91,7 @@ export function TareaPage() {
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
     tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
+    tareasGateway.etiquetas().then((ts) => setEtiquetasUsadas(ts.map((t) => t.tag))).catch(() => setEtiquetasUsadas([]));
   }, []);
 
   async function guardar(dto: UpdateTaskDto) {
@@ -192,6 +155,16 @@ export function TareaPage() {
     try {
       await tareasGateway.borrarAdjunto(a.id);
       setAdjuntos((as) => as.filter((x) => x.id !== a.id));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function duplicarTarea() {
+    if (!task) return;
+    try {
+      const copia = await tareasGateway.duplicarTarea(task.id);
+      navigate(`/t/${copia.key}`);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -397,15 +370,26 @@ export function TareaPage() {
                 </div>
               )}
               <div className="field">
+                <label htmlFor="t-estimate">Puntos</label>
+                <Form.Control id="t-estimate" size="sm" type="number" min={0} max={999} value={task.estimate ?? ''} placeholder="sin estimar" disabled={!puedeEditar} onChange={(e) => guardar({ estimate: e.target.value === '' ? null : Number(e.target.value) })} />
+              </div>
+              <div className="field">
                 <label htmlFor="t-tags">Etiquetas</label>
-                <Form.Control id="t-tags" size="sm" value={tags} placeholder="separadas por comas" disabled={!puedeEditar} onChange={(e) => setTags(e.target.value)} onBlur={() => guardar({ tags: tags.split(',').map((t) => t.trim()).filter(Boolean) })} />
+                <div>
+                  <Form.Control id="t-tags" size="sm" list="t-tags-list" value={tags} placeholder="separadas por comas" disabled={!puedeEditar} onChange={(e) => setTags(e.target.value)} onBlur={() => guardar({ tags: tags.split(',').map((t) => t.trim()).filter(Boolean) })} />
+                  <datalist id="t-tags-list">{etiquetasUsadas.map((t) => <option key={t} value={t} />)}</datalist>
+                  {task.tags.length > 0 && <div className="mt-1"><Etiquetas tags={task.tags} max={8} /></div>}
+                </div>
               </div>
               <hr />
               <div className="stamp">Creada por <b>{task.reporter.name}</b> · {fmtFechaHora(task.createdAt)}</div>
               <div className="stamp">Actualizada {hace(task.updatedAt)}</div>
               {done && task.closedAt && <div className="stamp">Cerrada {fmtFechaHora(task.closedAt)}</div>}
               {hasFeature('tareas.borrar') && (
-                <Button size="sm" variant="outline-danger" className="mt-3 w-100" onClick={borrarTarea}><Trash /> Borrar tarea</Button>
+                <div className="d-flex gap-2 mt-3">
+                  <Button size="sm" variant="outline-secondary" className="w-100" onClick={duplicarTarea} title="Crea una copia en el mismo proyecto"><Files /> Duplicar</Button>
+                  <Button size="sm" variant="outline-danger" className="w-100" onClick={borrarTarea}><Trash /> Borrar</Button>
+                </div>
               )}
             </Card.Body>
           </Card>
@@ -417,7 +401,7 @@ export function TareaPage() {
                 {actividad.map((a) => (
                   <li key={a.id}>
                     <span className="when" title={fmtFechaHora(a.createdAt)}>{hace(a.createdAt)}</span>
-                    <span>{textoActividad(a)}</span>
+                    <span><ActividadTexto a={a} /></span>
                   </li>
                 ))}
               </ul>

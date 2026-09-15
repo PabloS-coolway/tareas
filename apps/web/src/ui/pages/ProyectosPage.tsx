@@ -152,7 +152,7 @@ function EditarProyectoModal({ project, onClose, onDone }: { project: ProjectDto
   const [description, setDescription] = useState(project.description);
   const [color, setColor] = useState(project.color);
   const [archived, setArchived] = useState(project.archived);
-  const [statuses, setStatuses] = useState<UpsertStatusDto[]>(project.statuses.map((s) => ({ id: s.id, key: s.key, name: s.name, color: s.color, category: s.category })));
+  const [statuses, setStatuses] = useState<UpsertStatusDto[]>(project.statuses.map((s) => ({ id: s.id, key: s.key, name: s.name, color: s.color, category: s.category, wipLimit: s.wipLimit })));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -215,13 +215,14 @@ function EditarProyectoModal({ project, onClose, onDone }: { project: ProjectDto
               <Form.Select size="sm" style={{ width: 150 }} value={s.category} onChange={(e) => set(i, { category: e.target.value as StatusCategory })}>
                 {STATUS_CATEGORIES.map((c) => <option key={c} value={c}>{STATUS_CATEGORY_LABELS[c]}</option>)}
               </Form.Select>
+              <Form.Control size="sm" type="number" min={0} style={{ width: 70 }} value={s.wipLimit ?? ''} onChange={(e) => set(i, { wipLimit: e.target.value ? Number(e.target.value) : null })} placeholder="WIP" title="Límite de trabajo en curso (vacío = sin límite)" />
               <Button size="sm" variant="light" onClick={() => mover(i, -1)} disabled={i === 0} title="Subir"><ArrowUp /></Button>
               <Button size="sm" variant="light" onClick={() => mover(i, 1)} disabled={i === statuses.length - 1} title="Bajar"><ArrowDown /></Button>
               <Button size="sm" variant="light" className="text-danger" onClick={() => setStatuses((ss) => ss.filter((_, j) => j !== i))} disabled={statuses.length <= 1} title="Quitar"><Trash /></Button>
             </div>
           ))}
           <Button size="sm" variant="outline-secondary" onClick={() => setStatuses((ss) => [...ss, { key: '', name: '', color: '#6b7280', category: 'DOING' }])}><Plus /> Añadir estado</Button>
-          <div className="small text-secondary mt-2">Un estado con tareas no se puede quitar: muévelas antes. La categoría decide qué cuenta como terminado.</div>
+          <div className="small text-secondary mt-2">Un estado con tareas no se puede quitar: muévelas antes. La categoría decide qué cuenta como terminado. WIP = máximo de tareas en la columna; si se supera, la cabecera avisa en rojo.</div>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="outline-secondary" onClick={onClose}>Cancelar</Button>

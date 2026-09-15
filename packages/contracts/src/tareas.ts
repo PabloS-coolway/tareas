@@ -84,6 +84,8 @@ export interface ProjectStatusDto {
   color: string;
   order: number;
   category: StatusCategory;
+  /** Límite WIP de la columna (null = sin límite). Sólo avisa. */
+  wipLimit: number | null;
 }
 
 export interface ProjectDto {
@@ -127,6 +129,7 @@ export interface UpsertStatusDto {
   name: string;
   color: string;
   category: StatusCategory;
+  wipLimit?: number | null;
 }
 
 // ---------- Tareas ----------
@@ -154,6 +157,8 @@ export interface TaskDto {
   dueDate: string | null;
   startDate: string | null;
   tags: string[];
+  /** Puntos de estimación; null = sin estimar. */
+  estimate: number | null;
   order: number;
   closedAt: string | null;
   createdAt: string;
@@ -179,6 +184,7 @@ export interface CreateTaskDto {
   dueDate?: string | null;
   startDate?: string | null;
   tags?: string[];
+  estimate?: number | null;
 }
 
 export interface UpdateTaskDto {
@@ -193,6 +199,7 @@ export interface UpdateTaskDto {
   dueDate?: string | null;
   startDate?: string | null;
   tags?: string[];
+  estimate?: number | null;
 }
 
 /** Mover en el tablero: a una columna (estado) y a una posición dentro de ella. */
@@ -213,6 +220,10 @@ export interface TaskFilter {
   parentId?: number | null;
   /** Sprint; `none` = backlog (sin sprint). */
   sprintId?: number | 'none';
+  /** Etiqueta exacta (en minúsculas). */
+  tag?: string;
+  /** Sólo vencidas (fecha límite pasada y no terminadas). */
+  overdue?: boolean;
   /** Modo tablero: sin épicas y sin subtareas (se ven dentro de su padre). */
   board?: boolean;
   /** Incluir terminadas. En tablero, sólo las cerradas en los últimos `doneDays` días. */
@@ -227,6 +238,12 @@ export interface TaskPageDto {
   total: number;
   page: number;
   pageSize: number;
+}
+
+/** Etiqueta con cuántas tareas la llevan (para los filtros y el autocompletado). */
+export interface TagCountDto {
+  tag: string;
+  count: number;
 }
 
 // ---------- Comentarios, adjuntos, actividad ----------
@@ -262,6 +279,13 @@ export interface ActivityDto {
   before: string | null;
   after: string | null;
   createdAt: string;
+}
+
+/** Entrada del feed global de actividad: el cambio más la tarea a la que pertenece. */
+export interface ActivityFeedItemDto extends ActivityDto {
+  taskKey: string;
+  taskTitle: string;
+  projectKey: string;
 }
 
 // ---------- Inicio ----------

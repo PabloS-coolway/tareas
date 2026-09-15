@@ -77,6 +77,32 @@ export function Avatar({ user, size, title }: { user: UserRefDto | null; size?: 
   );
 }
 
+// ---------- Etiquetas y puntos ----------
+
+/** Etiquetas de una tarea como chips pequeños (máx. `max`, el resto como +n). */
+export function Etiquetas({ tags, max = 3, onClick }: { tags: string[]; max?: number; onClick?: (tag: string) => void }) {
+  if (!tags.length) return null;
+  const vis = tags.slice(0, max);
+  return (
+    <span className="tags">
+      {vis.map((t) =>
+        onClick ? (
+          <button key={t} type="button" className="tag" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(t); }} title={`Filtrar por ${t}`}>{t}</button>
+        ) : (
+          <span key={t} className="tag">{t}</span>
+        ),
+      )}
+      {tags.length > max && <span className="tag more" title={tags.slice(max).join(', ')}>+{tags.length - max}</span>}
+    </span>
+  );
+}
+
+/** Puntos de estimación. */
+export function Puntos({ n }: { n: number | null }) {
+  if (n === null || n === undefined) return null;
+  return <span className="pts" title={`${n} puntos`}>{n} pt</span>;
+}
+
 // ---------- Píldoras ----------
 
 export function PrioridadPill({ p }: { p: Priority }) {
@@ -128,8 +154,10 @@ export function TaskCard({ task, dragging, extra }: { task: TaskDto; dragging?: 
         </span>
       </div>
       <div className="title">{task.title}</div>
+      <Etiquetas tags={task.tags} />
       <div className="meta">
         {task.priority !== 'NORMAL' && <PrioridadPill p={task.priority} />}
+        <Puntos n={task.estimate} />
         <Vence date={task.dueDate} done={done} />
         <Subprogreso done={task.doneSubtaskCount} total={task.subtaskCount} />
         <span className="right">
@@ -158,6 +186,7 @@ export function TaskRow({ task, showProject }: { task: TaskDto; showProject?: bo
       <span className="title">
         {showProject && <span className="text-secondary me-1">{task.projectKey} ·</span>}
         {task.title}
+        {task.tags.length > 0 && <span className="ms-2 hide-sm"><Etiquetas tags={task.tags} max={2} /></span>}
       </span>
       <span className="hide-sm">
         <EstadoPill s={task.status} />

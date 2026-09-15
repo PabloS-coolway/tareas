@@ -115,6 +115,8 @@ export function SprintPage() {
 
   if (error && !sprint) return <div className="page"><Alert variant="danger">⚠ {error}</Alert></div>;
   const pct = sprint?.total ? Math.round((sprint.done / sprint.total) * 100) : 0;
+  const ptsTotal = (tasks ?? []).reduce((n, t) => n + (t.estimate ?? 0), 0);
+  const ptsHechos = (tasks ?? []).filter((t) => t.status.category === 'DONE').reduce((n, t) => n + (t.estimate ?? 0), 0);
   const abierto = sprint?.status !== 'CLOSED';
 
   return (
@@ -129,7 +131,7 @@ export function SprintPage() {
           </h1>
           {sprint && (
             <div className="small text-secondary">
-              {rangoSprint(sprint)} · {sprint.done} de {sprint.total} terminadas ({pct}%)
+              {rangoSprint(sprint)} · {sprint.done} de {sprint.total} terminadas ({pct}%){ptsTotal > 0 && <> · {ptsHechos} de {ptsTotal} puntos</>}
               {sprint.goal && <div className="sprint-goal mt-1">{sprint.goal}</div>}
             </div>
           )}

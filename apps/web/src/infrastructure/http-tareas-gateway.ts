@@ -1,5 +1,6 @@
 import type {
   ActivityDto,
+  ActivityFeedItemDto,
   AttachmentDto,
   ClickUpImportResultDto,
   CloseSprintDto,
@@ -11,6 +12,7 @@ import type {
   ProjectDto,
   ResumenDto,
   SprintDto,
+  TagCountDto,
   TaskDto,
   TaskFilter,
   TaskPageDto,
@@ -107,6 +109,17 @@ export class HttpTareasGateway {
   async borrarTarea(id: number): Promise<void> {
     await ok<void>(await apiFetch(`/tasks/${id}`, { method: 'DELETE' }), 'No se pudo borrar la tarea.');
     avisarCambioTareas();
+  }
+  async etiquetas(projectId?: number): Promise<TagCountDto[]> {
+    return ok(await apiFetch(`/tasks/tags${projectId ? `?projectId=${projectId}` : ''}`), 'No se pudieron cargar las etiquetas.');
+  }
+  async feed(limit = 40): Promise<ActivityFeedItemDto[]> {
+    return ok(await apiFetch(`/tasks/feed?limit=${limit}`), 'No se pudo cargar la actividad.');
+  }
+  async duplicarTarea(id: number): Promise<TaskDto> {
+    const t = await ok<TaskDto>(await apiFetch(`/tasks/${id}/duplicate`, { method: 'POST' }), 'No se pudo duplicar la tarea.');
+    avisarCambioTareas();
+    return t;
   }
   async resumen(): Promise<ResumenDto> {
     return ok(await apiFetch('/tasks/resumen'), 'No se pudo cargar el resumen.');

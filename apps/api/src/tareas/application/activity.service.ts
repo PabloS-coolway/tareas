@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ActivityDto } from '@yorga/contracts';
+import { ActivityDto, ActivityFeedItemDto } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 
 export interface ActivityInput {
@@ -46,6 +46,29 @@ export class ActivityService {
       before: r.before,
       after: r.after,
       createdAt: r.createdAt.toISOString(),
+    }));
+  }
+
+  /** Feed global (lo último que ha pasado en cualquier tarea), con la tarea a la que pertenece. */
+  async feed(limit = 40): Promise<ActivityFeedItemDto[]> {
+    const rows = await this.prisma.taskActivity.findMany({
+      where: { action: { not: 'imported' } }, // el import masivo no es 'actividad' del equipo
+      orderBy: { createdAt: 'desc' },
+      include: { actor: { select: { id: true, name: true, email: true } }, task: { select: { number: true, title: true, project: { select: { key: true } } } } },
+      take: Math.min(Math.max(limit, 1), 200),
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      taskId: r.taskId,
+      actor: r.actor,
+      action: r.action,
+      field: r.field,
+      before: r.before,
+      after: r.after,
+      createdAt: r.createdAt.toISOString(),
+      taskKey: `${r.task.project.key}-${r.task.number}`,
+      taskTitle: r.task.title,
+      projectKey: r.task.project.key,
     }));
   }
 }

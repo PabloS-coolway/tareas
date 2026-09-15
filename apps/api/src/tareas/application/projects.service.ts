@@ -109,7 +109,8 @@ export class ProjectsService {
     await this.prisma.$transaction(async (tx) => {
       if (aBorrar.length) await tx.projectStatus.deleteMany({ where: { id: { in: aBorrar.map((b) => b.id) } } });
       for (const [order, s] of statuses.entries()) {
-        const data = { key: s.key.trim().toLowerCase(), name: s.name.trim(), color: s.color || '#6b7280', category: s.category, order };
+        const wip = s.wipLimit === undefined || s.wipLimit === null || Number(s.wipLimit) <= 0 ? null : Math.floor(Number(s.wipLimit));
+        const data = { key: s.key.trim().toLowerCase(), name: s.name.trim(), color: s.color || '#6b7280', category: s.category, order, wipLimit: wip };
         if (s.id) await tx.projectStatus.update({ where: { id: s.id }, data });
         else await tx.projectStatus.create({ data: { ...data, projectId } });
       }
@@ -122,8 +123,8 @@ export class ProjectsService {
   }
 }
 
-export function statusToDto(s: { id: number; key: string; name: string; color: string; order: number; category: 'TODO' | 'DOING' | 'DONE' }): ProjectStatusDto {
-  return { id: s.id, key: s.key, name: s.name, color: s.color, order: s.order, category: s.category };
+export function statusToDto(s: { id: number; key: string; name: string; color: string; order: number; category: 'TODO' | 'DOING' | 'DONE'; wipLimit?: number | null }): ProjectStatusDto {
+  return { id: s.id, key: s.key, name: s.name, color: s.color, order: s.order, category: s.category, wipLimit: s.wipLimit ?? null };
 }
 
 function toDto(

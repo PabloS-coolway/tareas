@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
-import { ActivityDto, CommentDto, CreateTaskDto, MoveTaskDto, Priority, ResumenDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
+import { ActivityDto, ActivityFeedItemDto, CommentDto, CreateTaskDto, MoveTaskDto, Priority, ResumenDto, TagCountDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
 import { JwtPayload } from '../../../auth/application/auth.service';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
 import { ActivityService } from '../../application/activity.service';
@@ -19,6 +19,8 @@ function parseFilter(q: Record<string, string | undefined>): TaskFilter {
     q: q.q,
     parentId: q.parentId === 'null' ? null : num(q.parentId),
     sprintId: q.sprintId === 'none' ? 'none' : num(q.sprintId),
+    tag: q.tag,
+    overdue: q.overdue === 'true',
     board: q.board === 'true',
     includeDone: q.includeDone === 'true',
     doneDays: num(q.doneDays),
@@ -47,6 +49,19 @@ export class TasksController {
     return this.tasks.resumen(me.sub);
   }
 
+  @Get('tags')
+  @RequireFeature('tareas.ver')
+  tags(@Query('projectId') projectId?: string): Promise<TagCountDto[]> {
+    return this.tasks.tags(projectId && /^\d+$/.test(projectId) ? Number(projectId) : undefined);
+  }
+
+  /** Lo último que ha pasado en cualquier tarea. */
+  @Get('feed')
+  @RequireFeature('tareas.ver')
+  feed(@Query('limit') limit?: string): Promise<ActivityFeedItemDto[]> {
+    return this.activity.feed(limit && /^\d+$/.test(limit) ? Number(limit) : 40);
+  }
+
   /** Por clave (COOL-12) o por id numérico. */
   @Get(':idOrKey')
   @RequireFeature('tareas.ver')
@@ -70,6 +85,12 @@ export class TasksController {
   @RequireFeature('tareas.editar')
   update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateTaskDto, @CurrentUser() me: JwtPayload): Promise<TaskDto> {
     return this.tasks.update(id, body, me.sub);
+  }
+
+  @Post(':id/duplicate')
+  @RequireFeature('tareas.editar')
+  duplicate(@Param('id', ParseIntPipe) id: number, @CurrentUser() me: JwtPayload): Promise<TaskDto> {
+    return this.tasks.duplicate(id, me.sub);
   }
 
   @Post(':id/move')

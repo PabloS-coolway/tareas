@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BoxArrowRight, HouseDoorFill, Key, Flag, KanbanFill, ListCheck, ListUl, People, PeopleFill, PersonCircle, Plugin, ShieldLock } from 'react-bootstrap-icons';
+import { BoxArrowRight, HouseDoorFill, Key, Flag, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock } from 'react-bootstrap-icons';
 import { useState, type ReactNode } from 'react';
 import type { Feature } from '@yorga/contracts';
 import { Button } from 'react-bootstrap';
@@ -51,6 +51,11 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
       </div>
 
       <nav className="sidebar-nav">
+        <button type="button" className="nav-item nav-search" onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))} title="Buscar (Ctrl+K)">
+          <span className="nav-ico"><Search /></span>
+          <span className="nav-label">Buscar</span>
+          <kbd className="ms-auto">Ctrl K</kbd>
+        </button>
         <div className="nav-group">{principal.map(item)}</div>
 
         <div className="nav-group">

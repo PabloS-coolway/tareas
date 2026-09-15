@@ -3,10 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import { Alert, Button, ButtonGroup, Card, Form, Spinner } from 'react-bootstrap';
 import { Kanban, ListUl, Plus } from 'react-bootstrap-icons';
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
-import { PRIORITIES, PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS, type Priority, type ProjectDto, type TaskDto, type TaskType, type UserRefDto } from '@yorga/contracts';
+import { PRIORITIES, PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS, type Priority, type ProjectDto, type SprintDto, type TagCountDto, type TaskDto, type TaskType, type UserRefDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
-import { Avatar, EstadoPill, PrioridadPill, TaskCard, TipoPill, Vence } from '../components/tareas-ui';
+import { Avatar, EstadoPill, Etiquetas, PrioridadPill, Puntos, TaskCard, TipoPill, Vence } from '../components/tareas-ui';
 import { NuevaTareaModal } from '../components/NuevaTareaModal';
 import { Column, DataTable, useMemoryTable } from '../components/table';
 import { Skeleton } from '../components/Skeleton';
@@ -31,6 +31,11 @@ export function TableroPage() {
   const [priority, setPriority] = useState('');
   const [type, setType] = useState('');
   const [verEpicas, setVerEpicas] = useState(false);
+  const [sprint, setSprint] = useState('');
+  const [tag, setTag] = useState('');
+  const [vencidas, setVencidas] = useState(false);
+  const [sprints, setSprints] = useState<SprintDto[]>([]);
+  const [etiquetas, setEtiquetas] = useState<TagCountDto[]>([]);
 
   const cambiarVista = (v: Vista) => {
     setVista(v);
@@ -50,6 +55,9 @@ export function TableroPage() {
         doneDays: 14,
         assigneeId: assignee === 'me' || assignee === 'none' ? assignee : assignee ? Number(assignee) : undefined,
         priority: (priority as Priority) || undefined,
+        sprintId: sprint === 'none' ? 'none' : sprint ? Number(sprint) : undefined,
+        tag: tag || undefined,
+        overdue: vencidas || undefined,
         q: q || undefined,
         pageSize: 1000,
       });
@@ -57,7 +65,7 @@ export function TableroPage() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [key, verEpicas, type, assignee, priority, q]);
+  }, [key, verEpicas, type, assignee, priority, q, sprint, tag, vencidas]);
 
   useEffect(() => {
     setTasks(null);
@@ -67,7 +75,12 @@ export function TableroPage() {
 
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
+    tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
   }, []);
+
+  useEffect(() => {
+    if (project) tareasGateway.etiquetas(project.id).then(setEtiquetas).catch(() => setEtiquetas([]));
+  }, [project?.id, tasks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const porEstado = useMemo(() => {
     const m = new Map<number, TaskDto[]>();
@@ -113,6 +126,8 @@ export function TableroPage() {
       { key: 'status', label: 'estado', value: (t) => t.status.name, render: (t) => <EstadoPill s={t.status} /> },
       { key: 'priority', label: 'prioridad', value: (t) => PRIORITY_LABELS[t.priority], render: (t) => <PrioridadPill p={t.priority} /> },
       { key: 'assignee', label: 'asignado', value: (t) => t.assignee?.name ?? '', render: (t) => <span className="d-inline-flex align-items-center gap-2"><Avatar user={t.assignee} />{t.assignee?.name ?? <span className="text-secondary">—</span>}</span> },
+      { key: 'tags', label: 'etiquetas', value: (t) => t.tags.join(', '), render: (t) => <Etiquetas tags={t.tags} onClick={setTag} /> },
+      { key: 'estimate', label: 'pt', value: (t) => t.estimate ?? '', align: 'end', render: (t) => <Puntos n={t.estimate} /> },
       { key: 'due', label: 'vence', value: (t) => t.dueDate ?? '', render: (t) => <Vence date={t.dueDate} done={t.status.category === 'DONE'} /> },
       { key: 'parent', label: 'épica / padre', value: (t) => t.parentKey ?? '', render: (t) => (t.parentKey ? <Link to={`/t/${t.parentKey}`} className="task-key">{t.parentKey}</Link> : null) },
     ],
@@ -165,6 +180,19 @@ export function TableroPage() {
           <option value="">Cualquier tipo</option>
           {TASK_TYPES.filter((t) => t !== 'EPIC').map((t) => <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>)}
         </Form.Select>
+        <Form.Select id="tb-sprint" size="sm" value={sprint} onChange={(e) => setSprint(e.target.value)}>
+          <option value="">Cualquier sprint</option>
+          <option value="none">Backlog (sin sprint)</option>
+          {sprints.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>)}
+        </Form.Select>
+        {(etiquetas.length > 0 || tag) && (
+          <Form.Select id="tb-tag" size="sm" value={tag} onChange={(e) => setTag(e.target.value)}>
+            <option value="">Cualquier etiqueta</option>
+            {etiquetas.map((t) => <option key={t.tag} value={t.tag}>{t.tag} ({t.count})</option>)}
+            {tag && !etiquetas.some((t) => t.tag === tag) && <option value={tag}>{tag}</option>}
+          </Form.Select>
+        )}
+        <button type="button" className={`toolbar-chip ${vencidas ? 'on' : ''}`} onClick={() => setVencidas((v) => !v)} title="Sólo las que han pasado su fecha límite">Vencidas</button>
         <Form.Check type="switch" id="tb-epics" label="Épicas" checked={verEpicas} onChange={(e) => setVerEpicas(e.target.checked)} className="small" />
       </div>
 
@@ -175,12 +203,15 @@ export function TableroPage() {
           <div className="board">
             {project.statuses.map((s) => {
               const col = porEstado.get(s.id) ?? [];
+              const puntos = col.reduce((n, t) => n + (t.estimate ?? 0), 0);
+              const pasado = s.wipLimit !== null && col.length > s.wipLimit;
               return (
                 <div key={s.id} className="board-col">
-                  <div className="board-col-head">
+                  <div className={`board-col-head ${pasado ? 'over-wip' : ''}`} title={pasado ? `Supera el límite WIP de ${s.wipLimit}` : undefined}>
                     <span className="status-dot" style={{ background: s.color }} />
                     {s.name}
-                    <span className="count">{col.length}</span>
+                    {puntos > 0 && <span className="pts">{puntos} pt</span>}
+                    <span className="count">{col.length}{s.wipLimit !== null && <>/{s.wipLimit}</>}</span>
                   </div>
                   <Droppable droppableId={String(s.id)} isDropDisabled={!hasFeature('tareas.editar')}>
                     {(prov, snap) => (

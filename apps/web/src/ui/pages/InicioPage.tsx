@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Alert, Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import type { ResumenDto } from '@yorga/contracts';
+import type { ActivityFeedItemDto, ResumenDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
-import { TaskRow } from '../components/tareas-ui';
+import { TaskRow, hace } from '../components/tareas-ui';
+import { ActividadTexto } from '../components/ActividadTexto';
 import { Skeleton } from '../components/Skeleton';
 
 export function InicioPage() {
   const { user } = useAuth();
   const [r, setR] = useState<ResumenDto | null>(null);
+  const [feed, setFeed] = useState<ActivityFeedItemDto[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     tareasGateway.resumen().then(setR).catch((e) => setError((e as Error).message));
+    tareasGateway.feed(20).then(setFeed).catch(() => setFeed([]));
   }, []);
 
   return (
@@ -83,6 +86,26 @@ export function InicioPage() {
               </Card>
             </div>
           </div>
+
+          <Card className="mt-4">
+            <Card.Body>
+              <Card.Title className="mb-2">Actividad reciente <span className="text-secondary fw-normal small">lo último que ha pasado en cualquier proyecto</span></Card.Title>
+              {feed.length === 0 ? (
+                <p className="text-secondary mb-0">Todavía no hay actividad.</p>
+              ) : (
+                <ul className="activity feed">
+                  {feed.map((a) => (
+                    <li key={a.id}>
+                      <span className="when">{hace(a.createdAt)}</span>
+                      <span>
+                        <ActividadTexto a={a} /> en <Link to={`/t/${a.taskKey}`} className="text-decoration-none"><span className="task-key">{a.taskKey}</span> {a.taskTitle}</Link>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card.Body>
+          </Card>
         </>
       )}
     </div>

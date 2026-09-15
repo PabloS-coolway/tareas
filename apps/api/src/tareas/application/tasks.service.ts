@@ -12,6 +12,7 @@ import {
   TaskFilter,
   TaskPageDto,
   UpdateTaskDto,
+  TagCountDto,
 } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea, parsearClaveTarea } from '../domain/clave';
@@ -61,6 +62,11 @@ export class TasksService {
     if (f.priority) where.priority = f.priority;
     if (f.type) where.type = f.type;
     if (f.parentId !== undefined) where.parentId = f.parentId;
+    if (f.tag?.trim()) where.tags = { has: f.tag.trim().toLowerCase() };
+    if (f.overdue) {
+      where.dueDate = { lt: new Date(new Date().toISOString().slice(0, 10)) };
+      where.status = { category: { not: 'DONE' } };
+    }
     if (f.sprintId === 'none') where.sprintId = null;
     else if (typeof f.sprintId === 'number') where.sprintId = f.sprintId;
     if (f.board) {
@@ -181,6 +187,7 @@ export class TasksService {
           dueDate: parseFecha(dto.dueDate) ?? null,
           startDate: parseFecha(dto.startDate) ?? null,
           tags: limpiarTags(dto.tags),
+          estimate: limpiarEstimacion(dto.estimate),
           order: (last._max.order ?? -1) + 1,
           closedAt: status.category === 'DONE' ? new Date() : null,
         },
@@ -257,6 +264,13 @@ export class TasksService {
       data.startDate = start;
       log('startDate', fecha(cur.startDate), fecha(start));
     }
+    if (dto.estimate !== undefined) {
+      const est = limpiarEstimacion(dto.estimate);
+      if (est !== cur.estimate) {
+        data.estimate = est;
+        log('estimate', cur.estimate === null ? null : String(cur.estimate), est === null ? null : String(est));
+      }
+    }
     if (dto.tags !== undefined) {
       const tags = limpiarTags(dto.tags);
       if (tags.join('|') !== cur.tags.join('|')) {
@@ -301,6 +315,39 @@ export class TasksService {
       }
     });
     return this.get(id);
+  }
+
+  /** Copia de una tarea (título con «(copia)», mismo proyecto/estado inicial, sin comentarios ni adjuntos). */
+  async duplicate(id: number, actorId: number): Promise<TaskDto> {
+    const cur = await this.prisma.task.findUnique({ where: { id }, include: { project: { select: { statuses: { orderBy: { order: 'asc' } } } } } });
+    if (!cur) throw new NotFoundException('Tarea no encontrada.');
+    const primero = cur.project.statuses.find((s) => s.category !== 'DONE') ?? cur.project.statuses[0];
+    return this.create(
+      {
+        projectId: cur.projectId,
+        title: `${cur.title} (copia)`,
+        description: cur.description,
+        type: cur.type,
+        statusId: primero?.id,
+        priority: cur.priority,
+        assigneeId: cur.assigneeId,
+        parentId: cur.parentId,
+        sprintId: cur.sprintId,
+        dueDate: fecha(cur.dueDate),
+        startDate: fecha(cur.startDate),
+        tags: cur.tags,
+        estimate: cur.estimate,
+      },
+      actorId,
+    );
+  }
+
+  /** Etiquetas en uso (con cuántas tareas cada una), opcionalmente de un proyecto. */
+  async tags(projectId?: number): Promise<TagCountDto[]> {
+    const rows = projectId
+      ? await this.prisma.$queryRaw<{ tag: string; count: bigint }[]>`SELECT t.tag, COUNT(*)::bigint AS count FROM task, unnest(task.tags) AS t(tag) WHERE task.project_id = ${projectId} GROUP BY t.tag ORDER BY count DESC, t.tag ASC`
+      : await this.prisma.$queryRaw<{ tag: string; count: bigint }[]>`SELECT t.tag, COUNT(*)::bigint AS count FROM task, unnest(task.tags) AS t(tag) GROUP BY t.tag ORDER BY count DESC, t.tag ASC`;
+    return rows.map((r) => ({ tag: r.tag, count: Number(r.count) }));
   }
 
   async remove(id: number): Promise<void> {
@@ -363,6 +410,7 @@ export class TasksService {
       dueDate: fecha(r.dueDate),
       startDate: fecha(r.startDate),
       tags: r.tags,
+      estimate: r.estimate,
       order: r.order,
       closedAt: r.closedAt?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
@@ -374,6 +422,14 @@ export class TasksService {
       clickupUrl: r.clickupUrl,
     }));
   }
+}
+
+/** Puntos: entero 0-999 o null. */
+function limpiarEstimacion(v: number | null | undefined): number | null {
+  if (v === undefined || v === null || v === ('' as unknown)) return null;
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n) || n < 0) throw new BadRequestException('La estimación debe ser un número de puntos (0 o más).');
+  return Math.min(n, 999);
 }
 
 function limpiarTags(tags: string[] | undefined): string[] {

@@ -141,6 +141,8 @@ model ProjectStatus {
   color     String         @default("#6b7280")
   order     Int            @default(0)
   category  StatusCategory @default(TODO)
+  /// Límite de trabajo en curso (WIP) de la columna; null = sin límite. Sólo avisa, no bloquea.
+  wipLimit  Int?           @map("wip_limit")
 
   tasks Task[]
 
@@ -174,6 +176,8 @@ model Task {
   dueDate     DateTime? @map("due_date") @db.Date
   startDate   DateTime? @map("start_date") @db.Date
   tags        String[]
+  /// Estimación en puntos (story points); null = sin estimar.
+  estimate    Int?
   /// Posición dentro de su columna del tablero.
   order       Float     @default(0)
   closedAt    DateTime? @map("closed_at")

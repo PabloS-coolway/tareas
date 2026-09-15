@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, ButtonGroup, Card, Form } from 'react-bootstrap';
 import { Kanban, ListUl } from 'react-bootstrap-icons';
-import { PRIORITIES, PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS, type Priority, type SprintDto, type TaskDto, type TaskType, type UserRefDto } from '@yorga/contracts';
+import { PRIORITIES, PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS, type Priority, type SprintDto, type TagCountDto, type TaskDto, type TaskType, type UserRefDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
-import { Avatar, EstadoPill, PrioridadPill, TipoPill, Vence } from '../components/tareas-ui';
+import { Avatar, EstadoPill, Etiquetas, PrioridadPill, Puntos, TipoPill, Vence } from '../components/tareas-ui';
 import { Column, DataTable, useMemoryTable } from '../components/table';
 import { Skeleton } from '../components/Skeleton';
 import { TableroGlobal } from '../components/TableroGlobal';
@@ -29,6 +29,9 @@ export function TodasTareasPage() {
   const [priority, setPriority] = useState('');
   const [type, setType] = useState('');
   const [sprint, setSprint] = useState('');
+  const [tag, setTag] = useState('');
+  const [soloVencidas, setSoloVencidas] = useState(false);
+  const [etiquetas, setEtiquetas] = useState<TagCountDto[]>([]);
   const [includeDone, setIncludeDone] = useState(false);
 
   const cambiarVista = (v: Vista) => {
@@ -39,6 +42,7 @@ export function TodasTareasPage() {
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
     tareasGateway.sprints(true).then(setSprints).catch(() => setSprints([]));
+    tareasGateway.etiquetas().then(setEtiquetas).catch(() => setEtiquetas([]));
   }, []);
 
   const load = useCallback(async () => {
@@ -50,6 +54,8 @@ export function TodasTareasPage() {
         priority: (priority as Priority) || undefined,
         type: (type as TaskType) || undefined,
         sprintId: sprint === 'none' ? 'none' : sprint ? Number(sprint) : undefined,
+        tag: tag || undefined,
+        overdue: soloVencidas || undefined,
         q: q || undefined,
         // En tablero: sin épicas ni subtareas (como en el de cada proyecto) y las terminadas de los últimos 14 días.
         board: vista === 'tablero',
@@ -61,7 +67,7 @@ export function TodasTareasPage() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [q, projectId, assignee, priority, type, sprint, includeDone, vista]);
+  }, [q, projectId, assignee, priority, type, sprint, tag, soloVencidas, includeDone, vista]);
 
   useEffect(() => {
     setTasks(null);
@@ -93,6 +99,8 @@ export function TodasTareasPage() {
       { key: 'priority', label: 'prioridad', value: (t) => PRIORITY_LABELS[t.priority], render: (t) => <PrioridadPill p={t.priority} /> },
       { key: 'assignee', label: 'asignado', value: (t) => t.assignee?.name ?? '', render: (t) => <span className="d-inline-flex align-items-center gap-2"><Avatar user={t.assignee} />{t.assignee?.name ?? <span className="text-secondary">—</span>}</span> },
       { key: 'sprint', label: 'sprint', value: (t) => t.sprintName ?? '', render: (t) => (t.sprintId ? <Link to={`/sprints/${t.sprintId}`} className="text-decoration-none text-nowrap">{t.sprintName}</Link> : <span className="text-secondary">—</span>) },
+      { key: 'tags', label: 'etiquetas', value: (t) => t.tags.join(', '), render: (t) => <Etiquetas tags={t.tags} onClick={setTag} /> },
+      { key: 'estimate', label: 'pt', value: (t) => t.estimate ?? '', align: 'end', render: (t) => <Puntos n={t.estimate} /> },
       { key: 'due', label: 'vence', value: (t) => t.dueDate ?? '', render: (t) => <Vence date={t.dueDate} done={t.status.category === 'DONE'} /> },
       { key: 'parent', label: 'épica / padre', value: (t) => t.parentKey ?? '', render: (t) => (t.parentKey ? <Link to={`/t/${t.parentKey}`} className="task-key">{t.parentKey}</Link> : null) },
     ],
@@ -150,6 +158,13 @@ export function TodasTareasPage() {
           <option value="">Cualquier tipo</option>
           {TASK_TYPES.map((t) => <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>)}
         </Form.Select>
+        {(etiquetas.length > 0 || tag) && (
+          <Form.Select id="tt-tag" size="sm" value={tag} onChange={(e) => setTag(e.target.value)}>
+            <option value="">Cualquier etiqueta</option>
+            {etiquetas.map((t) => <option key={t.tag} value={t.tag}>{t.tag} ({t.count})</option>)}
+          </Form.Select>
+        )}
+        <button type="button" className={`toolbar-chip ${soloVencidas ? 'on' : ''}`} onClick={() => setSoloVencidas((v) => !v)} title="Sólo las que han pasado su fecha límite">Vencidas</button>
       </div>
 
       {!tasks ? (

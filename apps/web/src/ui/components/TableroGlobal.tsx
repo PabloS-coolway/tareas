@@ -107,11 +107,13 @@ export function TableroGlobal({ tasks, onChanged, setTasks, extra }: Props) {
         <div className="board">
           {columnas.map((c) => {
             const col = porColumna.get(c.key) ?? [];
+            const puntos = col.reduce((n, t) => n + (t.estimate ?? 0), 0);
             return (
               <div key={c.key} className="board-col">
                 <div className="board-col-head">
                   <span className="status-dot" style={{ background: c.color }} />
                   {c.name}
+                  {puntos > 0 && <span className="pts">{puntos} pt</span>}
                   <span className="count">{col.length}</span>
                 </div>
                 <Droppable droppableId={c.key} isDropDisabled={!puede}>
