@@ -124,8 +124,11 @@ export class HttpTareasGateway {
   async etiquetas(projectId?: number): Promise<TagCountDto[]> {
     return ok(await apiFetch(`/tasks/tags${projectId ? `?projectId=${projectId}` : ''}`), 'No se pudieron cargar las etiquetas.');
   }
-  async feed(limit = 40): Promise<ActivityFeedItemDto[]> {
-    return ok(await apiFetch(`/tasks/feed?limit=${limit}`), 'No se pudo cargar la actividad.');
+  async feed(limit = 40, filtro: { projectId?: number; actorId?: number } = {}): Promise<ActivityFeedItemDto[]> {
+    const p = new URLSearchParams({ limit: String(limit) });
+    if (filtro.projectId) p.set('projectId', String(filtro.projectId));
+    if (filtro.actorId) p.set('actorId', String(filtro.actorId));
+    return ok(await apiFetch(`/tasks/feed?${p}`), 'No se pudo cargar la actividad.');
   }
   async duplicarTarea(id: number): Promise<TaskDto> {
     const t = await ok<TaskDto>(await apiFetch(`/tasks/${id}/duplicate`, { method: 'POST' }), 'No se pudo duplicar la tarea.');

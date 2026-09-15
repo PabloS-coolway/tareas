@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { BoxArrowRight, HouseDoorFill, Key, Bell, Flag, JournalText, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock } from 'react-bootstrap-icons';
+import { BoxArrowRight, HouseDoorFill, Key, Activity, Bell, Flag, JournalText, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock } from 'react-bootstrap-icons';
 import { useEffect, useState, type ReactNode } from 'react';
 import { tareasGateway } from '../composition';
 import type { Feature } from '@yorga/contracts';
@@ -51,6 +51,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
     { to: '/equipo', label: 'Equipo', icon: <PeopleFill /> },
     { to: '/sprints', label: 'Sprints', icon: <Flag /> },
     { to: '/avisos', label: 'Avisos', icon: <Bell />, badge: sinLeer },
+    { to: '/actividad', label: 'Actividad', icon: <Activity /> },
   ];
   const admin: NavItem[] = [
     { to: '/usuarios', label: 'Usuarios', icon: <People />, feature: 'usuarios.gestionar' },

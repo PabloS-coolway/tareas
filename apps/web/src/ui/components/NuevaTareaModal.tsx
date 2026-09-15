@@ -14,6 +14,7 @@ import {
   type UserRefDto,
 } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
+import { EditorTexto } from './EditorTexto';
 
 interface Props {
   project: ProjectDto;
@@ -206,7 +207,7 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
           </div>
           <Form.Group className="mt-3">
             <Form.Label className="small">Descripción</Form.Label>
-            <Form.Control id="nt-desc" as="textarea" rows={5} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Contexto, pasos, criterios de aceptación…" />
+            <EditorTexto id="nt-desc" value={description} onChange={setDescription} minHeight={160} placeholder="Contexto, pasos, criterios de aceptación…" />
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>

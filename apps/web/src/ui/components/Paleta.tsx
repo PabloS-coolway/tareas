@@ -23,6 +23,8 @@ const PAGINAS: Entrada[] = [
   { id: 'p-sprints', grupo: 'Ir a', texto: 'Sprints', to: '/sprints' },
   { id: 'p-todas', grupo: 'Ir a', texto: 'Todas las tareas', to: '/tareas' },
   { id: 'p-proyectos', grupo: 'Ir a', texto: 'Proyectos', to: '/proyectos' },
+  { id: 'p-avisos', grupo: 'Ir a', texto: 'Avisos', to: '/avisos' },
+  { id: 'p-actividad', grupo: 'Ir a', texto: 'Actividad', to: '/actividad' },
 ];
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');

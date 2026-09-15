@@ -16,7 +16,7 @@ export function InicioPage() {
 
   useEffect(() => {
     tareasGateway.resumen().then(setR).catch((e) => setError((e as Error).message));
-    tareasGateway.feed(20).then(setFeed).catch(() => setFeed([]));
+    tareasGateway.feed(8).then(setFeed).catch(() => setFeed([]));
   }, []);
 
   return (
@@ -89,15 +89,18 @@ export function InicioPage() {
 
           <Card className="mt-4">
             <Card.Body>
-              <Card.Title className="mb-2">Actividad reciente <span className="text-secondary fw-normal small">lo último que ha pasado en cualquier proyecto</span></Card.Title>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <Card.Title className="mb-0">Actividad reciente <span className="text-secondary fw-normal small">lo último en cualquier proyecto</span></Card.Title>
+                <Link to="/actividad" className="small">ver toda</Link>
+              </div>
               {feed.length === 0 ? (
                 <p className="text-secondary mb-0">Todavía no hay actividad.</p>
               ) : (
-                <ul className="activity feed">
+                <ul className="activity feed compact">
                   {feed.map((a) => (
                     <li key={a.id}>
                       <span className="when">{hace(a.createdAt)}</span>
-                      <span>
+                      <span className="text-truncate">
                         <ActividadTexto a={a} /> en <Link to={`/t/${a.taskKey}`} className="text-decoration-none"><span className="task-key">{a.taskKey}</span> {a.taskTitle}</Link>
                       </span>
                     </li>

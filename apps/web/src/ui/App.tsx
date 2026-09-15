@@ -13,6 +13,7 @@ import { TodasTareasPage } from './pages/TodasTareasPage';
 import { SprintsPage } from './pages/SprintsPage';
 import { SprintPage } from './pages/SprintPage';
 import { AvisosPage } from './pages/AvisosPage';
+import { ActividadPage } from './pages/ActividadPage';
 import { PlantillasPage } from './pages/PlantillasPage';
 import { TokensPage } from './pages/TokensPage';
 import { AuthProvider } from './auth/AuthContext';
@@ -36,6 +37,7 @@ export function App() {
               <Route path="/sprints" element={<SprintsPage />} />
               <Route path="/sprints/:id" element={<SprintPage />} />
               <Route path="/avisos" element={<AvisosPage />} />
+              <Route path="/actividad" element={<ActividadPage />} />
               <Route path="/plantillas" element={<PlantillasPage />} />
               <Route path="/p/:key" element={<TableroPage />} />
               <Route path="/t/:key" element={<TareaPage />} />

@@ -50,9 +50,9 @@ export class ActivityService {
   }
 
   /** Feed global (lo último que ha pasado en cualquier tarea), con la tarea a la que pertenece. */
-  async feed(limit = 40): Promise<ActivityFeedItemDto[]> {
+  async feed(limit = 40, filtro: { projectId?: number; actorId?: number } = {}): Promise<ActivityFeedItemDto[]> {
     const rows = await this.prisma.taskActivity.findMany({
-      where: { action: { not: 'imported' } }, // el import masivo no es 'actividad' del equipo
+      where: { action: { not: 'imported' }, ...(filtro.projectId ? { task: { projectId: filtro.projectId } } : {}), ...(filtro.actorId ? { actorId: filtro.actorId } : {}) }, // el import masivo no es 'actividad' del equipo
       orderBy: { createdAt: 'desc' },
       include: { actor: { select: { id: true, name: true, email: true } }, task: { select: { number: true, title: true, project: { select: { key: true } } } } },
       take: Math.min(Math.max(limit, 1), 200),

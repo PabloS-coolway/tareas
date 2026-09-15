@@ -31,6 +31,7 @@ import { SubtareasArbol } from '../components/SubtareasArbol';
 import { ActividadTexto } from '../components/ActividadTexto';
 import { Dependencias } from '../components/Dependencias';
 import { ComentarioInput } from '../components/ComentarioInput';
+import { EditorTexto } from '../components/EditorTexto';
 
 const fmtBytes = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
@@ -249,14 +250,13 @@ export function TareaPage() {
                 <Card.Title className="mb-0">Descripción</Card.Title>
                 {editandoDesc && (
                   <div className="d-flex gap-2 align-items-center">
-                    <span className="small text-secondary me-1">Markdown: **negrita**, listas, tablas, enlaces</span>
                     <Button size="sm" variant="outline-secondary" onClick={() => { setDesc(task.description); setEditandoDesc(false); }}>Cancelar</Button>
                     <Button size="sm" className="btn-brand" onClick={async () => { await guardar({ description: desc }); setEditandoDesc(false); }}>Guardar</Button>
                   </div>
                 )}
               </div>
               {editandoDesc ? (
-                <Form.Control id="t-desc" as="textarea" className="tarea-desc" autoFocus value={desc} onChange={(e) => setDesc(e.target.value)} />
+                <EditorTexto id="t-desc" value={desc} onChange={setDesc} autoFocus placeholder="Contexto, pasos, criterios de aceptación…" />
               ) : (
                 <div className={`tarea-desc-view ${task.description ? '' : 'empty'}`} onClick={() => puedeEditar && setEditandoDesc(true)}>
                   {task.description ? <Markdown text={task.description} /> : puedeEditar ? 'Sin descripción. Haz clic para escribir.' : 'Sin descripción.'}
