@@ -21,6 +21,7 @@ import type {
   UserRefDto,
 } from '@yorga/contracts';
 import { apiFetch, errorMessage } from './api-client';
+import { avisarCambioTareas } from '../ui/proyectos/ProyectosContext';
 
 const json = (method: string, body: unknown): RequestInit => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
@@ -89,16 +90,23 @@ export class HttpTareasGateway {
     return ok(await apiFetch(`/tasks/${id}/subtasks`), 'No se pudieron cargar las subtareas.');
   }
   async crearTarea(dto: CreateTaskDto): Promise<TaskDto> {
-    return ok(await apiFetch('/tasks', json('POST', dto)), 'No se pudo crear la tarea.');
+    const t = await ok<TaskDto>(await apiFetch('/tasks', json('POST', dto)), 'No se pudo crear la tarea.');
+    avisarCambioTareas();
+    return t;
   }
   async editarTarea(id: number, dto: UpdateTaskDto): Promise<TaskDto> {
-    return ok(await apiFetch(`/tasks/${id}`, json('PATCH', dto)), 'No se pudo guardar la tarea.');
+    const t = await ok<TaskDto>(await apiFetch(`/tasks/${id}`, json('PATCH', dto)), 'No se pudo guardar la tarea.');
+    avisarCambioTareas();
+    return t;
   }
   async moverTarea(id: number, dto: MoveTaskDto): Promise<TaskDto> {
-    return ok(await apiFetch(`/tasks/${id}/move`, json('POST', dto)), 'No se pudo mover la tarea.');
+    const t = await ok<TaskDto>(await apiFetch(`/tasks/${id}/move`, json('POST', dto)), 'No se pudo mover la tarea.');
+    avisarCambioTareas();
+    return t;
   }
   async borrarTarea(id: number): Promise<void> {
-    return ok(await apiFetch(`/tasks/${id}`, { method: 'DELETE' }), 'No se pudo borrar la tarea.');
+    await ok<void>(await apiFetch(`/tasks/${id}`, { method: 'DELETE' }), 'No se pudo borrar la tarea.');
+    avisarCambioTareas();
   }
   async resumen(): Promise<ResumenDto> {
     return ok(await apiFetch('/tasks/resumen'), 'No se pudo cargar el resumen.');
@@ -154,6 +162,8 @@ export class HttpTareasGateway {
 
   // --- import ---
   async importarClickUp(data: unknown, options: { keys?: Record<string, string>; adjuntos?: boolean; estadosEstandar?: boolean }): Promise<ClickUpImportResultDto> {
-    return ok(await apiFetch('/import/clickup', json('POST', { data, options })), 'La importación falló.');
+    const r = await ok<ClickUpImportResultDto>(await apiFetch('/import/clickup', json('POST', { data, options })), 'La importación falló.');
+    avisarCambioTareas();
+    return r;
   }
 }
