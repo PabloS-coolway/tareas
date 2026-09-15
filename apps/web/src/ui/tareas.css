@@ -249,6 +249,7 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .editor-btn.act { background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--brand); }
 .editor-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
 .editor-content .ProseMirror { outline: none; padding: 12px 14px; min-height: inherit; line-height: 1.55; }
+.editor-content { max-height: 65vh; overflow-y: auto; }
 .editor-content { display: flex; }
 .editor-content > div { flex: 1; min-width: 0; }
 .editor-body p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--muted); float: left; height: 0; pointer-events: none; }

@@ -36,7 +36,7 @@ export function EditorTexto({ value, onChange, placeholder, minHeight = 260, aut
       Markdown.configure({ html: false, transformPastedText: true, transformCopiedText: true, breaks: true }),
     ],
     content: value,
-    autofocus: autoFocus ? 'end' : false,
+    autofocus: autoFocus ? 'start' : false,
     editorProps: { attributes: { class: 'md editor-body', ...(id ? { id } : {}) } },
     onUpdate: ({ editor: e }) => {
       const md = (e.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
