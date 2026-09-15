@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
-import { ActivityDto, ActivityFeedItemDto, CommentDto, CreateTaskDto, DependenciesDto, MoveTaskDto, Priority, ResumenDto, TagCountDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
+import { ActivityDto, ActivityFeedItemDto, CommentDto, CreateTaskDto, DependenciesDto, KpisDto, MoveTaskDto, Priority, ResumenDto, TagCountDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
 import { JwtPayload } from '../../../auth/application/auth.service';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
 import { ActivityService } from '../../application/activity.service';
@@ -47,6 +47,13 @@ export class TasksController {
   @RequireFeature('tareas.ver')
   resumen(@CurrentUser() me: JwtPayload): Promise<ResumenDto> {
     return this.tasks.resumen(me.sub);
+  }
+
+  /** Panel de equipo (KPIs): quien gestione proyectos o usuarios (dirección). */
+  @Get('kpis')
+  @RequireFeature('proyectos.gestionar', 'usuarios.gestionar')
+  kpis(): Promise<KpisDto> {
+    return this.tasks.kpis();
   }
 
   @Get('tags')

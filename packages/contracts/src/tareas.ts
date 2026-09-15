@@ -424,6 +424,59 @@ export interface ActivityFeedItemDto extends ActivityDto {
   projectKey: string;
 }
 
+// ---------- KPIs de equipo (panel del CTO) ----------
+
+export interface KpiPersonaDto {
+  user: UserRefDto;
+  open: number;
+  doing: number;
+  overdue: number;
+  done7d: number;
+}
+
+export interface KpiProyectoDto {
+  projectId: number;
+  key: string;
+  name: string;
+  color: string;
+  open: number;
+  doing: number;
+  overdue: number;
+  done7d: number;
+  created7d: number;
+}
+
+export interface KpiSemanaDto {
+  /** Lunes de la semana (YYYY-MM-DD). */
+  week: string;
+  created: number;
+  done: number;
+}
+
+export interface KpisDto {
+  open: number;
+  doing: number;
+  blocked: number;
+  unassigned: number;
+  overdue: number;
+  /** Abiertas sin tocar (sin actualizar) desde hace más de 30 días. */
+  stale: number;
+  urgentOpen: number;
+  done7d: number;
+  done7dPrev: number;
+  created7d: number;
+  done30d: number;
+  created30d: number;
+  /** Mediana de días entre creación y cierre, cerradas en 30 días. */
+  leadTimeDays: number | null;
+  /** Antigüedad media (días) de las abiertas. */
+  avgAgeDays: number | null;
+  activeSprint: { id: number; name: string; total: number; done: number; points: number; pointsDone: number; daysLeft: number | null } | null;
+  porPersona: KpiPersonaDto[];
+  porProyecto: KpiProyectoDto[];
+  semanas: KpiSemanaDto[];
+}
+
 // ---------- Inicio ----------
 
 export interface ResumenProyectoDto {

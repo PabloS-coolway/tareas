@@ -11,6 +11,7 @@ import type {
   CreateTaskTemplateDto,
   DependenciesDto,
   InstantiateTemplateDto,
+  KpisDto,
   NotificationsPageDto,
   CreateProjectDto,
   CreateTaskDto,
@@ -134,6 +135,9 @@ export class HttpTareasGateway {
     const t = await ok<TaskDto>(await apiFetch(`/tasks/${id}/duplicate`, { method: 'POST' }), 'No se pudo duplicar la tarea.');
     avisarCambioTareas();
     return t;
+  }
+  async kpis(): Promise<KpisDto> {
+    return ok(await apiFetch('/tasks/kpis'), 'No se pudo cargar el panel de equipo.');
   }
   async resumen(): Promise<ResumenDto> {
     return ok(await apiFetch('/tasks/resumen'), 'No se pudo cargar el resumen.');

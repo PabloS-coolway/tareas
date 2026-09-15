@@ -6,10 +6,12 @@ import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { TaskRow, hace } from '../components/tareas-ui';
 import { ActividadTexto } from '../components/ActividadTexto';
+import { PanelEquipo } from '../components/PanelEquipo';
 import { Skeleton } from '../components/Skeleton';
 
 export function InicioPage() {
-  const { user } = useAuth();
+  const { user, hasFeature } = useAuth();
+  const direccion = hasFeature('proyectos.gestionar') || hasFeature('usuarios.gestionar');
   const [r, setR] = useState<ResumenDto | null>(null);
   const [feed, setFeed] = useState<ActivityFeedItemDto[]>([]);
   const [error, setError] = useState('');
@@ -86,6 +88,8 @@ export function InicioPage() {
               </Card>
             </div>
           </div>
+
+          {direccion && <PanelEquipo />}
 
           <Card className="mt-4">
             <Card.Body>

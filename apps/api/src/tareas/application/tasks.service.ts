@@ -16,6 +16,7 @@ import {
   DependenciesDto,
   TaskRefDto,
   RECURRENCES,
+  KpisDto,
 } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea, parsearClaveTarea } from '../domain/clave';
@@ -384,6 +385,105 @@ export class TasksService {
         actorId,
       );
     }
+  }
+
+  // ---------- KPIs de equipo ----------
+
+  async kpis(): Promise<KpisDto> {
+    const ahora = new Date();
+    const hoy = new Date(ahora.toISOString().slice(0, 10));
+    const d7 = new Date(ahora.getTime() - 7 * 86_400_000);
+    const d14 = new Date(ahora.getTime() - 14 * 86_400_000);
+    const d30 = new Date(ahora.getTime() - 30 * 86_400_000);
+    const abiertas: Prisma.TaskWhereInput = { status: { category: { not: 'DONE' } } };
+    const enCurso: Prisma.TaskWhereInput = { status: { category: 'DOING', NOT: { key: { contains: 'bloq' } } } };
+    const [open, doing, bloqEstado, unassigned, overdue, stale, urgentOpen, done7d, done7dPrev, created7d, done30d, created30d, bloqDeps] = await Promise.all([
+      this.prisma.task.count({ where: abiertas }),
+      this.prisma.task.count({ where: enCurso }),
+      this.prisma.task.count({ where: { status: { category: 'DOING', key: { contains: 'bloq' } } } }),
+      this.prisma.task.count({ where: { ...abiertas, assigneeId: null, type: { not: 'EPIC' } } }),
+      this.prisma.task.count({ where: { ...abiertas, dueDate: { lt: hoy } } }),
+      this.prisma.task.count({ where: { ...abiertas, updatedAt: { lt: d30 }, type: { not: 'EPIC' } } }),
+      this.prisma.task.count({ where: { ...abiertas, priority: 'URGENT' } }),
+      this.prisma.task.count({ where: { closedAt: { gte: d7 } } }),
+      this.prisma.task.count({ where: { closedAt: { gte: d14, lt: d7 } } }),
+      this.prisma.task.count({ where: { createdAt: { gte: d7 } } }),
+      this.prisma.task.count({ where: { closedAt: { gte: d30 } } }),
+      this.prisma.task.count({ where: { createdAt: { gte: d30 } } }),
+      this.prisma.taskDependency.findMany({ where: { blocked: abiertas, blocker: abiertas }, select: { blockedId: true }, distinct: ['blockedId'] }),
+    ]);
+    const cerradas30 = await this.prisma.task.findMany({ where: { closedAt: { gte: d30 } }, select: { createdAt: true, closedAt: true } });
+    const leads = cerradas30.map((t) => ((t.closedAt as Date).getTime() - t.createdAt.getTime()) / 86_400_000).sort((a, b) => a - b);
+    const leadTimeDays = leads.length ? Math.round(leads[Math.floor(leads.length / 2)] * 10) / 10 : null;
+    const abiertasRows = await this.prisma.task.findMany({ where: { ...abiertas, type: { not: 'EPIC' } }, select: { createdAt: true } });
+    const avgAgeDays = abiertasRows.length ? Math.round(abiertasRows.reduce((n, t) => n + (ahora.getTime() - t.createdAt.getTime()) / 86_400_000, 0) / abiertasRows.length) : null;
+
+    // Sprint activo (el primero en curso; si hay varios, el que antes termina).
+    const sp = await this.prisma.sprint.findFirst({ where: { status: 'ACTIVE' }, orderBy: [{ endDate: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }], include: { tasks: { select: { estimate: true, status: { select: { category: true } } } } } });
+    const activeSprint = sp
+      ? {
+          id: sp.id,
+          name: sp.name,
+          total: sp.tasks.length,
+          done: sp.tasks.filter((t) => t.status.category === 'DONE').length,
+          points: sp.tasks.reduce((n, t) => n + (t.estimate ?? 0), 0),
+          pointsDone: sp.tasks.filter((t) => t.status.category === 'DONE').reduce((n, t) => n + (t.estimate ?? 0), 0),
+          daysLeft: sp.endDate ? Math.max(0, Math.ceil((sp.endDate.getTime() - hoy.getTime()) / 86_400_000)) : null,
+        }
+      : null;
+
+    // Por persona (activas + las que tengan algo).
+    const users = await this.prisma.user.findMany({ where: { active: true }, select: { id: true, name: true, email: true }, orderBy: { name: 'asc' } });
+    const [pOpen, pDoing, pOverdue, pDone7] = await Promise.all([
+      this.prisma.task.groupBy({ by: ['assigneeId'], where: abiertas, _count: { _all: true } }),
+      this.prisma.task.groupBy({ by: ['assigneeId'], where: enCurso, _count: { _all: true } }),
+      this.prisma.task.groupBy({ by: ['assigneeId'], where: { ...abiertas, dueDate: { lt: hoy } }, _count: { _all: true } }),
+      this.prisma.task.groupBy({ by: ['assigneeId'], where: { closedAt: { gte: d7 } }, _count: { _all: true } }),
+    ]);
+    const m = (g: { assigneeId: number | null; _count: { _all: number } }[]) => new Map(g.map((x) => [x.assigneeId, x._count._all]));
+    const [mo, md, mv, m7] = [m(pOpen), m(pDoing), m(pOverdue), m(pDone7)];
+    const porPersona = users
+      .map((u) => ({ user: u, open: mo.get(u.id) ?? 0, doing: md.get(u.id) ?? 0, overdue: mv.get(u.id) ?? 0, done7d: m7.get(u.id) ?? 0 }))
+      .filter((p) => p.open + p.done7d > 0)
+      .sort((a, b) => b.open - a.open || b.done7d - a.done7d);
+
+    // Por proyecto.
+    const projects = await this.prisma.project.findMany({ where: { archived: false }, orderBy: { name: 'asc' }, select: { id: true, key: true, name: true, color: true } });
+    const [gOpen, gDoing, gOverdue, gDone7, gCreated7] = await Promise.all([
+      this.prisma.task.groupBy({ by: ['projectId'], where: abiertas, _count: { _all: true } }),
+      this.prisma.task.groupBy({ by: ['projectId'], where: enCurso, _count: { _all: true } }),
+      this.prisma.task.groupBy({ by: ['projectId'], where: { ...abiertas, dueDate: { lt: hoy } }, _count: { _all: true } }),
+      this.prisma.task.groupBy({ by: ['projectId'], where: { closedAt: { gte: d7 } }, _count: { _all: true } }),
+      this.prisma.task.groupBy({ by: ['projectId'], where: { createdAt: { gte: d7 } }, _count: { _all: true } }),
+    ]);
+    const mp = (g: { projectId: number; _count: { _all: number } }[]) => new Map(g.map((x) => [x.projectId, x._count._all]));
+    const [po, pd, pv, p7, pc7] = [mp(gOpen), mp(gDoing), mp(gOverdue), mp(gDone7), mp(gCreated7)];
+    const porProyecto = projects.map((p) => ({ projectId: p.id, key: p.key, name: p.name, color: p.color, open: po.get(p.id) ?? 0, doing: pd.get(p.id) ?? 0, overdue: pv.get(p.id) ?? 0, done7d: p7.get(p.id) ?? 0, created7d: pc7.get(p.id) ?? 0 }));
+
+    // Últimas 8 semanas (lunes a domingo): creadas y terminadas.
+    const lunes = (d: Date) => {
+      const x = new Date(d.toISOString().slice(0, 10));
+      const wd = (x.getUTCDay() + 6) % 7;
+      x.setUTCDate(x.getUTCDate() - wd);
+      return x;
+    };
+    const inicio = lunes(new Date(ahora.getTime() - 7 * 7 * 86_400_000));
+    const [creadas, cerradas] = await Promise.all([
+      this.prisma.task.findMany({ where: { createdAt: { gte: inicio } }, select: { createdAt: true } }),
+      this.prisma.task.findMany({ where: { closedAt: { gte: inicio } }, select: { closedAt: true } }),
+    ]);
+    const semanas: KpisDto['semanas'] = [];
+    for (let i = 0; i < 8; i++) {
+      const w0 = new Date(inicio.getTime() + i * 7 * 86_400_000);
+      const w1 = new Date(w0.getTime() + 7 * 86_400_000);
+      semanas.push({
+        week: w0.toISOString().slice(0, 10),
+        created: creadas.filter((t) => t.createdAt >= w0 && t.createdAt < w1).length,
+        done: cerradas.filter((t) => (t.closedAt as Date) >= w0 && (t.closedAt as Date) < w1).length,
+      });
+    }
+
+    return { open, doing, blocked: bloqEstado + bloqDeps.length, unassigned, overdue, stale, urgentOpen, done7d, done7dPrev, created7d, done30d, created30d, leadTimeDays, avgAgeDays, activeSprint, porPersona, porProyecto, semanas };
   }
 
   // ---------- Dependencias ----------
