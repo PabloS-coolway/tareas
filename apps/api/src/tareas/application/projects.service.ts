@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProjectDto, ProjectDto, ProjectStatusDto, UpdateProjectDto, UpsertStatusDto } from '@yorga/contracts';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { esClaveProyectoValida, normalizarClaveProyecto } from '../domain/clave';
 
@@ -10,6 +11,9 @@ export const ESTADOS_POR_DEFECTO: Omit<UpsertStatusDto, 'id'>[] = [
   { key: 'bloqueada', name: 'Bloqueada', color: '#d97706', category: 'DOING' },
   { key: 'completado', name: 'Completado', color: '#008844', category: 'DONE' },
 ];
+
+/** "En curso" de verdad: categoría DOING pero sin los estados de bloqueo (bloqueada/blocked). */
+const EN_CURSO: Prisma.TaskWhereInput = { status: { category: 'DOING', NOT: { key: { contains: 'bloq' } } } };
 
 @Injectable()
 export class ProjectsService {
@@ -24,9 +28,11 @@ export class ProjectsService {
     // Conteos de abiertas y "mías" en una consulta cada uno (no una por proyecto).
     const abiertas = await this.prisma.task.groupBy({ by: ['projectId'], where: { status: { category: { not: 'DONE' } } }, _count: { _all: true } });
     const mias = await this.prisma.task.groupBy({ by: ['projectId'], where: { status: { category: { not: 'DONE' } }, assigneeId: userId }, _count: { _all: true } });
+    const enCurso = await this.prisma.task.groupBy({ by: ['projectId'], where: { ...EN_CURSO, assigneeId: userId }, _count: { _all: true } });
     const ab = new Map(abiertas.map((a) => [a.projectId, a._count._all]));
     const mi = new Map(mias.map((a) => [a.projectId, a._count._all]));
-    return projects.map((p) => toDto(p, ab.get(p.id) ?? 0, mi.get(p.id) ?? 0));
+    const ec = new Map(enCurso.map((a) => [a.projectId, a._count._all]));
+    return projects.map((p) => toDto(p, ab.get(p.id) ?? 0, mi.get(p.id) ?? 0, ec.get(p.id) ?? 0));
   }
 
   async get(idOrKey: string, userId: number): Promise<ProjectDto> {
@@ -35,7 +41,8 @@ export class ProjectsService {
     if (!p) throw new NotFoundException('Proyecto no encontrado.');
     const open = await this.prisma.task.count({ where: { projectId: p.id, status: { category: { not: 'DONE' } } } });
     const mine = await this.prisma.task.count({ where: { projectId: p.id, assigneeId: userId, status: { category: { not: 'DONE' } } } });
-    return toDto(p, open, mine);
+    const doing = await this.prisma.task.count({ where: { projectId: p.id, assigneeId: userId, ...EN_CURSO } });
+    return toDto(p, open, mine, doing);
   }
 
   async create(dto: CreateProjectDto, userId: number): Promise<ProjectDto> {
@@ -123,6 +130,7 @@ function toDto(
   p: { id: number; key: string; name: string; description: string; color: string; archived: boolean; createdAt: Date; statuses: Parameters<typeof statusToDto>[0][] },
   openCount: number,
   mineCount: number,
+  mineDoingCount = 0,
 ): ProjectDto {
   return {
     id: p.id,
@@ -134,6 +142,7 @@ function toDto(
     statuses: p.statuses.map(statusToDto),
     openCount,
     mineCount,
+    mineDoingCount,
     createdAt: p.createdAt.toISOString(),
   };
 }

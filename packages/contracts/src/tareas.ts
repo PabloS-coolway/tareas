@@ -99,6 +99,8 @@ export interface ProjectDto {
   openCount: number;
   /** Tareas abiertas asignadas a quien pregunta. */
   mineCount: number;
+  /** De las mías, las que están EN CURSO (categoría DOING, sin contar las bloqueadas): el número del menú. */
+  mineDoingCount: number;
   createdAt: string;
 }
 

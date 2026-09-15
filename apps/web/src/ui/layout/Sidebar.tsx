@@ -67,7 +67,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
             <NavLink key={p.id} to={`/p/${p.key}`} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={p.name}>
               <span className="nav-ico"><span className="nav-proj-dot" style={{ background: p.color }} /></span>
               <span className="nav-label text-truncate">{p.name}</span>
-              {p.mineCount > 0 && <span className="badge bg-light text-dark rounded-pill ms-auto">{p.mineCount}</span>}
+              {p.mineDoingCount > 0 && <span className="badge bg-light text-dark rounded-pill ms-auto" title={`${p.mineDoingCount} tuyas en curso`}>{p.mineDoingCount}</span>}
             </NavLink>
           ))}
         </div>
