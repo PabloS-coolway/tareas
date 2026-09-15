@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Alert, Button, ButtonGroup, Card, Form, Spinner } from 'react-bootstrap';
-import { Kanban, ListUl, Plus } from 'react-bootstrap-icons';
+import { Download, Kanban, ListUl, Plus } from 'react-bootstrap-icons';
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
 import { PRIORITIES, PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS, type Priority, type ProjectDto, type SprintDto, type TagCountDto, type TaskDto, type TaskType, type UserRefDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar, EstadoPill, Etiquetas, PrioridadPill, Puntos, TaskCard, TipoPill, Vence } from '../components/tareas-ui';
 import { NuevaTareaModal } from '../components/NuevaTareaModal';
-import { Column, DataTable, useMemoryTable } from '../components/table';
+import { Column, DataTable, exportarCsv, useMemoryTable } from '../components/table';
+import { VistasGuardadas } from '../components/VistasGuardadas';
+import type { ViewFilters } from '@yorga/contracts';
 import { Skeleton } from '../components/Skeleton';
 
 type Vista = 'tablero' | 'lista';
@@ -36,6 +38,25 @@ export function TableroPage() {
   const [vencidas, setVencidas] = useState(false);
   const [sprints, setSprints] = useState<SprintDto[]>([]);
   const [etiquetas, setEtiquetas] = useState<TagCountDto[]>([]);
+  const [epicas, setEpicas] = useState<TaskDto[]>([]);
+  const [carriles, setCarriles] = useState<'' | 'assignee' | 'epic'>(() => (localStorage.getItem('tareas.carriles') as '' | 'assignee' | 'epic') || '');
+
+  const filtrosActuales: ViewFilters = { q, assignee, priority, type, sprint, tag, vencidas, verEpicas, carriles };
+  const aplicarVista = (f: ViewFilters) => {
+    setQ(String(f.q ?? ''));
+    setAssignee(String(f.assignee ?? ''));
+    setPriority(String(f.priority ?? ''));
+    setType(String(f.type ?? ''));
+    setSprint(String(f.sprint ?? ''));
+    setTag(String(f.tag ?? ''));
+    setVencidas(!!f.vencidas);
+    setVerEpicas(!!f.verEpicas);
+    setCarriles((f.carriles as '' | 'assignee' | 'epic') ?? '');
+  };
+  const cambiarCarriles = (c: '' | 'assignee' | 'epic') => {
+    setCarriles(c);
+    localStorage.setItem('tareas.carriles', c);
+  };
 
   const cambiarVista = (v: Vista) => {
     setVista(v);
@@ -82,6 +103,10 @@ export function TableroPage() {
     if (project) tareasGateway.etiquetas(project.id).then(setEtiquetas).catch(() => setEtiquetas([]));
   }, [project?.id, tasks]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (project && carriles === 'epic') tareasGateway.tareas({ projectId: project.id, type: 'EPIC', includeDone: true, pageSize: 200 }).then((p) => setEpicas(p.items)).catch(() => setEpicas([]));
+  }, [project?.id, carriles]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const porEstado = useMemo(() => {
     const m = new Map<number, TaskDto[]>();
     for (const s of project?.statuses ?? []) m.set(s.id, []);
@@ -94,7 +119,9 @@ export function TableroPage() {
     if (!destination || !tasks || !project) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
     const id = Number(draggableId);
-    const statusId = Number(destination.droppableId);
+    const [laneDest, statusPart] = destination.droppableId.includes('|') ? destination.droppableId.split('|') : [null, destination.droppableId];
+    const [laneSrc] = source.droppableId.includes('|') ? source.droppableId.split('|') : [null];
+    const statusId = Number(statusPart);
     const status = project.statuses.find((s) => s.id === statusId);
     if (!status) return;
 
@@ -108,7 +135,14 @@ export function TableroPage() {
     setTasks([...resto, ...col.map((t, i) => ({ ...t, order: i }))]);
     setSaving(true);
     try {
-      await tareasGateway.moverTarea(id, { statusId, index: destination.index });
+      // Cambio de carril: reasigna (persona) o cambia de épica antes de mover.
+      if (laneDest !== null && laneDest !== laneSrc) {
+        if (carriles === 'assignee') await tareasGateway.editarTarea(id, { assigneeId: laneDest === 'none' ? null : Number(laneDest) });
+        else if (carriles === 'epic') await tareasGateway.editarTarea(id, { parentId: laneDest === 'none' ? null : Number(laneDest) });
+      }
+      // Índice dentro de la columna del proyecto (no del carril): cuenta las que quedan delante en toda la columna.
+      const index = laneDest === null ? destination.index : col.findIndex((t) => t.id === id);
+      await tareasGateway.moverTarea(id, { statusId, index: index < 0 ? destination.index : index });
       void load();
     } catch (e) {
       setTasks(antes);
@@ -152,10 +186,12 @@ export function TableroPage() {
           </div>
         </div>
         <div className="d-flex align-items-center gap-2">
+          {project && <VistasGuardadas scope="project" projectId={project.id} actual={filtrosActuales} aplicar={aplicarVista} onError={setError} />}
           <ButtonGroup className="view-toggle">
             <Button variant={vista === 'tablero' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('tablero')} title="Tablero"><Kanban /></Button>
             <Button variant={vista === 'lista' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('lista')} title="Lista"><ListUl /></Button>
           </ButtonGroup>
+          {vista === 'lista' && tasks && <Button size="sm" variant="outline-secondary" title="Exportar CSV" onClick={() => exportarCsv(`${key}-tareas`, columns, tabla.rows.length ? tabla.rows : tasks)}><Download /></Button>}
           {hasFeature('tareas.editar') && project && (
             <Button className="btn-brand" size="sm" onClick={() => setNueva(true)}><Plus /> Nueva tarea</Button>
           )}
@@ -193,11 +229,60 @@ export function TableroPage() {
           </Form.Select>
         )}
         <button type="button" className={`toolbar-chip ${vencidas ? 'on' : ''}`} onClick={() => setVencidas((v) => !v)} title="Sólo las que han pasado su fecha límite">Vencidas</button>
+        {vista === 'tablero' && (
+          <Form.Select id="tb-lanes" size="sm" value={carriles} onChange={(e) => cambiarCarriles(e.target.value as '' | 'assignee' | 'epic')} title="Carriles: agrupa el tablero en filas">
+            <option value="">Sin carriles</option>
+            <option value="assignee">Carriles por persona</option>
+            <option value="epic">Carriles por épica</option>
+          </Form.Select>
+        )}
         <Form.Check type="switch" id="tb-epics" label="Épicas" checked={verEpicas} onChange={(e) => setVerEpicas(e.target.checked)} className="small" />
       </div>
 
       {!project || !tasks ? (
         <div className="board">{[0, 1, 2].map((i) => <div key={i} className="board-col p-2"><Skeleton className="skeleton-rounded" width="100%" height={160} /></div>)}</div>
+      ) : vista === 'tablero' && carriles ? (
+        <DragDropContext onDragEnd={onDragEnd}>
+          {carrilesDe(tasks, carriles, epicas).map((lane) => (
+            <div key={lane.key} className="lane">
+              <div className="lane-head">
+                {carriles === 'assignee' ? <Avatar user={lane.user ?? null} /> : <span className="task-key">{lane.sub}</span>}
+                {lane.label}
+                <span className="count">{lane.tasks.length}</span>
+              </div>
+              <div className="board">
+                {project.statuses.map((s) => {
+                  const col = lane.tasks.filter((t) => t.status.id === s.id).sort((a, b) => a.order - b.order);
+                  return (
+                    <div key={s.id} className="board-col">
+                      <div className="board-col-head">
+                        <span className="status-dot" style={{ background: s.color }} />
+                        {s.name}
+                        <span className="count">{col.length}</span>
+                      </div>
+                      <Droppable droppableId={`${lane.key}|${s.id}`} isDropDisabled={!hasFeature('tareas.editar')}>
+                        {(prov, snap) => (
+                          <div ref={prov.innerRef} {...prov.droppableProps} className={`board-col-body ${snap.isDraggingOver ? 'over' : ''}`}>
+                            {col.map((t, i) => (
+                              <Draggable key={t.id} draggableId={String(t.id)} index={i} isDragDisabled={!hasFeature('tareas.editar')}>
+                                {(dp, ds) => (
+                                  <div ref={dp.innerRef} {...dp.draggableProps} {...dp.dragHandleProps}>
+                                    <TaskCard task={t} dragging={ds.isDragging} />
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {prov.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </DragDropContext>
       ) : vista === 'tablero' ? (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="board">
@@ -255,4 +340,34 @@ export function TableroPage() {
       )}
     </div>
   );
+}
+
+interface Carril {
+  key: string;
+  label: string;
+  sub?: string;
+  user?: UserRefDto | null;
+  tasks: TaskDto[];
+}
+
+/** Agrupa las tareas en carriles por persona o por épica (las que no tienen, al final en «Sin …»). */
+function carrilesDe(tasks: TaskDto[], modo: 'assignee' | 'epic', epicas: TaskDto[]): Carril[] {
+  const m = new Map<string, Carril>();
+  if (modo === 'assignee') {
+    for (const t of tasks) {
+      const k = t.assignee ? String(t.assignee.id) : 'none';
+      if (!m.has(k)) m.set(k, { key: k, label: t.assignee?.name ?? 'Sin asignar', user: t.assignee, tasks: [] });
+      m.get(k)!.tasks.push(t);
+    }
+  } else {
+    for (const t of tasks) {
+      const k = t.parentId ? String(t.parentId) : 'none';
+      if (!m.has(k)) {
+        const ep = epicas.find((e) => e.id === t.parentId);
+        m.set(k, { key: k, label: t.parentId ? (ep?.title ?? t.parentTitle ?? 'Épica') : 'Sin épica', sub: t.parentKey ?? undefined, tasks: [] });
+      }
+      m.get(k)!.tasks.push(t);
+    }
+  }
+  return [...m.values()].sort((a, b) => (a.key === 'none' ? 1 : 0) - (b.key === 'none' ? 1 : 0) || b.tasks.length - a.tasks.length || a.label.localeCompare(b.label));
 }

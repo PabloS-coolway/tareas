@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { CommentDto } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { ActivityService } from './activity.service';
+import { NotificationsService } from './notifications.service';
 
 const author = { select: { id: true, name: true, email: true } } as const;
 
@@ -10,6 +11,7 @@ export class CommentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly activity: ActivityService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async list(taskId: number): Promise<CommentDto[]> {
@@ -20,10 +22,16 @@ export class CommentsService {
   async add(taskId: number, body: string, actorId: number): Promise<CommentDto> {
     const texto = body?.trim();
     if (!texto) throw new BadRequestException('El comentario está vacío.');
-    if (!(await this.prisma.task.findUnique({ where: { id: taskId } }))) throw new NotFoundException('Tarea no encontrada.');
+    const task = await this.prisma.task.findUnique({ where: { id: taskId }, include: { project: { select: { key: true } } } });
+    if (!task) throw new NotFoundException('Tarea no encontrada.');
+    const clave = `${task.project.key}-${task.number}`;
+    const mencionados = await this.notifications.mencionados(texto);
     const row = await this.prisma.$transaction(async (tx) => {
       const c = await tx.taskComment.create({ data: { taskId, authorId: actorId, body: texto }, include: { author } });
       await this.activity.record({ taskId, actorId, action: 'comment', after: texto.slice(0, 120) }, tx);
+      await this.notifications.notify(mencionados, 'MENTION', `te mencionó en ${clave}: “${texto.slice(0, 80)}”`, { taskId, actorId }, tx);
+      const resto = [task.assigneeId, task.reporterId].filter((u) => u !== null && !mencionados.includes(u as number));
+      await this.notifications.notify(resto, 'COMMENT', `comentó en ${clave}: “${texto.slice(0, 80)}”`, { taskId, actorId }, tx);
       return c;
     });
     return toDto(row);

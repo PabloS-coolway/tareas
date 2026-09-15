@@ -156,6 +156,7 @@ export function TaskCard({ task, dragging, extra }: { task: TaskDto; dragging?: 
       <div className="title">{task.title}</div>
       <Etiquetas tags={task.tags} />
       <div className="meta">
+        {task.blockedByOpenCount > 0 && <span className="pill blocked" title={`Bloqueada por ${task.blockedByOpenCount} tarea(s) sin terminar`}>⛔ {task.blockedByOpenCount}</span>}
         {task.priority !== 'NORMAL' && <PrioridadPill p={task.priority} />}
         <Puntos n={task.estimate} />
         <Vence date={task.dueDate} done={done} />
@@ -191,7 +192,7 @@ export function TaskRow({ task, showProject }: { task: TaskDto; showProject?: bo
       <span className="hide-sm">
         <EstadoPill s={task.status} />
       </span>
-      <span className="hide-sm">{task.priority !== 'NORMAL' ? <PrioridadPill p={task.priority} /> : null}</span>
+      <span className="hide-sm">{task.blockedByOpenCount > 0 && <span className="pill blocked" title="Bloqueada">⛔</span>}{task.priority !== 'NORMAL' ? <PrioridadPill p={task.priority} /> : null}</span>
       <span className="small">
         <Vence date={task.dueDate} done={task.status.category === 'DONE'} />
       </span>

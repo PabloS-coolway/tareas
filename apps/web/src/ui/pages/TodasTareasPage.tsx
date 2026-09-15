@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, ButtonGroup, Card, Form } from 'react-bootstrap';
-import { Kanban, ListUl } from 'react-bootstrap-icons';
+import { Download, Kanban, ListUl } from 'react-bootstrap-icons';
 import { PRIORITIES, PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS, type Priority, type SprintDto, type TagCountDto, type TaskDto, type TaskType, type UserRefDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { Avatar, EstadoPill, Etiquetas, PrioridadPill, Puntos, TipoPill, Vence } from '../components/tareas-ui';
-import { Column, DataTable, useMemoryTable } from '../components/table';
+import { Column, DataTable, exportarCsv, useMemoryTable } from '../components/table';
+import { VistasGuardadas } from '../components/VistasGuardadas';
+import type { ViewFilters } from '@yorga/contracts';
 import { Skeleton } from '../components/Skeleton';
 import { TableroGlobal } from '../components/TableroGlobal';
 import { useProyectos } from '../proyectos/ProyectosContext';
@@ -33,6 +35,19 @@ export function TodasTareasPage() {
   const [soloVencidas, setSoloVencidas] = useState(false);
   const [etiquetas, setEtiquetas] = useState<TagCountDto[]>([]);
   const [includeDone, setIncludeDone] = useState(false);
+
+  const filtrosActuales: ViewFilters = { q, projectId, assignee, priority, type, sprint, tag, soloVencidas, includeDone };
+  const aplicarVista = (f: ViewFilters) => {
+    setQ(String(f.q ?? ''));
+    setProjectId(String(f.projectId ?? ''));
+    setAssignee(String(f.assignee ?? ''));
+    setPriority(String(f.priority ?? ''));
+    setType(String(f.type ?? ''));
+    setSprint(String(f.sprint ?? ''));
+    setTag(String(f.tag ?? ''));
+    setSoloVencidas(!!f.soloVencidas);
+    setIncludeDone(!!f.includeDone);
+  };
 
   const cambiarVista = (v: Vista) => {
     setVista(v);
@@ -124,10 +139,12 @@ export function TodasTareasPage() {
         </div>
         <div className="d-flex align-items-center gap-3 flex-wrap">
           {vista === 'lista' && <Form.Check type="switch" id="tt-done" label="Incluir terminadas (30 días)" checked={includeDone} onChange={(e) => setIncludeDone(e.target.checked)} />}
+          <VistasGuardadas scope="global" actual={filtrosActuales} aplicar={aplicarVista} onError={setError} />
           <ButtonGroup className="view-toggle">
             <Button variant={vista === 'tablero' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('tablero')} title="Tablero"><Kanban /></Button>
             <Button variant={vista === 'lista' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('lista')} title="Lista"><ListUl /></Button>
           </ButtonGroup>
+          {vista === 'lista' && tasks && <Button size="sm" variant="outline-secondary" title="Exportar CSV" onClick={() => exportarCsv('todas-las-tareas', columns, tabla.rows.length ? tabla.rows : tasks)}><Download /></Button>}
         </div>
       </header>
 

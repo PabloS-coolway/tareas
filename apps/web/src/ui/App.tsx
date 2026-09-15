@@ -12,6 +12,8 @@ import { EquipoPage } from './pages/EquipoPage';
 import { TodasTareasPage } from './pages/TodasTareasPage';
 import { SprintsPage } from './pages/SprintsPage';
 import { SprintPage } from './pages/SprintPage';
+import { AvisosPage } from './pages/AvisosPage';
+import { PlantillasPage } from './pages/PlantillasPage';
 import { TokensPage } from './pages/TokensPage';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth, RequireFeature } from './auth/RequireAuth';
@@ -33,6 +35,8 @@ export function App() {
               <Route path="/tareas" element={<TodasTareasPage />} />
               <Route path="/sprints" element={<SprintsPage />} />
               <Route path="/sprints/:id" element={<SprintPage />} />
+              <Route path="/avisos" element={<AvisosPage />} />
+              <Route path="/plantillas" element={<PlantillasPage />} />
               <Route path="/p/:key" element={<TableroPage />} />
               <Route path="/t/:key" element={<TareaPage />} />
               <Route path="/tokens" element={<TokensPage />} />

@@ -206,3 +206,35 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .paleta-foot { font-size: 0.72rem; color: var(--muted); padding: 8px 14px; border-top: 1px solid var(--border); }
 .nav-search { width: 100%; border: 0; background: none; text-align: left; margin-bottom: 6px; }
 .activity.feed li > :last-child { min-width: 0; }
+
+/* ---------- Avisos ---------- */
+.aviso { display: grid; grid-template-columns: 24px auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
+.aviso:last-child { border-bottom: 0; }
+.aviso:hover { background: color-mix(in srgb, var(--brand) 6%, transparent); color: inherit; }
+.aviso.unread { background: color-mix(in srgb, var(--brand) 5%, transparent); }
+.aviso.unread .aviso-text { font-weight: 500; }
+.aviso-ico { text-align: center; font-size: 0.95rem; }
+.aviso-text { min-width: 0; }
+.pill.blocked { background: #fde8e8; color: #b42318; border: 1px solid #f5b5b5; }
+
+/* ---------- Dependencias ---------- */
+.dep-row { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid var(--border); }
+.dep-row:last-child { border-bottom: 0; }
+.dep-row .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; color: inherit; }
+.dep-row.done .title { text-decoration: line-through; color: var(--muted); }
+
+/* ---------- Menciones ---------- */
+.mention-box { position: relative; }
+.mention-list { position: absolute; left: 8px; bottom: 100%; z-index: 20; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(20,20,40,.14); min-width: 240px; padding: 4px 0; }
+.mention-item { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; text-align: left; padding: 6px 10px; color: inherit; }
+.mention-item.sel, .mention-item:hover { background: color-mix(in srgb, var(--brand) 10%, transparent); }
+
+/* ---------- Carriles (swimlanes) ---------- */
+.lane { margin-bottom: 14px; }
+.lane-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.85rem; padding: 6px 4px; color: var(--ink); }
+.lane-head .count { color: var(--muted); font-weight: 600; font-size: 0.78rem; }
+.lane .board { padding-top: 0; }
+.lane .board-col-body { min-height: 40px; }
+
+/* ---------- Burndown ---------- */
+.burndown { width: 100%; height: auto; display: block; }

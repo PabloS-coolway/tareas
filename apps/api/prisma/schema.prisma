@@ -47,6 +47,8 @@ model User {
   comments      TaskComment[]
   attachments   Attachment[]
   activities    TaskActivity[]
+  notifications Notification[]    @relation("notified")
+  savedViews    SavedView[]
 
   @@map("app_user")
 }
@@ -92,6 +94,21 @@ enum SprintStatus {
   PLANNED
   ACTIVE
   CLOSED
+}
+
+enum Recurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum NotificationType {
+  MENTION
+  ASSIGNED
+  COMMENT
+  STATUS
+  BLOCKER_DONE
 }
 
 /// Sprint de trabajo: transversal a los proyectos (una tarea de cualquier proyecto puede entrar en él).
@@ -178,6 +195,8 @@ model Task {
   tags        String[]
   /// Estimación en puntos (story points); null = sin estimar.
   estimate    Int?
+  /// Repetición: al terminarla se crea la siguiente ocurrencia con la fecha desplazada.
+  recurrence  Recurrence @default(NONE)
   /// Posición dentro de su columna del tablero.
   order       Float     @default(0)
   closedAt    DateTime? @map("closed_at")
@@ -186,9 +205,13 @@ model Task {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  comments    TaskComment[]
-  attachments Attachment[]
-  activities  TaskActivity[]
+  comments      TaskComment[]
+  attachments   Attachment[]
+  activities    TaskActivity[]
+  /// Dependencias: esta tarea está bloqueada por… / bloquea a…
+  blockedBy     TaskDependency[] @relation("blocked")
+  blocks        TaskDependency[] @relation("blocker")
+  notifications Notification[]
 
   @@unique([projectId, number])
   @@index([projectId, statusId, order])
@@ -246,4 +269,71 @@ model TaskActivity {
 
   @@index([taskId, createdAt])
   @@map("task_activity")
+}
+
+/// "blocked" no puede empezar/terminar hasta que "blocker" esté hecha.
+model TaskDependency {
+  id        Int      @id @default(autoincrement())
+  blockerId Int      @map("blocker_id")
+  blocker   Task     @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId Int      @map("blocked_id")
+  blocked   Task     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("task_dependency")
+}
+
+/// Aviso en la app para una persona (mención, asignación, comentario, cambio de estado…).
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int              @map("user_id")
+  user      User             @relation("notified", fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  taskId    Int?             @map("task_id")
+  task      Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actorId   Int?             @map("actor_id")
+  text      String
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([userId, readAt, createdAt])
+  @@map("notification")
+}
+
+/// Filtros guardados con nombre (por persona; `shared` = los ven todos).
+model SavedView {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// `project` (con projectId) o `global`.
+  scope     String
+  projectId Int?     @map("project_id")
+  name      String
+  filters   Json
+  shared    Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, scope, projectId])
+  @@map("saved_view")
+}
+
+/// Plantilla de tarea: campos + títulos de subtareas. Sin projectId = válida para cualquier proyecto.
+model TaskTemplate {
+  id          Int      @id @default(autoincrement())
+  projectId   Int?     @map("project_id")
+  name        String
+  title       String
+  description String   @default("")
+  type        TaskType @default(TASK)
+  priority    Priority @default(NORMAL)
+  tags        String[]
+  estimate    Int?
+  /// Títulos de las subtareas que se crean con ella.
+  subtasks    String[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("task_template")
 }

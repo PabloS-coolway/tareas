@@ -2,16 +2,24 @@ import type {
   ActivityDto,
   ActivityFeedItemDto,
   AttachmentDto,
+  BurndownDto,
   ClickUpImportResultDto,
   CloseSprintDto,
   CommentDto,
+  CreateSavedViewDto,
   CreateSprintDto,
+  CreateTaskTemplateDto,
+  DependenciesDto,
+  InstantiateTemplateDto,
+  NotificationsPageDto,
   CreateProjectDto,
   CreateTaskDto,
   MoveTaskDto,
   ProjectDto,
   ResumenDto,
+  SavedViewDto,
   SprintDto,
+  TaskTemplateDto,
   TagCountDto,
   TaskDto,
   TaskFilter,
@@ -74,6 +82,9 @@ export class HttpTareasGateway {
   async editarSprint(id: number, dto: UpdateSprintDto): Promise<SprintDto> {
     return ok(await apiFetch(`/sprints/${id}`, json('PATCH', dto)), 'No se pudo guardar el sprint.');
   }
+  async burndown(id: number): Promise<BurndownDto> {
+    return ok(await apiFetch(`/sprints/${id}/burndown`), 'No se pudo cargar el burndown.');
+  }
   async cerrarSprint(id: number, dto: CloseSprintDto): Promise<SprintDto> {
     return ok(await apiFetch(`/sprints/${id}/close`, json('POST', dto)), 'No se pudo cerrar el sprint.');
   }
@@ -126,6 +137,63 @@ export class HttpTareasGateway {
   }
   async directorio(): Promise<UserRefDto[]> {
     return ok(await apiFetch('/users/directorio'), 'No se pudo cargar el equipo.');
+  }
+
+  // --- dependencias ---
+  async dependencias(taskId: number): Promise<DependenciesDto> {
+    return ok(await apiFetch(`/tasks/${taskId}/dependencies`), 'No se pudieron cargar las dependencias.');
+  }
+  async anadirDependencia(taskId: number, blocker: string): Promise<DependenciesDto> {
+    const d = await ok<DependenciesDto>(await apiFetch(`/tasks/${taskId}/dependencies`, json('POST', { blocker })), 'No se pudo añadir la dependencia.');
+    avisarCambioTareas();
+    return d;
+  }
+  async quitarDependencia(taskId: number, blockerId: number): Promise<DependenciesDto> {
+    const d = await ok<DependenciesDto>(await apiFetch(`/tasks/${taskId}/dependencies/${blockerId}`, { method: 'DELETE' }), 'No se pudo quitar la dependencia.');
+    avisarCambioTareas();
+    return d;
+  }
+
+  // --- avisos ---
+  async avisos(limit = 50): Promise<NotificationsPageDto> {
+    return ok(await apiFetch(`/notifications?limit=${limit}`), 'No se pudieron cargar los avisos.');
+  }
+  async avisosSinLeer(): Promise<number> {
+    const r = await ok<{ unread: number }>(await apiFetch('/notifications/unread'), 'No se pudieron cargar los avisos.');
+    return r.unread;
+  }
+  async marcarAvisosLeidos(id?: number): Promise<void> {
+    return ok(await apiFetch(id ? `/notifications/${id}/read` : '/notifications/read', { method: 'POST' }), 'No se pudo marcar como leído.');
+  }
+
+  // --- vistas guardadas ---
+  async vistas(scope: 'project' | 'global', projectId?: number | null): Promise<SavedViewDto[]> {
+    return ok(await apiFetch(`/views?scope=${scope}${projectId ? `&projectId=${projectId}` : ''}`), 'No se pudieron cargar las vistas.');
+  }
+  async guardarVista(dto: CreateSavedViewDto): Promise<SavedViewDto> {
+    return ok(await apiFetch('/views', json('POST', dto)), 'No se pudo guardar la vista.');
+  }
+  async borrarVista(id: number): Promise<void> {
+    return ok(await apiFetch(`/views/${id}`, { method: 'DELETE' }), 'No se pudo borrar la vista.');
+  }
+
+  // --- plantillas ---
+  async plantillas(projectId?: number): Promise<TaskTemplateDto[]> {
+    return ok(await apiFetch(`/templates${projectId ? `?projectId=${projectId}` : ''}`), 'No se pudieron cargar las plantillas.');
+  }
+  async crearPlantilla(dto: CreateTaskTemplateDto): Promise<TaskTemplateDto> {
+    return ok(await apiFetch('/templates', json('POST', dto)), 'No se pudo crear la plantilla.');
+  }
+  async plantillaDesdeTarea(taskId: number, name: string, global: boolean): Promise<TaskTemplateDto> {
+    return ok(await apiFetch(`/templates/from-task/${taskId}`, json('POST', { name, global })), 'No se pudo crear la plantilla.');
+  }
+  async usarPlantilla(id: number, dto: InstantiateTemplateDto): Promise<TaskDto> {
+    const t = await ok<TaskDto>(await apiFetch(`/templates/${id}/instantiate`, json('POST', dto)), 'No se pudo crear la tarea desde la plantilla.');
+    avisarCambioTareas();
+    return t;
+  }
+  async borrarPlantilla(id: number): Promise<void> {
+    return ok(await apiFetch(`/templates/${id}`, { method: 'DELETE' }), 'No se pudo borrar la plantilla.');
   }
 
   // --- comentarios ---

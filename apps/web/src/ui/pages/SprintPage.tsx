@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, ButtonGroup, Card, Form, Modal, ProgressBar, Spinner } from 'react-bootstrap';
-import { Kanban, ListUl, Pencil, Plus } from 'react-bootstrap-icons';
-import { PRIORITY_LABELS, TASK_TYPE_LABELS, type SprintDto, type TaskDto, type UserRefDto } from '@yorga/contracts';
+import { Download, GraphDown, Kanban, ListUl, Pencil, Plus } from 'react-bootstrap-icons';
+import { PRIORITY_LABELS, TASK_TYPE_LABELS, type BurndownDto, type SprintDto, type TaskDto, type UserRefDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar, EstadoPill, PrioridadPill, TipoPill, Vence } from '../components/tareas-ui';
-import { Column, DataTable, useMemoryTable } from '../components/table';
+import { Column, DataTable, exportarCsv, useMemoryTable } from '../components/table';
+import { Burndown } from '../components/Burndown';
 import { Skeleton } from '../components/Skeleton';
 import { TableroGlobal } from '../components/TableroGlobal';
 import { useProyectos } from '../proyectos/ProyectosContext';
 import { SprintBadge, SprintModal, rangoSprint } from './SprintsPage';
 
-type Vista = 'tablero' | 'lista';
+type Vista = 'tablero' | 'lista' | 'burndown';
 const VISTA_KEY = 'tareas.vista.sprint';
 
 /** Un sprint: su tablero (tareas de todos los proyectos), planificación y cierre. */
@@ -33,6 +34,8 @@ export function SprintPage() {
   const [anadir, setAnadir] = useState(false);
   const [cerrar, setCerrar] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [burndown, setBurndown] = useState<BurndownDto | null>(null);
+  const [enPuntos, setEnPuntos] = useState(false);
   const puede = hasFeature('tareas.editar');
 
   const cambiarVista = (v: Vista) => {
@@ -68,6 +71,12 @@ export function SprintPage() {
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
   }, []);
+
+  useEffect(() => {
+    if (vista !== 'burndown') return;
+    setBurndown(null);
+    tareasGateway.burndown(sprintId).then(setBurndown).catch((e) => setError((e as Error).message));
+  }, [vista, sprintId, tasks]);
 
   async function activar() {
     if (!sprint) return;
@@ -140,7 +149,9 @@ export function SprintPage() {
           <ButtonGroup className="view-toggle">
             <Button variant={vista === 'tablero' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('tablero')} title="Tablero"><Kanban /></Button>
             <Button variant={vista === 'lista' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('lista')} title="Lista"><ListUl /></Button>
+            <Button variant={vista === 'burndown' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('burndown')} title="Burndown"><GraphDown /></Button>
           </ButtonGroup>
+          {vista === 'lista' && tasks && <Button size="sm" variant="outline-secondary" title="Exportar CSV" onClick={() => exportarCsv(`sprint-${sprint?.name ?? sprintId}`, columns, tabla.rows.length ? tabla.rows : tasks)}><Download /></Button>}
           {puede && sprint && (
             <>
               <Button size="sm" variant="outline-secondary" onClick={() => setEditar(true)} title="Editar"><Pencil /></Button>
@@ -172,6 +183,16 @@ export function SprintPage() {
         <div className="board">{[0, 1, 2].map((i) => <div key={i} className="board-col p-2"><Skeleton className="skeleton-rounded" width="100%" height={160} /></div>)}</div>
       ) : tasks.length === 0 ? (
         <Card><Card.Body className="text-secondary">Este sprint no tiene tareas{abierto && puede ? '. Añádelas desde el backlog con «Añadir tareas»' : ''}.</Card.Body></Card>
+      ) : vista === 'burndown' ? (
+        <Card>
+          <Card.Body>
+            <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+              <Card.Title className="mb-0">Burndown <span className="text-secondary fw-normal small">{enPuntos ? 'puntos' : 'tareas'} sin terminar al final de cada día</span></Card.Title>
+              <Form.Check type="switch" id="bd-pts" label="En puntos" checked={enPuntos} onChange={(e) => setEnPuntos(e.target.checked)} disabled={!ptsTotal} />
+            </div>
+            {!burndown ? <Skeleton className="skeleton-rounded" width="100%" height={220} /> : <Burndown data={burndown} puntos={enPuntos && ptsTotal > 0} />}
+          </Card.Body>
+        </Card>
       ) : vista === 'tablero' ? (
         <TableroGlobal tasks={tasks} setTasks={setTasks} onChanged={() => void load()} />
       ) : (

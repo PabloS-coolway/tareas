@@ -13,11 +13,15 @@ import {
   TaskPageDto,
   UpdateTaskDto,
   TagCountDto,
+  DependenciesDto,
+  TaskRefDto,
+  RECURRENCES,
 } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea, parsearClaveTarea } from '../domain/clave';
 import { ordenPara, renumerar } from '../domain/orden';
 import { ActivityInput, ActivityService } from './activity.service';
+import { NotificationsService } from './notifications.service';
 import { statusToDto } from './projects.service';
 
 const userRef = { select: { id: true, name: true, email: true } } as const;
@@ -48,6 +52,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly activity: ActivityService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ---------- Lectura ----------
@@ -77,10 +82,18 @@ export class TasksService {
     if (f.q?.trim()) {
       const q = f.q.trim();
       const clave = parsearClaveTarea(q);
+      // Sin acentos ni mayúsculas ("guia" encuentra "guía"): unaccent() en la BD; si no estuviera, cae a contains.
+      let ids: number[] | null = null;
+      try {
+        const rows = await this.prisma.$queryRaw<{ id: number }[]>`SELECT id FROM task WHERE unaccent(title) ILIKE unaccent(${'%' + q + '%'}) LIMIT 2000`;
+        ids = rows.map((r) => r.id);
+      } catch {
+        ids = null;
+      }
       where.AND = [
         {
           OR: [
-            { title: { contains: q, mode: 'insensitive' } },
+            ids ? { id: { in: ids } } : { title: { contains: q, mode: 'insensitive' } },
             ...(clave ? [{ number: clave.number, project: { key: clave.projectKey } }] : []),
             ...(/^\d+$/.test(q) ? [{ number: Number(q) }] : []),
           ],
@@ -188,11 +201,13 @@ export class TasksService {
           startDate: parseFecha(dto.startDate) ?? null,
           tags: limpiarTags(dto.tags),
           estimate: limpiarEstimacion(dto.estimate),
+          recurrence: dto.recurrence && RECURRENCES.includes(dto.recurrence) ? dto.recurrence : 'NONE',
           order: (last._max.order ?? -1) + 1,
           closedAt: status.category === 'DONE' ? new Date() : null,
         },
       });
       await this.activity.record({ taskId: t.id, actorId, action: 'created', after: title }, tx);
+      if (t.assigneeId) await this.notifications.notify([t.assigneeId], 'ASSIGNED', `te asignó ${claveTarea(project.key, t.number)} · ${title}`, { taskId: t.id, actorId }, tx);
       return t.id;
     });
     return this.get(id);
@@ -271,6 +286,11 @@ export class TasksService {
         log('estimate', cur.estimate === null ? null : String(cur.estimate), est === null ? null : String(est));
       }
     }
+    if (dto.recurrence !== undefined && dto.recurrence !== cur.recurrence) {
+      if (!RECURRENCES.includes(dto.recurrence)) throw new BadRequestException('Repetición no válida.');
+      data.recurrence = dto.recurrence;
+      log('recurrence', cur.recurrence, dto.recurrence);
+    }
     if (dto.tags !== undefined) {
       const tags = limpiarTags(dto.tags);
       if (tags.join('|') !== cur.tags.join('|')) {
@@ -280,16 +300,25 @@ export class TasksService {
     }
 
     if (Object.keys(data).length === 0) return this.get(id);
+    const clave = claveTarea(cur.project.key, cur.number);
     await this.prisma.$transaction(async (tx) => {
       await tx.task.update({ where: { id }, data });
       await this.activity.record(cambios, tx);
+      if (data.assigneeId !== undefined && data.assigneeId) {
+        await this.notifications.notify([data.assigneeId as number], 'ASSIGNED', `te asignó ${clave} · ${cur.title}`, { taskId: id, actorId }, tx);
+      }
+      if (data.statusId !== undefined) {
+        const nuevo = cambios.find((c) => c.field === 'status');
+        await this.notifications.notify([cur.assigneeId, cur.reporterId], 'STATUS', `pasó ${clave} a ${nuevo?.after ?? 'otro estado'}`, { taskId: id, actorId }, tx);
+      }
     });
+    if (data.closedAt instanceof Date) await this.alTerminar(id, actorId);
     return this.get(id);
   }
 
   /** Mover en el tablero (columna + posición). Escribe una fila; renumera la columna sólo si el hueco se agotó. */
   async move(id: number, dto: MoveTaskDto, actorId: number): Promise<TaskDto> {
-    const cur = await this.prisma.task.findUnique({ where: { id }, include: { status: true } });
+    const cur = await this.prisma.task.findUnique({ where: { id }, include: { status: true, project: { select: { key: true } } } });
     if (!cur) throw new NotFoundException('Tarea no encontrada.');
     const st = await this.prisma.projectStatus.findFirst({ where: { id: dto.statusId, projectId: cur.projectId } });
     if (!st) throw new BadRequestException('Estado no válido para este proyecto.');
@@ -312,9 +341,110 @@ export class TasksService {
       if (st.id !== cur.statusId) {
         await tx.task.update({ where: { id }, data: { closedAt: st.category === 'DONE' ? new Date() : null } });
         await this.activity.record({ taskId: id, actorId, action: 'status', field: 'status', before: cur.status.name, after: st.name }, tx);
+        await this.notifications.notify([cur.assigneeId, cur.reporterId], 'STATUS', `pasó ${claveTarea(cur.project.key, cur.number)} a ${st.name}`, { taskId: id, actorId }, tx);
       }
     });
+    if (st.id !== cur.statusId && st.category === 'DONE') await this.alTerminar(id, actorId);
     return this.get(id);
+  }
+
+  /** Al terminar una tarea: avisa a quienes esperaban por ella y, si se repite, crea la siguiente ocurrencia. */
+  private async alTerminar(id: number, actorId: number): Promise<void> {
+    const t = await this.prisma.task.findUnique({ where: { id }, include: { project: { select: { key: true, statuses: { orderBy: { order: 'asc' } } } }, blocks: { include: { blocked: { select: { id: true, assigneeId: true, number: true, title: true, project: { select: { key: true } } } } } } } });
+    if (!t) return;
+    const clave = claveTarea(t.project.key, t.number);
+    for (const d of t.blocks) {
+      await this.notifications.notify([d.blocked.assigneeId], 'BLOCKER_DONE', `terminó ${clave}, que bloqueaba ${claveTarea(d.blocked.project.key, d.blocked.number)} · ${d.blocked.title}`, { taskId: d.blocked.id, actorId });
+    }
+    if (t.recurrence !== 'NONE') {
+      const base = t.dueDate ?? new Date(new Date().toISOString().slice(0, 10));
+      const next = new Date(base);
+      if (t.recurrence === 'DAILY') next.setUTCDate(next.getUTCDate() + 1);
+      else if (t.recurrence === 'WEEKLY') next.setUTCDate(next.getUTCDate() + 7);
+      else next.setUTCMonth(next.getUTCMonth() + 1);
+      // La cerrada deja de repetirse (si se reabre no vuelve a generar); la nueva hereda la repetición.
+      await this.prisma.task.update({ where: { id }, data: { recurrence: 'NONE' } });
+      const primero = t.project.statuses.find((s) => s.category === 'TODO') ?? t.project.statuses[0];
+      await this.create(
+        {
+          projectId: t.projectId,
+          title: t.title,
+          description: t.description,
+          type: t.type,
+          statusId: primero?.id,
+          priority: t.priority,
+          assigneeId: t.assigneeId,
+          parentId: t.parentId,
+          sprintId: null,
+          dueDate: next.toISOString().slice(0, 10),
+          tags: t.tags,
+          estimate: t.estimate,
+          recurrence: t.recurrence,
+        },
+        actorId,
+      );
+    }
+  }
+
+  // ---------- Dependencias ----------
+
+  async dependencies(id: number): Promise<DependenciesDto> {
+    const t = await this.prisma.task.findUnique({
+      where: { id },
+      include: { blockedBy: { include: { blocker: { include: refInclude } } }, blocks: { include: { blocked: { include: refInclude } } } },
+    });
+    if (!t) throw new NotFoundException('Tarea no encontrada.');
+    return { blockedBy: t.blockedBy.map((d) => toRef(d.blocker)), blocks: t.blocks.map((d) => toRef(d.blocked)) };
+  }
+
+  /** `id` queda bloqueada por `blockerKey` (clave COOL-12 o id). Sin ciclos. */
+  async addDependency(id: number, blockerKey: string, actorId: number): Promise<DependenciesDto> {
+    const blocker = /^\d+$/.test(blockerKey) ? await this.prisma.task.findUnique({ where: { id: Number(blockerKey) } }) : await this.porClave(blockerKey);
+    if (!blocker) throw new BadRequestException(`No encuentro la tarea ${blockerKey}.`);
+    if (blocker.id === id) throw new BadRequestException('Una tarea no puede bloquearse a sí misma.');
+    if (await this.dependeDe(blocker.id, id)) throw new BadRequestException('Eso crearía un ciclo: esa tarea ya depende de ésta.');
+    const ya = await this.prisma.taskDependency.findUnique({ where: { blockerId_blockedId: { blockerId: blocker.id, blockedId: id } } });
+    if (!ya) {
+      await this.prisma.taskDependency.create({ data: { blockerId: blocker.id, blockedId: id } });
+      await this.activity.record({ taskId: id, actorId, action: 'dependency', field: 'dependency', before: null, after: await this.claveDe(blocker.id) });
+    }
+    return this.dependencies(id);
+  }
+
+  async removeDependency(id: number, blockerId: number, actorId: number): Promise<DependenciesDto> {
+    const d = await this.prisma.taskDependency.findUnique({ where: { blockerId_blockedId: { blockerId, blockedId: id } } });
+    if (d) {
+      await this.prisma.taskDependency.delete({ where: { id: d.id } });
+      await this.activity.record({ taskId: id, actorId, action: 'dependency', field: 'dependency', before: await this.claveDe(blockerId), after: null });
+    }
+    return this.dependencies(id);
+  }
+
+  /** ¿`a` depende (directa o indirectamente) de `b`? */
+  private async dependeDe(a: number, b: number): Promise<boolean> {
+    const vistos = new Set<number>();
+    let frente = [a];
+    while (frente.length) {
+      const deps = await this.prisma.taskDependency.findMany({ where: { blockedId: { in: frente } }, select: { blockerId: true } });
+      const next: number[] = [];
+      for (const d of deps) {
+        if (d.blockerId === b) return true;
+        if (!vistos.has(d.blockerId)) {
+          vistos.add(d.blockerId);
+          next.push(d.blockerId);
+        }
+      }
+      frente = next;
+    }
+    return false;
+  }
+
+  private async porClave(key: string) {
+    const parsed = parsearClaveTarea(key);
+    if (!parsed) return null;
+    const project = await this.prisma.project.findUnique({ where: { key: parsed.projectKey } });
+    if (!project) return null;
+    return this.prisma.task.findUnique({ where: { projectId_number: { projectId: project.id, number: parsed.number } } });
   }
 
   /** Copia de una tarea (título con «(copia)», mismo proyecto/estado inicial, sin comentarios ni adjuntos). */
@@ -389,6 +519,12 @@ export class TasksService {
       const subs = await this.prisma.task.findMany({ where: { parentId: { in: ids }, status: { category: 'DONE' } }, select: { parentId: true } });
       for (const s of subs) hechas.set(s.parentId as number, (hechas.get(s.parentId as number) ?? 0) + 1);
     }
+    // Bloqueos vivos: cuántas tareas sin terminar bloquean a cada fila.
+    const bloqueos = new Map<number, number>();
+    if (rows.length) {
+      const deps = await this.prisma.taskDependency.findMany({ where: { blockedId: { in: rows.map((r) => r.id) }, blocker: { status: { category: { not: 'DONE' } } } }, select: { blockedId: true } });
+      for (const d of deps) bloqueos.set(d.blockedId, (bloqueos.get(d.blockedId) ?? 0) + 1);
+    }
     return rows.map((r) => ({
       id: r.id,
       key: claveTarea(r.project.key, r.number),
@@ -411,6 +547,8 @@ export class TasksService {
       startDate: fecha(r.startDate),
       tags: r.tags,
       estimate: r.estimate,
+      recurrence: r.recurrence,
+      blockedByOpenCount: bloqueos.get(r.id) ?? 0,
       order: r.order,
       closedAt: r.closedAt?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
@@ -435,4 +573,10 @@ function limpiarEstimacion(v: number | null | undefined): number | null {
 function limpiarTags(tags: string[] | undefined): string[] {
   if (!tags) return [];
   return [...new Set(tags.map((t) => t.trim().toLowerCase()).filter(Boolean))].slice(0, 20);
+}
+
+const refInclude = { status: true, assignee: { select: { id: true, name: true, email: true } }, project: { select: { key: true } } } satisfies Prisma.TaskInclude;
+type RefRow = Prisma.TaskGetPayload<{ include: typeof refInclude }>;
+function toRef(r: RefRow): TaskRefDto {
+  return { id: r.id, key: claveTarea(r.project.key, r.number), title: r.title, done: r.status.category === 'DONE', status: statusToDto(r.status), assignee: r.assignee };
 }

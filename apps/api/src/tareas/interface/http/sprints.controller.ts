@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
-import { CloseSprintDto, CreateSprintDto, SprintDto, UpdateSprintDto } from '@yorga/contracts';
+import { BurndownDto, CloseSprintDto, CreateSprintDto, SprintDto, UpdateSprintDto } from '@yorga/contracts';
 import { JwtPayload } from '../../../auth/application/auth.service';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
 import { SprintsService } from '../../application/sprints.service';
@@ -18,6 +18,12 @@ export class SprintsController {
   @RequireFeature('tareas.ver')
   get(@Param('id', ParseIntPipe) id: number): Promise<SprintDto> {
     return this.sprints.get(id);
+  }
+
+  @Get(':id/burndown')
+  @RequireFeature('tareas.ver')
+  burndown(@Param('id', ParseIntPipe) id: number): Promise<BurndownDto> {
+    return this.sprints.burndown(id);
   }
 
   @Post()

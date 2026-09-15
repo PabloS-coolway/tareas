@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, Form, Spinner } from 'react-bootstrap';
-import { BoxArrowUpRight, Files, Paperclip, Plus, Trash } from 'react-bootstrap-icons';
+import { BoxArrowUpRight, Files, JournalText, Paperclip, Plus, Trash } from 'react-bootstrap-icons';
 import {
   PRIORITIES,
   PRIORITY_LABELS,
+  RECURRENCES,
+  RECURRENCE_LABELS,
+  type Recurrence,
   TASK_TYPES,
   TASK_TYPE_LABELS,
   type ActivityDto,
@@ -26,6 +29,8 @@ import { Skeleton } from '../components/Skeleton';
 import { Markdown } from '../components/Markdown';
 import { SubtareasArbol } from '../components/SubtareasArbol';
 import { ActividadTexto } from '../components/ActividadTexto';
+import { Dependencias } from '../components/Dependencias';
+import { ComentarioInput } from '../components/ComentarioInput';
 
 const fmtBytes = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
@@ -46,6 +51,7 @@ export function TareaPage() {
   const [sprints, setSprints] = useState<SprintDto[]>([]);
   const [etiquetasUsadas, setEtiquetasUsadas] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [title, setTitle] = useState('');
@@ -160,6 +166,19 @@ export function TareaPage() {
     }
   }
 
+  async function guardarPlantilla() {
+    if (!task) return;
+    const name = window.prompt('Nombre de la plantilla:', task.title);
+    if (!name?.trim()) return;
+    const global = window.confirm('¿Disponible para todos los proyectos? (Cancelar = sólo para este proyecto)');
+    try {
+      await tareasGateway.plantillaDesdeTarea(task.id, name.trim(), global);
+      setNotice(`Plantilla "${name.trim()}" guardada. La verás al crear una tarea, en «Plantilla».`);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function duplicarTarea() {
     if (!task) return;
     try {
@@ -210,6 +229,7 @@ export function TareaPage() {
       </div>
 
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>⚠ {error}</Alert>}
+      {notice && <Alert variant="success" dismissible onClose={() => setNotice('')}>{notice}</Alert>}
 
       <div className="tarea-layout">
         <div>
@@ -258,6 +278,8 @@ export function TareaPage() {
             </Card.Body>
           </Card>
 
+          <Dependencias task={task} puedeEditar={puedeEditar} onChanged={() => void load()} onError={setError} />
+
           <Card className="mb-3">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center mb-2">
@@ -305,7 +327,7 @@ export function TareaPage() {
               ))}
               {puedeEditar && (
                 <Form onSubmit={comentar} className="mt-3">
-                  <Form.Control id="t-comment" as="textarea" rows={3} placeholder="Escribe un comentario…" value={comentario} onChange={(e) => setComentario(e.target.value)} />
+                  <ComentarioInput id="t-comment" value={comentario} onChange={setComentario} equipo={equipo} />
                   <div className="text-end mt-2">
                     <Button type="submit" size="sm" className="btn-brand" disabled={!comentario.trim()}>Comentar</Button>
                   </div>
@@ -374,6 +396,12 @@ export function TareaPage() {
                 <Form.Control id="t-estimate" size="sm" type="number" min={0} max={999} value={task.estimate ?? ''} placeholder="sin estimar" disabled={!puedeEditar} onChange={(e) => guardar({ estimate: e.target.value === '' ? null : Number(e.target.value) })} />
               </div>
               <div className="field">
+                <label htmlFor="t-rec">Repetir</label>
+                <Form.Select id="t-rec" size="sm" value={task.recurrence} disabled={!puedeEditar} onChange={(e) => guardar({ recurrence: e.target.value as Recurrence })} title="Al terminarla se crea la siguiente con la fecha desplazada">
+                  {RECURRENCES.map((r) => <option key={r} value={r}>{RECURRENCE_LABELS[r]}</option>)}
+                </Form.Select>
+              </div>
+              <div className="field">
                 <label htmlFor="t-tags">Etiquetas</label>
                 <div>
                   <Form.Control id="t-tags" size="sm" list="t-tags-list" value={tags} placeholder="separadas por comas" disabled={!puedeEditar} onChange={(e) => setTags(e.target.value)} onBlur={() => guardar({ tags: tags.split(',').map((t) => t.trim()).filter(Boolean) })} />
@@ -385,10 +413,13 @@ export function TareaPage() {
               <div className="stamp">Creada por <b>{task.reporter.name}</b> · {fmtFechaHora(task.createdAt)}</div>
               <div className="stamp">Actualizada {hace(task.updatedAt)}</div>
               {done && task.closedAt && <div className="stamp">Cerrada {fmtFechaHora(task.closedAt)}</div>}
-              {hasFeature('tareas.borrar') && (
-                <div className="d-flex gap-2 mt-3">
-                  <Button size="sm" variant="outline-secondary" className="w-100" onClick={duplicarTarea} title="Crea una copia en el mismo proyecto"><Files /> Duplicar</Button>
-                  <Button size="sm" variant="outline-danger" className="w-100" onClick={borrarTarea}><Trash /> Borrar</Button>
+              {puedeEditar && (
+                <Button size="sm" variant="outline-secondary" className="w-100 mt-3" onClick={guardarPlantilla} title="Guarda campos y subtareas para reutilizarlos"><JournalText /> Guardar como plantilla</Button>
+              )}
+              {(puedeEditar || hasFeature('tareas.borrar')) && (
+                <div className="d-flex gap-2 mt-2">
+                  {puedeEditar && <Button size="sm" variant="outline-secondary" className="w-100" onClick={duplicarTarea} title="Crea una copia en el mismo proyecto"><Files /> Duplicar</Button>}
+                  {hasFeature('tareas.borrar') && <Button size="sm" variant="outline-danger" className="w-100" onClick={borrarTarea}><Trash /> Borrar</Button>}
                 </div>
               )}
             </Card.Body>

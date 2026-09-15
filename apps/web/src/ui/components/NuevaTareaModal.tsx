@@ -9,6 +9,7 @@ import {
   type ProjectDto,
   type SprintDto,
   type TaskDto,
+  type TaskTemplateDto,
   type TaskType,
   type UserRefDto,
 } from '@yorga/contracts';
@@ -35,6 +36,8 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
   const [tags, setTags] = useState('');
   const [estimate, setEstimate] = useState('');
   const [etiquetasUsadas, setEtiquetasUsadas] = useState<string[]>([]);
+  const [plantillas, setPlantillas] = useState<TaskTemplateDto[]>([]);
+  const [plantillaId, setPlantillaId] = useState('');
   const [parentId, setParentId] = useState<string>(parent ? String(parent.id) : '');
   const [equipo, setEquipo] = useState<UserRefDto[]>([]);
   const [epicas, setEpicas] = useState<TaskDto[]>([]);
@@ -47,6 +50,7 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
     tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
     tareasGateway.etiquetas(project.id).then((ts) => setEtiquetasUsadas(ts.map((t) => t.tag))).catch(() => setEtiquetasUsadas([]));
+    tareasGateway.plantillas(project.id).then(setPlantillas).catch(() => setPlantillas([]));
     if (!parent) {
       tareasGateway
         .tareas({ projectId: project.id, type: 'EPIC', includeDone: false, pageSize: 200 })
@@ -55,11 +59,38 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
     }
   }, [project.id, parent]);
 
+  function aplicarPlantilla(id: string) {
+    setPlantillaId(id);
+    const tpl = plantillas.find((p) => String(p.id) === id);
+    if (!tpl) return;
+    setTitle(tpl.title);
+    setDescription(tpl.description);
+    setType(tpl.type);
+    setPriority(tpl.priority);
+    setTags(tpl.tags.join(', '));
+    setEstimate(tpl.estimate === null ? '' : String(tpl.estimate));
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError('');
     setSaving(true);
     try {
+      const tpl = plantillas.find((p) => String(p.id) === plantillaId);
+      if (tpl && tpl.subtasks.length > 0 && !parent) {
+        // Con subtareas: la API crea la tarea y sus hijas de una vez.
+        const creada = await tareasGateway.usarPlantilla(tpl.id, {
+          projectId: project.id,
+          title,
+          assigneeId: assigneeId ? Number(assigneeId) : null,
+          sprintId: sprintId ? Number(sprintId) : null,
+          dueDate: dueDate || null,
+          parentId: parentId ? Number(parentId) : null,
+        });
+        const ajustada = description !== tpl.description || priority !== tpl.priority || type !== tpl.type || tags !== tpl.tags.join(', ') ? await tareasGateway.editarTarea(creada.id, { description, priority, type, statusId, tags: tags.split(',').map((t) => t.trim()).filter(Boolean), estimate: estimate === '' ? null : Number(estimate) }) : creada;
+        onCreated(ajustada);
+        return;
+      }
       const t = await tareasGateway.crearTarea({
         projectId: project.id,
         title,
@@ -92,6 +123,15 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">⚠ {error}</Alert>}
+          {plantillas.length > 0 && (
+            <Form.Group className="mb-3">
+              <Form.Label className="small">Plantilla</Form.Label>
+              <Form.Select id="nt-tpl" value={plantillaId} onChange={(e) => aplicarPlantilla(e.target.value)}>
+                <option value="">Sin plantilla</option>
+                {plantillas.map((p) => <option key={p.id} value={p.id}>{p.name}{p.subtasks.length ? ` (${p.subtasks.length} subtareas)` : ''}</option>)}
+              </Form.Select>
+            </Form.Group>
+          )}
           <Form.Group className="mb-3">
             <Form.Label className="small">Título</Form.Label>
             <Form.Control id="nt-title" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Qué hay que hacer" />

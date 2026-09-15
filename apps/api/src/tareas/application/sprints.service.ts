@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Sprint } from '@prisma/client';
-import { CloseSprintDto, CreateSprintDto, SPRINT_STATUSES, SprintDto, UpdateSprintDto } from '@yorga/contracts';
+import { BurndownDto, CloseSprintDto, CreateSprintDto, SPRINT_STATUSES, SprintDto, UpdateSprintDto } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { ActivityService } from './activity.service';
 
@@ -93,6 +93,35 @@ export class SprintsService {
       await tx.sprint.update({ where: { id }, data: { status: 'CLOSED', closedAt: new Date() } });
     });
     return this.get(id);
+  }
+
+  /** Burndown: tareas (y puntos) sin terminar al final de cada día, desde el inicio hasta hoy o el fin. */
+  async burndown(id: number): Promise<BurndownDto> {
+    const sp = await this.prisma.sprint.findUnique({ where: { id } });
+    if (!sp) throw new NotFoundException('Sprint no encontrado.');
+    const tasks = await this.prisma.task.findMany({ where: { sprintId: id }, select: { closedAt: true, estimate: true, createdAt: true } });
+    const total = tasks.length;
+    const totalPoints = tasks.reduce((n, t) => n + (t.estimate ?? 0), 0);
+    const dia = (d: Date) => d.toISOString().slice(0, 10);
+    const hoy = new Date(dia(new Date()));
+    const inicio = sp.startDate ?? (tasks.length ? new Date(dia(tasks.reduce((m, t) => (t.createdAt < m ? t.createdAt : m), tasks[0].createdAt))) : hoy);
+    const fin = sp.endDate ?? hoy;
+    const hasta = sp.status === 'CLOSED' && sp.closedAt ? new Date(dia(sp.closedAt)) : hoy;
+    const ultimo = hasta < fin ? hasta : fin;
+    const dias = Math.max(1, Math.round((fin.getTime() - inicio.getTime()) / 86_400_000));
+    const points: BurndownDto['points'] = [];
+    for (let d = new Date(inicio), i = 0; d <= ultimo && i < 120; d.setUTCDate(d.getUTCDate() + 1), i++) {
+      const finDia = new Date(d);
+      finDia.setUTCDate(finDia.getUTCDate() + 1);
+      const abiertas = tasks.filter((t) => !t.closedAt || t.closedAt >= finDia);
+      points.push({
+        date: dia(d),
+        remaining: abiertas.length,
+        remainingPoints: abiertas.reduce((n, t) => n + (t.estimate ?? 0), 0),
+        ideal: Math.max(0, Math.round((total * (1 - i / dias)) * 10) / 10),
+      });
+    }
+    return { total, totalPoints, points };
   }
 
   async remove(id: number): Promise<void> {

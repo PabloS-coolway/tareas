@@ -29,6 +29,15 @@ export const STATUS_CATEGORY_LABELS: Record<StatusCategory, string> = {
   DONE: 'Terminado',
 };
 
+export const RECURRENCES = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'] as const;
+export type Recurrence = (typeof RECURRENCES)[number];
+export const RECURRENCE_LABELS: Record<Recurrence, string> = {
+  NONE: 'No se repite',
+  DAILY: 'Cada día',
+  WEEKLY: 'Cada semana',
+  MONTHLY: 'Cada mes',
+};
+
 // ---------- Sprints ----------
 
 export const SPRINT_STATUSES = ['PLANNED', 'ACTIVE', 'CLOSED'] as const;
@@ -159,6 +168,9 @@ export interface TaskDto {
   tags: string[];
   /** Puntos de estimación; null = sin estimar. */
   estimate: number | null;
+  recurrence: Recurrence;
+  /** Cuántas tareas que la bloquean siguen sin terminar (0 = libre). */
+  blockedByOpenCount: number;
   order: number;
   closedAt: string | null;
   createdAt: string;
@@ -185,6 +197,7 @@ export interface CreateTaskDto {
   startDate?: string | null;
   tags?: string[];
   estimate?: number | null;
+  recurrence?: Recurrence;
 }
 
 export interface UpdateTaskDto {
@@ -200,6 +213,7 @@ export interface UpdateTaskDto {
   startDate?: string | null;
   tags?: string[];
   estimate?: number | null;
+  recurrence?: Recurrence;
 }
 
 /** Mover en el tablero: a una columna (estado) y a una posición dentro de ella. */
@@ -238,6 +252,128 @@ export interface TaskPageDto {
   total: number;
   page: number;
   pageSize: number;
+}
+
+// ---------- Dependencias ----------
+
+/** Referencia corta a una tarea (para dependencias, avisos…). */
+export interface TaskRefDto {
+  id: number;
+  key: string;
+  title: string;
+  done: boolean;
+  status: ProjectStatusDto;
+  assignee: UserRefDto | null;
+}
+
+export interface DependenciesDto {
+  /** Tareas que tienen que terminar antes que ésta. */
+  blockedBy: TaskRefDto[];
+  /** Tareas que esperan a ésta. */
+  blocks: TaskRefDto[];
+}
+
+// ---------- Avisos ----------
+
+export const NOTIFICATION_TYPES = ['MENTION', 'ASSIGNED', 'COMMENT', 'STATUS', 'BLOCKER_DONE'] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+export interface NotificationDto {
+  id: number;
+  type: NotificationType;
+  text: string;
+  actor: UserRefDto | null;
+  taskId: number | null;
+  taskKey: string | null;
+  taskTitle: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationsPageDto {
+  items: NotificationDto[];
+  unread: number;
+}
+
+// ---------- Vistas guardadas ----------
+
+/** Filtros de un tablero/lista tal como los guarda la UI (claves libres: q, assignee, priority, tag…). */
+export type ViewFilters = Record<string, string | boolean | number | null>;
+
+export interface SavedViewDto {
+  id: number;
+  scope: 'project' | 'global';
+  projectId: number | null;
+  name: string;
+  filters: ViewFilters;
+  shared: boolean;
+  /** Si es mía (puedo borrarla). */
+  mine: boolean;
+  createdAt: string;
+}
+
+export interface CreateSavedViewDto {
+  scope: 'project' | 'global';
+  projectId?: number | null;
+  name: string;
+  filters: ViewFilters;
+  shared?: boolean;
+}
+
+// ---------- Plantillas ----------
+
+export interface TaskTemplateDto {
+  id: number;
+  projectId: number | null;
+  name: string;
+  title: string;
+  description: string;
+  type: TaskType;
+  priority: Priority;
+  tags: string[];
+  estimate: number | null;
+  subtasks: string[];
+  createdAt: string;
+}
+
+export interface CreateTaskTemplateDto {
+  projectId?: number | null;
+  name: string;
+  title: string;
+  description?: string;
+  type?: TaskType;
+  priority?: Priority;
+  tags?: string[];
+  estimate?: number | null;
+  subtasks?: string[];
+}
+
+/** Crear una tarea (con sus subtareas) a partir de una plantilla. */
+export interface InstantiateTemplateDto {
+  projectId: number;
+  title?: string;
+  assigneeId?: number | null;
+  sprintId?: number | null;
+  dueDate?: string | null;
+  parentId?: number | null;
+}
+
+// ---------- Burndown ----------
+
+export interface BurndownPointDto {
+  /** YYYY-MM-DD */
+  date: string;
+  /** Tareas del sprint sin terminar al final de ese día. */
+  remaining: number;
+  remainingPoints: number;
+  /** Línea ideal (de total a 0). */
+  ideal: number;
+}
+
+export interface BurndownDto {
+  total: number;
+  totalPoints: number;
+  points: BurndownPointDto[];
 }
 
 /** Etiqueta con cuántas tareas la llevan (para los filtros y el autocompletado). */

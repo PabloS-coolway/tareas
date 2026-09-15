@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
-import { ActivityDto, ActivityFeedItemDto, CommentDto, CreateTaskDto, MoveTaskDto, Priority, ResumenDto, TagCountDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
+import { ActivityDto, ActivityFeedItemDto, CommentDto, CreateTaskDto, DependenciesDto, MoveTaskDto, Priority, ResumenDto, TagCountDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
 import { JwtPayload } from '../../../auth/application/auth.service';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
 import { ActivityService } from '../../application/activity.service';
@@ -85,6 +85,26 @@ export class TasksController {
   @RequireFeature('tareas.editar')
   update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateTaskDto, @CurrentUser() me: JwtPayload): Promise<TaskDto> {
     return this.tasks.update(id, body, me.sub);
+  }
+
+  // ---- dependencias ----
+
+  @Get(':id/dependencies')
+  @RequireFeature('tareas.ver')
+  dependencies(@Param('id', ParseIntPipe) id: number): Promise<DependenciesDto> {
+    return this.tasks.dependencies(id);
+  }
+
+  @Post(':id/dependencies')
+  @RequireFeature('tareas.editar')
+  addDependency(@Param('id', ParseIntPipe) id: number, @Body() body: { blocker: string }, @CurrentUser() me: JwtPayload): Promise<DependenciesDto> {
+    return this.tasks.addDependency(id, String(body?.blocker ?? '').trim(), me.sub);
+  }
+
+  @Delete(':id/dependencies/:blockerId')
+  @RequireFeature('tareas.editar')
+  removeDependency(@Param('id', ParseIntPipe) id: number, @Param('blockerId', ParseIntPipe) blockerId: number, @CurrentUser() me: JwtPayload): Promise<DependenciesDto> {
+    return this.tasks.removeDependency(id, blockerId, me.sub);
   }
 
   @Post(':id/duplicate')
