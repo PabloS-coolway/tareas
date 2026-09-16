@@ -18,6 +18,7 @@ import { BacklogPage } from './pages/BacklogPage';
 import { AvisosPage } from './pages/AvisosPage';
 import { ActividadPage } from './pages/ActividadPage';
 import { PanelPage } from './pages/PanelPage';
+import { IntegracionesPage } from './pages/IntegracionesPage';
 import { PlantillasPage } from './pages/PlantillasPage';
 import { TokensPage } from './pages/TokensPage';
 import { AuthProvider } from './auth/AuthContext';
@@ -52,6 +53,7 @@ export function App() {
               <Route path="/tokens" element={<TokensPage />} />
               <Route element={<RequireFeature feature="usuarios.gestionar" />}>
                 <Route path="/usuarios" element={<UsuariosPage />} />
+                <Route path="/integraciones" element={<IntegracionesPage />} />
               </Route>
               <Route element={<RequireFeature feature="roles.gestionar" />}>
                 <Route path="/roles" element={<RolesPage />} />

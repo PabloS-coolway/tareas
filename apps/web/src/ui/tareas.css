@@ -296,3 +296,8 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .aviso-x { border: 0; background: none; color: var(--muted); padding: 0 2px; opacity: 0.5; }
 .aviso:hover .aviso-x { opacity: 1; }
 .aviso-x:hover { color: #b42318; }
+
+/* ---------- Integraciones ---------- */
+.conectado { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px 4px 8px; font-size: 0.9rem; background: var(--surface); }
+.dot-on { width: 9px; height: 9px; border-radius: 50%; background: #1d6b3a; box-shadow: 0 0 0 3px #e7f7ed; }
+.log-table .detalle { max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; color: var(--muted); }

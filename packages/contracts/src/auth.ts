@@ -85,3 +85,27 @@ export interface CreatedApiTokenDto extends ApiTokenDto {
   /** El token completo. Se muestra UNA vez. */
   token: string;
 }
+
+/** Token de cualquier usuario, para administración (feature usuarios.gestionar). */
+export interface AdminTokenDto extends ApiTokenDto {
+  user: UserRefDto;
+  revokedAt: string | null;
+  /** Llamadas en los últimos 7 días. */
+  calls7d: number;
+  /** Con uso en los últimos 5 minutos. */
+  connected: boolean;
+}
+
+/** Una llamada hecha con un token (herramienta MCP o petición a la API). */
+export interface TokenLogDto {
+  id: number;
+  tokenId: number;
+  tokenName: string;
+  user: UserRefDto;
+  source: 'mcp' | 'api';
+  action: string;
+  detail: string | null;
+  ok: boolean;
+  ms: number;
+  createdAt: string;
+}

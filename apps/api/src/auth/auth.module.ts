@@ -14,6 +14,7 @@ import { AuthController } from './interface/http/auth.controller';
 import { UsersController } from './interface/http/users.controller';
 import { RolesController } from './interface/http/roles.controller';
 import { TokensController } from './interface/http/tokens.controller';
+import { AdminTokensController } from './interface/http/admin-tokens.controller';
 import { JwtAuthGuard } from './interface/http/jwt-auth.guard';
 import { FeatureGuard } from './interface/http/feature.guard';
 import { jwtOptions } from './auth.config';
@@ -32,7 +33,7 @@ export const authProviders: Provider[] = [
 /** Módulo de autenticación: login/me, usuarios, roles, tokens de API + guards globales (JWT|token + feature). */
 @Module({
   imports: [JwtModule.register(jwtOptions())],
-  controllers: [AuthController, UsersController, RolesController, TokensController],
+  controllers: [AuthController, UsersController, RolesController, TokensController, AdminTokensController],
   providers: [
     ...authProviders,
     { provide: APP_GUARD, useClass: JwtAuthGuard }, // 1º: exige JWT o token de API

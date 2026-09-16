@@ -41,6 +41,8 @@ async function bootstrap(): Promise<void> {
       hash: (p) => hasher.hash(p),
     });
     console.log(`[bootstrap] ${msg}`);
+    const purgados = await app.get(ApiTokenService, { strict: false }).purgeLogs();
+    if (purgados) console.log(`[bootstrap] registro de tokens: ${purgados} entradas de más de 90 días borradas`);
   } catch (e) {
     console.warn(`[bootstrap] no se pudo completar el arranque: ${(e as Error).message}`);
   }

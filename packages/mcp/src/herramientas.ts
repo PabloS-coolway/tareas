@@ -19,8 +19,28 @@ interface Task {
 }
 
 
+/** Aviso por cada llamada a una herramienta (para el registro de uso del servidor remoto). */
+export type Hook = (e: { tool: string; args: unknown; ok: boolean; ms: number; error?: string }) => void;
+
 /** Registra todas las herramientas en el servidor dado. */
-export function registrarHerramientas(server: McpServer, api: ApiFn): void {
+export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): void {
+  // Envoltorio: mide, captura errores y avisa al hook; el resto del fichero usa `server.tool` como siempre.
+  const server = {
+    tool<S extends z.ZodRawShape>(name: string, description: string, schema: S, handler: (args: z.infer<z.ZodObject<S>>) => Promise<{ content: { type: 'text'; text: string }[] }>) {
+      // La firma de McpServer.tool tiene muchas sobrecargas; el tipado útil está en ESTE wrapper, así que se relaja aquí.
+      (mcp.tool as unknown as (...a: unknown[]) => void)(name, description, schema, async (args: z.infer<z.ZodObject<S>>) => {
+        const t0 = Date.now();
+        try {
+          const r = await handler(args);
+          hook?.({ tool: name, args, ok: true, ms: Date.now() - t0 });
+          return r;
+        } catch (e) {
+          hook?.({ tool: name, args, ok: false, ms: Date.now() - t0, error: (e as Error).message });
+          throw e;
+        }
+      });
+    },
+  };
   const proyecto = async (key: string): Promise<Project> => api<Project>(`/projects/${encodeURIComponent(key)}`);
   const porEmail = async (email: string): Promise<UserRef> => {
     const dir = await api<UserRef[]>('/users/directorio');
@@ -198,8 +218,8 @@ export function registrarHerramientas(server: McpServer, api: ApiFn): void {
 }
 
 /** Servidor MCP completo (nombre/versión + herramientas). */
-export function crearServidor(api: ApiFn): McpServer {
+export function crearServidor(api: ApiFn, hook?: Hook): McpServer {
   const server = new McpServer({ name: 'tareas-yorga', version: '0.2.0' });
-  registrarHerramientas(server, api);
+  registrarHerramientas(server, api, hook);
   return server;
 }

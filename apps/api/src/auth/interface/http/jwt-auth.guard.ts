@@ -27,6 +27,15 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.apiTokens.resolve(token);
       if (!payload) throw new UnauthorizedException('Token de API inválido o revocado.');
       req.user = payload;
+      // Registro de uso (salvo las llamadas por loopback del MCP remoto, que ya se apuntan como herramienta).
+      if (req.headers['x-via'] !== 'mcp') {
+        const t0 = Date.now();
+        const res = ctx.switchToHttp().getResponse();
+        res.once('finish', () => {
+          const ruta = String(req.originalUrl ?? req.url ?? '').replace(/^\/api/, '');
+          this.apiTokens.log({ tokenId: payload.tokenId, userId: payload.sub, source: 'api', action: `${req.method} ${ruta.split('?')[0].replace(/\/\d+/g, '/:id')}`, detail: ruta, ok: res.statusCode < 400, ms: Date.now() - t0 });
+        });
+      }
       return true;
     }
 

@@ -23,10 +23,12 @@ type ApiFn = <T>(path: string, init?: RequestInit) => Promise<T>;
 interface Servidor { connect(t: unknown): Promise<void>; close(): Promise<void> }
 interface Transporte { handleRequest(req: IncomingMessage, res: ServerResponse, body?: unknown): Promise<void>; close(): Promise<void> }
 
-async function cargar(): Promise<{ crearServidor: (api: ApiFn) => Servidor; Transport: new (o: { sessionIdGenerator: undefined }) => Transporte }> {
+type Hook = (e: { tool: string; args: unknown; ok: boolean; ms: number; error?: string }) => void;
+
+async function cargar(): Promise<{ crearServidor: (api: ApiFn, hook?: Hook) => Servidor; Transport: new (o: { sessionIdGenerator: undefined }) => Transporte }> {
   const raizMcp = dirname(require.resolve('@yorga/tareas-mcp/package.json'));
   const [h, t] = await Promise.all([importar(join(raizMcp, 'dist', 'herramientas.js')), importar('@modelcontextprotocol/sdk/server/streamableHttp.js')]);
-  return { crearServidor: h.crearServidor as (api: ApiFn) => Servidor, Transport: t.StreamableHTTPServerTransport as new (o: { sessionIdGenerator: undefined }) => Transporte };
+  return { crearServidor: h.crearServidor as (api: ApiFn, hook?: Hook) => Servidor, Transport: t.StreamableHTTPServerTransport as new (o: { sessionIdGenerator: undefined }) => Transporte };
 }
 
 export function crearManejadorMcp(apiTokens: ApiTokenService, port: number | string) {
@@ -56,7 +58,7 @@ export function crearManejadorMcp(apiTokens: ApiTokenService, port: number | str
     }
 
     const api: ApiFn = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
-      const r = await fetch(`${base}${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
+      const r = await fetch(`${base}${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Via': 'mcp', ...(init.headers ?? {}) } });
       if (!r.ok) {
         let msg = `HTTP ${r.status}`;
         try {
@@ -72,7 +74,7 @@ export function crearManejadorMcp(apiTokens: ApiTokenService, port: number | str
     try {
       modulos ??= cargar();
       const { crearServidor, Transport } = await modulos;
-      const server = crearServidor(api);
+      const server = crearServidor(api, (e) => apiTokens.log({ tokenId: quien.tokenId, userId: quien.sub, source: 'mcp', action: e.tool, detail: resumirArgs(e.args, e.error), ok: e.ok, ms: e.ms }));
       const transport = new Transport({ sessionIdGenerator: undefined });
       res.on('close', () => {
         void transport.close();
@@ -99,4 +101,19 @@ async function cuerpo(req: Req): Promise<unknown> {
   for await (const c of req) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
   const texto = Buffer.concat(chunks).toString('utf8');
   return texto ? JSON.parse(texto) : undefined;
+}
+
+/** Argumentos de la herramienta en una línea (sin descripciones largas) y el error si lo hubo. */
+function resumirArgs(args: unknown, error?: string): string {
+  let t = '';
+  try {
+    const a = (args && typeof args === 'object' ? args : {}) as Record<string, unknown>;
+    t = Object.entries(a)
+      .filter(([, v]) => v !== undefined && v !== '')
+      .map(([k, v]) => `${k}=${typeof v === 'string' ? (v.length > 60 ? v.slice(0, 57) + '…' : v) : JSON.stringify(v)}`)
+      .join(' ');
+  } catch {
+    t = '';
+  }
+  return error ? `${t} → ERROR ${error}`.trim() : t;
 }

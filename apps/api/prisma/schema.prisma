@@ -66,7 +66,30 @@ model ApiToken {
   revokedAt  DateTime? @map("revoked_at")
   createdAt  DateTime  @default(now()) @map("created_at")
 
+  logs ApiTokenLog[]
+
   @@map("api_token")
+}
+
+/// Registro de uso de un token de API: llamadas a herramientas MCP y peticiones directas a la API.
+model ApiTokenLog {
+  id        Int      @id @default(autoincrement())
+  tokenId   Int      @map("token_id")
+  token     ApiToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  userId    Int      @map("user_id")
+  /// `mcp` (herramienta por el endpoint remoto) o `api` (petición HTTP con el token).
+  source    String
+  /// Nombre de la herramienta o `GET /tasks`.
+  action    String
+  /// Argumentos (recortados) o ruta completa.
+  detail    String?
+  ok        Boolean  @default(true)
+  ms        Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tokenId, createdAt])
+  @@index([createdAt])
+  @@map("api_token_log")
 }
 
 // ---------- Proyectos y tareas ----------

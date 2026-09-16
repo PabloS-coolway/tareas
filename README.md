@@ -39,6 +39,9 @@ permisos. Dos formas de conectarlo:
      (el token va en la ruta porque esos conectores no admiten cabeceras; trata esa URL como una contraseña).
 2. **Paquete local (stdio):** `packages/mcp` con `TAREAS_URL` y `TAREAS_TOKEN` (`npx -y @yorga/tareas-mcp`).
 
+Administración → **Integraciones**: quién está conectado ahora, tokens de todo el equipo (con revocación) y registro de
+llamadas (herramienta MCP o petición a la API, argumentos, resultado y tiempo; 90 días).
+
 Herramientas: listar_proyectos, listar_tareas, mis_tareas, ver_tarea, crear_tarea, editar_tarea, comentar,
 listar_sprints, crear_sprint, equipo. Las mismas en las dos formas (`packages/mcp/src/herramientas.ts`).
 
