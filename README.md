@@ -30,9 +30,17 @@ puedes dejarlas). Roles de sistema: `admin` (todo) y `miembro` (ver y editar tar
 
 ## Claude / MCP
 
-Cada persona crea su token en *Tokens de API* y configura el MCP (`packages/mcp`) con `TAREAS_URL` y
-`TAREAS_TOKEN`. Herramientas: `listar_proyectos`, `listar_tareas`, `mis_tareas`, `ver_tarea`, `crear_tarea`,
-`editar_tarea`, `comentar`, `equipo`. Actúa con los permisos del dueño del token.
+Cada persona crea su token en *Tokens de API* (empieza por `tk_`). Con él, Claude actúa en su nombre con sus mismos
+permisos. Dos formas de conectarlo:
+
+1. **MCP remoto (recomendado, sin instalar nada):** la API sirve el MCP por HTTP en `/api/mcp`.
+   - Claude Code: `claude mcp add --transport http tareas-yorga https://<app>/api/mcp --header "Authorization: Bearer tk_…"`
+   - claude.ai / Claude Desktop (Conectores → Añadir conector personalizado): URL `https://<app>/api/mcp/t/tk_…`
+     (el token va en la ruta porque esos conectores no admiten cabeceras; trata esa URL como una contraseña).
+2. **Paquete local (stdio):** `packages/mcp` con `TAREAS_URL` y `TAREAS_TOKEN` (`npx -y @yorga/tareas-mcp`).
+
+Herramientas: listar_proyectos, listar_tareas, mis_tareas, ver_tarea, crear_tarea, editar_tarea, comentar,
+listar_sprints, crear_sprint, equipo. Las mismas en las dos formas (`packages/mcp/src/herramientas.ts`).
 
 ## Arquitectura
 

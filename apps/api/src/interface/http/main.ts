@@ -7,6 +7,8 @@ import { bootstrapAdmin } from '../../auth/bootstrap-admin';
 import { bootstrapRoles } from '../../auth/bootstrap-roles';
 import { PASSWORD_HASHER, PasswordHasher, USER_REPOSITORY, UserRepository } from '../../auth/application/ports';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
+import { ApiTokenService } from '../../auth/application/api-token.service';
+import { crearManejadorMcp } from '../../mcp/mcp-http';
 
 async function bootstrap(): Promise<void> {
   // bodyParser propio: el import de ClickUp manda un JSON grande (descripciones y comentarios de todo el equipo).
@@ -17,6 +19,13 @@ async function bootstrap(): Promise<void> {
   app.enableCors(); // el front (Vite) corre en otro puerto en desarrollo
 
   const port = process.env.PORT ?? 3000;
+
+  // MCP remoto (/api/mcp): ruta de Express por fuera de Nest, registrada ANTES de init para que no la tape el 404 de Nest.
+  const mcp = crearManejadorMcp(app.get(ApiTokenService, { strict: false }), port);
+  const express = app.getHttpAdapter().getInstance();
+  express.all('/api/mcp', mcp);
+  express.all('/api/mcp/t/:token', mcp);
+
   await app.listen(port);
   console.log(`API tareas escuchando en http://localhost:${port}/api`);
 

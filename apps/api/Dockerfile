@@ -23,6 +23,7 @@ RUN npm ci
 # Genera el cliente Prisma (contra el schema versionado) y compila contracts + API.
 RUN npm run db:generate \
   && npm run build -w @yorga/contracts \
+  && npm run build -w @yorga/tareas-mcp \
   && npm run build -w @yorga/tareas-api \
   # En runtime `@yorga/contracts` se resuelve por node_modules → que apunte al JS compilado (sólo en la imagen).
   && npm pkg set main=dist/index.js types=dist/index.d.ts -w @yorga/contracts

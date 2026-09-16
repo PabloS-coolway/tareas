@@ -69,9 +69,12 @@ export function TokensPage() {
             <div className="token-box flex-grow-1">{nuevo.token}</div>
             <Button size="sm" variant="outline-secondary" onClick={() => navigator.clipboard.writeText(nuevo.token).then(() => setCopiado(true))}><Clipboard /> {copiado ? 'copiado' : 'copiar'}</Button>
           </div>
-          <div className="small mt-3 mb-1">Configuración para Claude Code / Claude Desktop (<code>.mcp.json</code> o <code>claude_desktop_config.json</code>):</div>
+          <div className="small mt-3 mb-1"><b>MCP remoto (recomendado, sin instalar nada).</b> En Claude Code:</div>
+          <pre className="token-box mb-2">{`claude mcp add --transport http tareas-yorga ${apiUrl}/api/mcp --header "Authorization: Bearer ${nuevo?.token ?? '<tu token>'}"`}</pre>
+          <div className="small mb-1">En claude.ai o Claude Desktop (Ajustes → Conectores → Añadir conector personalizado), la URL con el token dentro:</div>
+          <pre className="token-box mb-2">{`${apiUrl}/api/mcp/t/${nuevo?.token ?? '<tu token>'}`}</pre>
+          <div className="small mb-1">Alternativa local (paquete stdio), en <code>.mcp.json</code> o <code>claude_desktop_config.json</code>:</div>
           <pre className="token-box mb-0">{mcpConfig}</pre>
-          <div className="small mt-2">Alternativa desde el terminal: <code>claude mcp add tareas-yorga -e TAREAS_URL={apiUrl} -e TAREAS_TOKEN=… -- npx -y @yorga/tareas-mcp</code></div>
         </Alert>
       )}
 
