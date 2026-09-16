@@ -490,7 +490,15 @@ export interface ResumenProyectoDto {
 
 export interface ResumenDto {
   misAbiertas: number;
+  misEnCurso: number;
   misVencidas: number;
+  /** Terminadas por mí esta semana (7 días) y en los 7 anteriores. */
+  misHechas7d: number;
+  misHechas7dPrev: number;
+  /** Asignadas a mí en los últimos 7 días. */
+  misNuevas7d: number;
+  /** Sprint activo: mis tareas dentro. */
+  miSprint: { id: number; name: string; total: number; done: number; daysLeft: number | null } | null;
   porProyecto: ResumenProyectoDto[];
   /** Mis tareas que vencen antes (máx. 8). */
   proximas: TaskDto[];

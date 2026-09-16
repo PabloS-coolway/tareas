@@ -219,6 +219,7 @@ export function BacklogPage() {
             );
           })}
           {orden.length === 0 && <Card className="mb-3"><Card.Body className="text-secondary">No hay sprints abiertos. Crea uno y arrastra tareas del backlog.</Card.Body></Card>}
+          <div className="small text-secondary mb-3 text-end"><Link to="/sprints?cerrados=1">Ver sprints cerrados</Link> (con lo que se terminó en cada uno)</div>
 
           <Card>
             <Card.Body className="p-3">

@@ -147,19 +147,40 @@ export class TasksService {
   async resumen(userId: number): Promise<ResumenDto> {
     const abiertas: Prisma.TaskWhereInput = { assigneeId: userId, status: { category: { not: 'DONE' } } };
     const hoy = new Date(new Date().toISOString().slice(0, 10));
-    const [misAbiertas, misVencidas, proyectos, proximasRows] = await Promise.all([
+    const d7 = new Date(Date.now() - 7 * 86_400_000);
+    const d14 = new Date(Date.now() - 14 * 86_400_000);
+    const [misAbiertas, misVencidas, proyectos, proximasRows, misEnCurso, misHechas7d, misHechas7dPrev, misNuevas7d, sprintActivo] = await Promise.all([
       this.prisma.task.count({ where: abiertas }),
       this.prisma.task.count({ where: { ...abiertas, dueDate: { lt: hoy } } }),
       this.prisma.project.findMany({ where: { archived: false }, orderBy: { name: 'asc' }, select: { id: true, key: true, name: true, color: true } }),
       this.prisma.task.findMany({ where: abiertas, include: includeTask, orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { priority: 'asc' }], take: 8 }),
+      this.prisma.task.count({ where: { assigneeId: userId, status: { category: 'DOING', NOT: { key: { contains: 'bloq' } } } } }),
+      this.prisma.task.count({ where: { assigneeId: userId, closedAt: { gte: d7 } } }),
+      this.prisma.task.count({ where: { assigneeId: userId, closedAt: { gte: d14, lt: d7 } } }),
+      this.prisma.task.count({ where: { assigneeId: userId, createdAt: { gte: d7 } } }),
+      this.prisma.sprint.findFirst({ where: { status: 'ACTIVE' }, orderBy: [{ endDate: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }], include: { tasks: { where: { assigneeId: userId }, select: { status: { select: { category: true } } } } } }),
     ]);
+    const miSprint = sprintActivo
+      ? {
+          id: sprintActivo.id,
+          name: sprintActivo.name,
+          total: sprintActivo.tasks.length,
+          done: sprintActivo.tasks.filter((t) => t.status.category === 'DONE').length,
+          daysLeft: sprintActivo.endDate ? Math.max(0, Math.ceil((sprintActivo.endDate.getTime() - hoy.getTime()) / 86_400_000)) : null,
+        }
+      : null;
     const open = await this.prisma.task.groupBy({ by: ['projectId'], where: { status: { category: { not: 'DONE' } } }, _count: { _all: true } });
     const mine = await this.prisma.task.groupBy({ by: ['projectId'], where: abiertas, _count: { _all: true } });
     const o = new Map(open.map((x) => [x.projectId, x._count._all]));
     const m = new Map(mine.map((x) => [x.projectId, x._count._all]));
     return {
       misAbiertas,
+      misEnCurso,
       misVencidas,
+      misHechas7d,
+      misHechas7dPrev,
+      misNuevas7d,
+      miSprint,
       porProyecto: proyectos.map((p) => ({ projectId: p.id, key: p.key, name: p.name, color: p.color, open: o.get(p.id) ?? 0, mine: m.get(p.id) ?? 0 })),
       proximas: await this.toDtos(proximasRows),
     };

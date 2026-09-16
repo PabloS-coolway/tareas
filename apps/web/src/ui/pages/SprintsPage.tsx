@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Alert, Badge, Button, Card, Form, Modal, ProgressBar, Spinner } from 'react-bootstrap';
 import { Plus } from 'react-bootstrap-icons';
 import { SPRINT_STATUS_LABELS, type CreateSprintDto, type SprintDto, type UpdateSprintDto } from '@yorga/contracts';
@@ -22,7 +22,8 @@ export function rangoSprint(s: SprintDto): string {
 export function SprintsPage() {
   const { hasFeature } = useAuth();
   const [sprints, setSprints] = useState<SprintDto[] | null>(null);
-  const [verCerrados, setVerCerrados] = useState(false);
+  const [params] = useSearchParams();
+  const [verCerrados, setVerCerrados] = useState(params.get('cerrados') === '1');
   const [nuevo, setNuevo] = useState(false);
   const [error, setError] = useState('');
 

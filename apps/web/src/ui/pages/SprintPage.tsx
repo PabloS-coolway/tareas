@@ -141,6 +141,7 @@ export function SprintPage() {
           {sprint && (
             <div className="small text-secondary">
               {rangoSprint(sprint)} · {sprint.done} de {sprint.total} terminadas ({pct}%){ptsTotal > 0 && <> · {ptsHechos} de {ptsTotal} puntos</>}
+              {sprint.status === 'CLOSED' && sprint.closedAt && <> · cerrado el {new Date(sprint.closedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}; lo no terminado se movió al cerrarlo</>}
               {sprint.goal && <div className="sprint-goal mt-1">{sprint.goal}</div>}
             </div>
           )}
@@ -327,7 +328,16 @@ export function CerrarSprintModal({ sprint, abiertas, onClose, onDone }: { sprin
   const [error, setError] = useState('');
 
   useEffect(() => {
-    tareasGateway.sprints().then((ss) => setOtros(ss.filter((s) => s.id !== sprint.id))).catch(() => setOtros([]));
+    tareasGateway
+      .sprints()
+      .then((ss) => {
+        const otros = ss.filter((s) => s.id !== sprint.id).sort((a, b) => (a.startDate ?? '9').localeCompare(b.startDate ?? '9'));
+        setOtros(otros);
+        // Por defecto, lo pendiente pasa al SIGUIENTE sprint (el planificado que antes empieza); si no hay, al backlog.
+        const siguiente = otros.find((s) => s.status === 'PLANNED') ?? otros[0];
+        setDestino(siguiente ? String(siguiente.id) : '');
+      })
+      .catch(() => setOtros([]));
   }, [sprint.id]);
 
   async function cerrar() {
@@ -348,7 +358,7 @@ export function CerrarSprintModal({ sprint, abiertas, onClose, onDone }: { sprin
       <Modal.Header closeButton><Modal.Title>Cerrar {sprint.name}</Modal.Title></Modal.Header>
       <Modal.Body>
         {error && <Alert variant="danger">⚠ {error}</Alert>}
-        <p className="mb-2">{sprint.done} de {sprint.total} tareas terminadas.</p>
+        <p className="mb-2">{sprint.done} de {sprint.total} tareas terminadas. Las terminadas se quedan en este sprint (seguirá consultable en «Sprints → Ver cerrados»).</p>
         {abiertas > 0 ? (
           <Form.Group>
             <Form.Label className="small">Las {abiertas} que quedan abiertas van a…</Form.Label>

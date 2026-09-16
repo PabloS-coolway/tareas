@@ -278,6 +278,8 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .kpi-delta.down { color: #b42318; }
 .kpi-table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; border-bottom-width: 1px; }
 .kpi-table td { vertical-align: middle; }
+.kpi-table { font-size: 0.9rem; }
+.kpi-table td, .kpi-table th { padding: 5px 6px; }
 .kpi-table td:first-child, .kpi-table th { white-space: nowrap; }
 .kpi-table-wrap { overflow-x: auto; }
 .legend-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }

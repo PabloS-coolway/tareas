@@ -61,7 +61,7 @@ function Semanas({ semanas }: { semanas: KpisDto['semanas'] }) {
 }
 
 /** Panel del equipo para dirección: caudal, salud, carga por persona y por proyecto. */
-export function PanelEquipo() {
+export function PanelEquipo({ compacto = false }: { compacto?: boolean }) {
   const [k, setK] = useState<KpisDto | null>(null);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -82,13 +82,76 @@ export function PanelEquipo() {
     return to ? <Link to={to} className={`kpi ${cls} text-decoration-none`}>{inner}</Link> : <div className={`kpi ${cls}`}>{inner}</div>;
   };
 
-  return (
-    <section className="mt-4">
-      <div className="d-flex align-items-baseline justify-content-between mb-2">
-        <h2 className="h5 mb-0">Panel del equipo</h2>
-        <span className="small text-secondary">todo el equipo · últimos 7 días salvo que se indique</span>
-      </div>
+  const sprintCard = (
+    <Card className="h-100">
+      <Card.Body>
+        <Card.Title className="mb-2">Sprint en curso</Card.Title>
+        {k.activeSprint ? (
+          <>
+            <Link to={`/sprints/${k.activeSprint.id}`} className="fw-bold text-decoration-none">{k.activeSprint.name}</Link>
+            <ProgressBar now={pctSprint} variant={pctSprint === 100 ? 'success' : undefined} className="sprint-progress my-2" />
+            <div className="small text-secondary">
+              {k.activeSprint.done} de {k.activeSprint.total} tareas ({pctSprint}%)
+              {k.activeSprint.points > 0 && <> · {k.activeSprint.pointsDone} de {k.activeSprint.points} puntos</>}
+              {k.activeSprint.daysLeft !== null && <> · {k.activeSprint.daysLeft === 0 ? 'termina hoy' : `quedan ${k.activeSprint.daysLeft} días`}</>}
+            </div>
+          </>
+        ) : (
+          <p className="text-secondary mb-0">No hay ningún sprint activo. <Link to="/backlog">Planifica uno</Link>.</p>
+        )}
+        {k.urgentOpen > 0 && <div className="small mt-3"><span className="pill blocked">⚑ {k.urgentOpen} urgentes abiertas</span></div>}
+      </Card.Body>
+    </Card>
+  );
 
+  const tablaPersonas = (
+    <Card className="h-100">
+      <Card.Body>
+        <Card.Title className="mb-2">Carga por persona</Card.Title>
+        <div className="kpi-table-wrap"><table className="table table-sm mb-0 tabular kpi-table">
+          <thead><tr><th>Persona</th><th className="text-end">Abiertas</th><th className="text-end">En curso</th><th className="text-end">Vencidas</th><th className="text-end">Hechas 7d</th></tr></thead>
+          <tbody>
+            {k.porPersona.map((p) => (
+              <tr key={p.user.id}>
+                <td><Link to={`/equipo/${p.user.id}`} className="text-decoration-none d-inline-flex align-items-center gap-2"><Avatar user={p.user} />{p.user.name}</Link></td>
+                <td className="text-end">{p.open}</td>
+                <td className="text-end">{p.doing}</td>
+                <td className={`text-end ${p.overdue ? 'text-danger fw-semibold' : 'text-secondary'}`}>{p.overdue || '·'}</td>
+                <td className="text-end">{p.done7d || '·'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      </Card.Body>
+    </Card>
+  );
+
+  if (compacto) {
+    // Inicio de dirección: sólo lo que hay que mirar cada día.
+    return (
+      <section>
+        <div className="d-flex align-items-baseline justify-content-between mb-2">
+          <h2 className="h5 mb-0">Equipo esta semana</h2>
+          <Link to="/panel" className="small">panel completo</Link>
+        </div>
+        <div className="kpis kpis-6 mb-4">
+          {tile(<>{k.done7d} <Delta a={k.done7d} b={k.done7dPrev} /></>, 'terminadas esta semana', k.done7d >= k.done7dPrev ? 'kpi-ok' : 'kpi-warn')}
+          {tile(<>{neto7 > 0 ? '+' : ''}{neto7}</>, neto7 > 0 ? 'crece el backlog' : 'baja el backlog', neto7 > 0 ? 'kpi-warn' : 'kpi-ok')}
+          {tile(k.doing, 'en curso ahora', '', '/tareas')}
+          {tile(k.overdue, 'vencidas', k.overdue > 0 ? 'kpi-warn' : 'kpi-ok', '/tareas')}
+          {tile(k.blocked, 'bloqueadas', k.blocked > 0 ? 'kpi-warn' : 'kpi-ok')}
+          {tile(k.unassigned, 'sin asignar', k.unassigned > 10 ? 'kpi-warn' : '', '/equipo/none')}
+        </div>
+        <div className="row g-4">
+          <div className="col-lg-7">{tablaPersonas}</div>
+          <div className="col-lg-5">{sprintCard}</div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section>
       <div className="kpis kpis-6 mb-3">
         {tile(<>{k.done7d} <Delta a={k.done7d} b={k.done7dPrev} /></>, 'terminadas esta semana', k.done7d >= k.done7dPrev ? 'kpi-ok' : 'kpi-warn')}
         {tile(k.created7d, 'creadas esta semana')}
@@ -115,48 +178,8 @@ export function PanelEquipo() {
             </Card.Body>
           </Card>
         </div>
-        <div className="col-lg-5">
-          <Card className="h-100">
-            <Card.Body>
-              <Card.Title className="mb-2">Sprint en curso</Card.Title>
-              {k.activeSprint ? (
-                <>
-                  <Link to={`/sprints/${k.activeSprint.id}`} className="fw-bold text-decoration-none">{k.activeSprint.name}</Link>
-                  <ProgressBar now={pctSprint} variant={pctSprint === 100 ? 'success' : undefined} className="sprint-progress my-2" />
-                  <div className="small text-secondary">
-                    {k.activeSprint.done} de {k.activeSprint.total} tareas ({pctSprint}%)
-                    {k.activeSprint.points > 0 && <> · {k.activeSprint.pointsDone} de {k.activeSprint.points} puntos</>}
-                    {k.activeSprint.daysLeft !== null && <> · {k.activeSprint.daysLeft === 0 ? 'termina hoy' : `quedan ${k.activeSprint.daysLeft} días`}</>}
-                  </div>
-                </>
-              ) : (
-                <p className="text-secondary mb-0">No hay ningún sprint activo. <Link to="/sprints">Planifica uno</Link>.</p>
-              )}
-              {k.urgentOpen > 0 && <div className="small mt-3"><span className="pill blocked">⚑ {k.urgentOpen} urgentes abiertas</span></div>}
-            </Card.Body>
-          </Card>
-        </div>
-        <div className="col-lg-6">
-          <Card className="h-100">
-            <Card.Body>
-              <Card.Title className="mb-2">Carga por persona</Card.Title>
-              <div className="kpi-table-wrap"><table className="table table-sm mb-0 tabular kpi-table">
-                <thead><tr><th>Persona</th><th className="text-end">Abiertas</th><th className="text-end">En curso</th><th className="text-end">Vencidas</th><th className="text-end">Hechas 7d</th></tr></thead>
-                <tbody>
-                  {k.porPersona.map((p) => (
-                    <tr key={p.user.id}>
-                      <td><Link to={`/equipo/${p.user.id}`} className="text-decoration-none d-inline-flex align-items-center gap-2"><Avatar user={p.user} />{p.user.name}</Link></td>
-                      <td className="text-end">{p.open}</td>
-                      <td className="text-end">{p.doing}</td>
-                      <td className={`text-end ${p.overdue ? 'text-danger fw-semibold' : 'text-secondary'}`}>{p.overdue || '·'}</td>
-                      <td className="text-end">{p.done7d || '·'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table></div>
-            </Card.Body>
-          </Card>
-        </div>
+        <div className="col-lg-5">{sprintCard}</div>
+        <div className="col-lg-6">{tablaPersonas}</div>
         <div className="col-lg-6">
           <Card className="h-100">
             <Card.Body>

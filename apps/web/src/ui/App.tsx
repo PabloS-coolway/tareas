@@ -15,6 +15,7 @@ import { SprintPage } from './pages/SprintPage';
 import { BacklogPage } from './pages/BacklogPage';
 import { AvisosPage } from './pages/AvisosPage';
 import { ActividadPage } from './pages/ActividadPage';
+import { PanelPage } from './pages/PanelPage';
 import { PlantillasPage } from './pages/PlantillasPage';
 import { TokensPage } from './pages/TokensPage';
 import { AuthProvider } from './auth/AuthContext';
@@ -40,6 +41,7 @@ export function App() {
               <Route path="/backlog" element={<BacklogPage />} />
               <Route path="/avisos" element={<AvisosPage />} />
               <Route path="/actividad" element={<ActividadPage />} />
+              <Route path="/panel" element={<PanelPage />} />
               <Route path="/plantillas" element={<PlantillasPage />} />
               <Route path="/p/:key" element={<TableroPage />} />
               <Route path="/t/:key" element={<TareaPage />} />
