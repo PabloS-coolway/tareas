@@ -12,6 +12,7 @@ import { EquipoPage } from './pages/EquipoPage';
 import { TodasTareasPage } from './pages/TodasTareasPage';
 import { SprintsPage } from './pages/SprintsPage';
 import { SprintPage } from './pages/SprintPage';
+import { BacklogPage } from './pages/BacklogPage';
 import { AvisosPage } from './pages/AvisosPage';
 import { ActividadPage } from './pages/ActividadPage';
 import { PlantillasPage } from './pages/PlantillasPage';
@@ -36,6 +37,7 @@ export function App() {
               <Route path="/tareas" element={<TodasTareasPage />} />
               <Route path="/sprints" element={<SprintsPage />} />
               <Route path="/sprints/:id" element={<SprintPage />} />
+              <Route path="/backlog" element={<BacklogPage />} />
               <Route path="/avisos" element={<AvisosPage />} />
               <Route path="/actividad" element={<ActividadPage />} />
               <Route path="/plantillas" element={<PlantillasPage />} />

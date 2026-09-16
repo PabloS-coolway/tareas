@@ -320,7 +320,7 @@ function AnadirTareasModal({ sprint, onClose, onDone }: { sprint: SprintDto; onC
 }
 
 /** Cerrar el sprint decidiendo a dónde va lo no terminado. */
-function CerrarSprintModal({ sprint, abiertas, onClose, onDone }: { sprint: SprintDto; abiertas: number; onClose: () => void; onDone: () => void }) {
+export function CerrarSprintModal({ sprint, abiertas, onClose, onDone }: { sprint: SprintDto; abiertas: number; onClose: () => void; onDone: () => void }) {
   const [otros, setOtros] = useState<SprintDto[]>([]);
   const [destino, setDestino] = useState('');
   const [saving, setSaving] = useState(false);

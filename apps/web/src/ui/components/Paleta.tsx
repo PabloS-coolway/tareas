@@ -20,6 +20,7 @@ const PAGINAS: Entrada[] = [
   { id: 'p-inicio', grupo: 'Ir a', texto: 'Inicio', to: '/inicio' },
   { id: 'p-mis', grupo: 'Ir a', texto: 'Mis tareas', to: '/mis-tareas' },
   { id: 'p-equipo', grupo: 'Ir a', texto: 'Equipo', to: '/equipo' },
+  { id: 'p-backlog', grupo: 'Ir a', texto: 'Planificación (backlog y sprints)', to: '/backlog' },
   { id: 'p-sprints', grupo: 'Ir a', texto: 'Sprints', to: '/sprints' },
   { id: 'p-todas', grupo: 'Ir a', texto: 'Todas las tareas', to: '/tareas' },
   { id: 'p-proyectos', grupo: 'Ir a', texto: 'Proyectos', to: '/proyectos' },

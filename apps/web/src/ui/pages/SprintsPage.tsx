@@ -44,7 +44,7 @@ export function SprintsPage() {
       <header className="page-head mb-4 d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
           <h1 className="h4 mb-1">Sprints</h1>
-          <p className="text-secondary mb-0">Bloques de trabajo con fecha. Un sprint junta tareas de cualquier proyecto en un solo tablero.</p>
+          <p className="text-secondary mb-0">Bloques de trabajo con fecha. Un sprint junta tareas de cualquier proyecto en un solo tablero. Para llenarlos desde el backlog, usa <Link to="/backlog">Planificación</Link>.</p>
         </div>
         {hasFeature('tareas.editar') && <Button className="btn-brand" onClick={() => setNuevo(true)}><Plus /> Nuevo sprint</Button>}
       </header>

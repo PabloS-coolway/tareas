@@ -35,6 +35,6 @@ apps/api/src/auth        login JWT · tokens de API (tk_…) · usuarios · role
 apps/api/src/tareas      proyectos (estados, WIP) · tareas (clave, tablero, épicas/subtareas, dependencias, recurrencia, unaccent) · sprints (burndown) · comentarios (menciones→avisos) · avisos · vistas guardadas · plantillas · adjuntos · actividad
 apps/api/src/importar    import idempotente desde el JSON de scripts/clickup-export.mjs
 apps/web/src/ui/components  TableroGlobal (kanban multi-proyecto) · Paleta (búsqueda Ctrl+K) · SubtareasArbol · Markdown · ActividadTexto · NuevaTareaModal (plantillas) · Dependencias · ComentarioInput (@menciones) · VistasGuardadas · Burndown (SVG) · table/csv
-apps/web/src/ui/pages    Inicio (KPIs + feed de actividad) · MisTareas · Equipo (/equipo/:userId, quién tiene qué por proyecto) · TodasTareas (/tareas, tablero+lista global) · Sprints (/sprints, /sprints/:id: tablero transversal, añadir del backlog, cerrar) · Proyectos · Tablero (/p/:key) · Tarea (/t/:key) · Tokens · Usuarios · Roles
+apps/web/src/ui/pages    Inicio (KPIs + feed de actividad) · MisTareas · Equipo (/equipo/:userId, quién tiene qué por proyecto) · TodasTareas (/tareas, tablero+lista global) · Planificación (/backlog: sprints arriba + backlog abajo, drag y mover en bloque, activar/cerrar) · Sprints (/sprints, /sprints/:id: tablero, lista, burndown, cerrar) · Proyectos · Tablero (/p/:key) · Tarea (/t/:key) · Tokens · Usuarios · Roles
 packages/mcp             servidor MCP (stdio) sobre la API, con token personal
 ```
