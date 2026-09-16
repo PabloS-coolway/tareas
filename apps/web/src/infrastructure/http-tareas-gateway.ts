@@ -125,10 +125,11 @@ export class HttpTareasGateway {
   async etiquetas(projectId?: number): Promise<TagCountDto[]> {
     return ok(await apiFetch(`/tasks/tags${projectId ? `?projectId=${projectId}` : ''}`), 'No se pudieron cargar las etiquetas.');
   }
-  async feed(limit = 40, filtro: { projectId?: number; actorId?: number } = {}): Promise<ActivityFeedItemDto[]> {
+  async feed(limit = 40, filtro: { projectId?: number; actorId?: number; before?: number } = {}): Promise<ActivityFeedItemDto[]> {
     const p = new URLSearchParams({ limit: String(limit) });
     if (filtro.projectId) p.set('projectId', String(filtro.projectId));
     if (filtro.actorId) p.set('actorId', String(filtro.actorId));
+    if (filtro.before) p.set('before', String(filtro.before));
     return ok(await apiFetch(`/tasks/feed?${p}`), 'No se pudo cargar la actividad.');
   }
   async duplicarTarea(id: number): Promise<TaskDto> {
@@ -168,6 +169,9 @@ export class HttpTareasGateway {
   async avisosSinLeer(): Promise<number> {
     const r = await ok<{ unread: number }>(await apiFetch('/notifications/unread'), 'No se pudieron cargar los avisos.');
     return r.unread;
+  }
+  async borrarAvisos(id?: number): Promise<void> {
+    return ok(await apiFetch(id ? `/notifications/${id}` : '/notifications', { method: 'DELETE' }), 'No se pudieron borrar los avisos.');
   }
   async marcarAvisosLeidos(id?: number): Promise<void> {
     return ok(await apiFetch(id ? `/notifications/${id}/read` : '/notifications/read', { method: 'POST' }), 'No se pudo marcar como leído.');

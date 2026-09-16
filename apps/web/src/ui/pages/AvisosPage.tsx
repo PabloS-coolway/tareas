@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, Card } from 'react-bootstrap';
+import { X } from 'react-bootstrap-icons';
 import type { NotificationDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { Avatar, hace } from '../components/tareas-ui';
@@ -33,6 +34,19 @@ export function AvisosPage() {
     await load();
   }
 
+  async function borrarTodo() {
+    if (!items?.length || !window.confirm(`¿Borrar los ${items.length} avisos? No se puede deshacer.`)) return;
+    await tareasGateway.borrarAvisos().catch((e) => setError((e as Error).message));
+    avisarAvisosLeidos();
+    await load();
+  }
+
+  async function borrarUno(id: number) {
+    setItems((its) => (its ?? []).filter((i) => i.id !== id));
+    await tareasGateway.borrarAvisos(id).catch((e) => setError((e as Error).message));
+    avisarAvisosLeidos();
+  }
+
   const sinLeer = items?.filter((i) => !i.readAt).length ?? 0;
   return (
     <div className="page page-wide">
@@ -41,7 +55,10 @@ export function AvisosPage() {
           <h1 className="h4 mb-1">Avisos</h1>
           <p className="text-secondary mb-0">Menciones, asignaciones, comentarios y cambios en tus tareas.</p>
         </div>
-        {sinLeer > 0 && <Button size="sm" variant="outline-secondary" onClick={marcarTodo}>Marcar todo como leído ({sinLeer})</Button>}
+        <div className="d-flex gap-2">
+          {sinLeer > 0 && <Button size="sm" variant="outline-secondary" onClick={marcarTodo}>Marcar todos como leídos ({sinLeer})</Button>}
+          {!!items?.length && <Button size="sm" variant="outline-danger" onClick={borrarTodo}>Borrar todos</Button>}
+        </div>
       </header>
       {error && <Alert variant="danger">⚠ {error}</Alert>}
       {!items ? (
@@ -69,6 +86,7 @@ export function AvisosPage() {
                   {n.taskTitle && <span className="d-block small text-secondary text-truncate">{n.taskKey} · {n.taskTitle}</span>}
                 </span>
                 <span className="small text-secondary text-nowrap">{hace(n.createdAt)}</span>
+                <button type="button" className="aviso-x" title="Borrar aviso" aria-label="Borrar aviso" onClick={(e) => { e.preventDefault(); e.stopPropagation(); void borrarUno(n.id); }}><X /></button>
               </Link>
             ))}
           </Card.Body>

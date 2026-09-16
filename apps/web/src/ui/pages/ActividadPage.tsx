@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Card, Form } from 'react-bootstrap';
+import { Alert, Button, Card, Form, Spinner } from 'react-bootstrap';
 import type { ActivityFeedItemDto, UserRefDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { hace } from '../components/tareas-ui';
@@ -16,18 +16,41 @@ export function ActividadPage() {
   const [projectId, setProjectId] = useState('');
   const [actorId, setActorId] = useState('');
   const [error, setError] = useState('');
+  const [hayMas, setHayMas] = useState(true);
+  const [cargando, setCargando] = useState(false);
+  const TRAMO = 30;
 
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
   }, []);
 
+  const filtro = () => ({ projectId: projectId ? Number(projectId) : undefined, actorId: actorId ? Number(actorId) : undefined });
+
   useEffect(() => {
     setItems(null);
+    setHayMas(true);
     tareasGateway
-      .feed(150, { projectId: projectId ? Number(projectId) : undefined, actorId: actorId ? Number(actorId) : undefined })
-      .then(setItems)
+      .feed(TRAMO, filtro())
+      .then((r) => {
+        setItems(r);
+        setHayMas(r.length === TRAMO);
+      })
       .catch((e) => setError((e as Error).message));
-  }, [projectId, actorId]);
+  }, [projectId, actorId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function cargarMas() {
+    if (!items?.length) return;
+    setCargando(true);
+    try {
+      const r = await tareasGateway.feed(TRAMO, { ...filtro(), before: items[items.length - 1].id });
+      setItems([...items, ...r]);
+      setHayMas(r.length === TRAMO);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setCargando(false);
+    }
+  }
 
   // Agrupado por día para que se lea de un vistazo.
   const dias = new Map<string, ActivityFeedItemDto[]>();
@@ -44,7 +67,7 @@ export function ActividadPage() {
       <header className="page-head mb-3 d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
           <h1 className="h4 mb-1">Actividad</h1>
-          <p className="text-secondary mb-0">Todo lo que ha pasado en las tareas, por día.</p>
+          <p className="text-secondary mb-0">Lo que ha pasado en las tareas, por día, de 30 en 30.</p>
         </div>
         <div className="d-flex gap-2 flex-wrap">
           <Form.Select size="sm" style={{ width: 'auto' }} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
@@ -80,6 +103,11 @@ export function ActividadPage() {
             </Card.Body>
           </Card>
         ))
+      )}
+      {items && items.length > 0 && hayMas && (
+        <div className="text-center mb-3">
+          <Button variant="outline-secondary" size="sm" disabled={cargando} onClick={cargarMas}>{cargando ? <Spinner size="sm" animation="border" /> : `Cargar ${TRAMO} más`}</Button>
+        </div>
       )}
     </div>
   );

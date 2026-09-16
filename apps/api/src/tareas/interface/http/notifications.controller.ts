@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { NotificationsPageDto } from '@yorga/contracts';
 import { JwtPayload } from '../../../auth/application/auth.service';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
@@ -32,5 +32,19 @@ export class NotificationsController {
   @RequireFeature('tareas.ver')
   readOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() me: JwtPayload): Promise<void> {
     return this.notifications.markRead(me.sub, id);
+  }
+
+  @Delete()
+  @HttpCode(204)
+  @RequireFeature('tareas.ver')
+  removeAll(@CurrentUser() me: JwtPayload): Promise<void> {
+    return this.notifications.remove(me.sub);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  @RequireFeature('tareas.ver')
+  removeOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() me: JwtPayload): Promise<void> {
+    return this.notifications.remove(me.sub, id);
   }
 }

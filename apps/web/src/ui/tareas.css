@@ -210,7 +210,7 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .activity.feed li > :last-child { min-width: 0; }
 
 /* ---------- Avisos ---------- */
-.aviso { display: grid; grid-template-columns: 24px auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
+.aviso { display: grid; grid-template-columns: 24px auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
 .aviso:last-child { border-bottom: 0; }
 .aviso:hover { background: color-mix(in srgb, var(--brand) 6%, transparent); color: inherit; }
 .aviso.unread { background: color-mix(in srgb, var(--brand) 5%, transparent); }
@@ -292,3 +292,7 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 
 .col-foot { display: block; width: 100%; border: 1px dashed var(--border); background: transparent; border-radius: 8px; padding: 6px 8px; margin-top: 6px; font-size: 0.74rem; color: var(--muted); text-align: center; }
 .col-foot:hover { color: var(--brand); border-color: var(--brand); }
+
+.aviso-x { border: 0; background: none; color: var(--muted); padding: 0 2px; opacity: 0.5; }
+.aviso:hover .aviso-x { opacity: 1; }
+.aviso-x:hover { color: #b42318; }

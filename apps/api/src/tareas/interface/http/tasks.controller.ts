@@ -65,9 +65,9 @@ export class TasksController {
   /** Lo último que ha pasado en cualquier tarea. */
   @Get('feed')
   @RequireFeature('tareas.ver')
-  feed(@Query('limit') limit?: string, @Query('projectId') projectId?: string, @Query('actorId') actorId?: string): Promise<ActivityFeedItemDto[]> {
+  feed(@Query('limit') limit?: string, @Query('projectId') projectId?: string, @Query('actorId') actorId?: string, @Query('before') before?: string): Promise<ActivityFeedItemDto[]> {
     const num = (v?: string) => (v && /^\d+$/.test(v) ? Number(v) : undefined);
-    return this.activity.feed(num(limit) ?? 40, { projectId: num(projectId), actorId: num(actorId) });
+    return this.activity.feed(num(limit) ?? 40, { projectId: num(projectId), actorId: num(actorId), beforeId: num(before) });
   }
 
   /** Por clave (COOL-12) o por id numérico. */

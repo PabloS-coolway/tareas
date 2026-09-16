@@ -46,6 +46,10 @@ export class NotificationsService {
     return this.prisma.notification.count({ where: { userId, readAt: null } });
   }
 
+  async remove(userId: number, id?: number): Promise<void> {
+    await this.prisma.notification.deleteMany({ where: { userId, ...(id ? { id } : {}) } });
+  }
+
   async markRead(userId: number, id?: number): Promise<void> {
     await this.prisma.notification.updateMany({ where: { userId, readAt: null, ...(id ? { id } : {}) }, data: { readAt: new Date() } });
   }
