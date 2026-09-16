@@ -36,6 +36,7 @@ export function TableroPage() {
   const [sprint, setSprint] = useState('');
   const [tag, setTag] = useState('');
   const [vencidas, setVencidas] = useState(false);
+  const [todasTerminadas, setTodasTerminadas] = useState(false);
   const [sprints, setSprints] = useState<SprintDto[]>([]);
   const [etiquetas, setEtiquetas] = useState<TagCountDto[]>([]);
   const [epicas, setEpicas] = useState<TaskDto[]>([]);
@@ -73,7 +74,8 @@ export function TableroPage() {
         board: !verEpicas,
         type: verEpicas ? 'EPIC' : (type as TaskType) || undefined,
         includeDone: true,
-        doneDays: 14,
+        // Terminadas: por defecto sólo las de los últimos 14 días (el tablero es para trabajar, no un archivo).
+        doneDays: todasTerminadas ? undefined : 14,
         assigneeId: assignee === 'me' || assignee === 'none' ? assignee : assignee ? Number(assignee) : undefined,
         priority: (priority as Priority) || undefined,
         sprintId: sprint === 'none' ? 'none' : sprint ? Number(sprint) : undefined,
@@ -86,7 +88,7 @@ export function TableroPage() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [key, verEpicas, type, assignee, priority, q, sprint, tag, vencidas]);
+  }, [key, verEpicas, type, assignee, priority, q, sprint, tag, vencidas, todasTerminadas]);
 
   useEffect(() => {
     setTasks(null);
@@ -237,6 +239,7 @@ export function TableroPage() {
           </Form.Select>
         )}
         <Form.Check type="switch" id="tb-epics" label="Épicas" checked={verEpicas} onChange={(e) => setVerEpicas(e.target.checked)} className="small" />
+        <Form.Check type="switch" id="tb-alldone" label="Todas las terminadas" checked={todasTerminadas} onChange={(e) => setTodasTerminadas(e.target.checked)} className="small" title="Por defecto sólo se ven las terminadas en los últimos 14 días" />
       </div>
 
       {!project || !tasks ? (
@@ -312,6 +315,11 @@ export function TableroPage() {
                         ))}
                         {prov.placeholder}
                         {col.length === 0 && !snap.isDraggingOver && <div className="text-secondary small text-center py-3">vacío</div>}
+                        {s.category === 'DONE' && !todasTerminadas && project.doneCount > col.length && (
+                          <button type="button" className="col-foot" onClick={() => setTodasTerminadas(true)}>
+                            Sólo las de los últimos 14 días · {project.doneCount} terminadas en total. Ver todas
+                          </button>
+                        )}
                       </div>
                     )}
                   </Droppable>
