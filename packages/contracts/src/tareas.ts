@@ -277,7 +277,7 @@ export interface DependenciesDto {
 
 // ---------- Avisos ----------
 
-export const NOTIFICATION_TYPES = ['MENTION', 'ASSIGNED', 'COMMENT', 'STATUS', 'BLOCKER_DONE'] as const;
+export const NOTIFICATION_TYPES = ['MENTION', 'ASSIGNED', 'COMMENT', 'STATUS', 'BLOCKER_DONE', 'PASSWORD_RESET'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export interface NotificationDto {

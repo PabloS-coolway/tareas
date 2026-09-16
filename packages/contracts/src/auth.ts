@@ -44,6 +44,19 @@ export interface ResetPasswordRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  /** Sesión larga (30 días) en vez de 12 h. */
+  remember?: boolean;
+}
+
+/** POST /api/auth/forgot: pide restablecer la contraseña. Siempre responde 204 (no revela si el email existe). */
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+/** POST /api/auth/reset: nueva contraseña con el token del enlace. */
+export interface ResetPasswordDto {
+  token: string;
+  password: string;
 }
 
 /** POST /api/auth/cambiar-password (el propio usuario cambia su contraseña; exige la actual). */

@@ -49,6 +49,7 @@ model User {
   activities    TaskActivity[]
   notifications Notification[]    @relation("notified")
   savedViews    SavedView[]
+  passwordResets PasswordReset[]
 
   @@map("app_user")
 }
@@ -109,6 +110,7 @@ enum NotificationType {
   COMMENT
   STATUS
   BLOCKER_DONE
+  PASSWORD_RESET
 }
 
 /// Sprint de trabajo: transversal a los proyectos (una tarea de cualquier proyecto puede entrar en él).
@@ -336,4 +338,18 @@ model TaskTemplate {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("task_template")
+}
+
+/// Token de "he olvidado mi contraseña": se guarda el hash, caduca en 1 h y se usa una sola vez.
+model PasswordReset {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_reset")
 }

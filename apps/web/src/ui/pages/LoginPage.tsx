@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Alert, Button, Card, Form, Spinner } from 'react-bootstrap';
 import { BoxSeamFill } from 'react-bootstrap-icons';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 /** Pantalla de acceso. Si ya hay sesión, redirige a la app. */
@@ -11,6 +11,7 @@ export function LoginPage() {
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -22,7 +23,7 @@ export function LoginPage() {
     setError('');
     setBusy(true);
     try {
-      await login(email, password);
+      await login(email, password, remember);
       navigate(from, { replace: true });
     } catch (err) {
       setError((err as Error).message);
@@ -41,7 +42,7 @@ export function LoginPage() {
             <span className="brand-chip">Yorga</span>
           </div>
           <h1 className="h5 mb-1">Acceso</h1>
-          <p className="text-secondary small mb-4">Herramienta interna de automatizaciones.</p>
+          <p className="text-secondary small mb-4">Gestor de tareas del Grupo Yorga.</p>
 
           {error && <Alert variant="danger" className="py-2 small">{error}</Alert>}
 
@@ -57,7 +58,7 @@ export function LoginPage() {
                 autoFocus
               />
             </Form.Group>
-            <Form.Group className="mb-4">
+            <Form.Group className="mb-3">
               <Form.Label className="small">Contraseña</Form.Label>
               <Form.Control
                 type="password"
@@ -67,6 +68,10 @@ export function LoginPage() {
                 required
               />
             </Form.Group>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <Form.Check type="checkbox" id="lg-remember" className="small" label="Recordarme 30 días" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+              <Link to="/olvide" className="small">¿Has olvidado tu contraseña?</Link>
+            </div>
             <Button type="submit" className="btn-brand w-100" disabled={busy}>
               {busy ? (
                 <>

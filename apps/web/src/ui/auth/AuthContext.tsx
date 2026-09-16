@@ -6,7 +6,7 @@ import { clearToken, getToken, setToken } from '../../infrastructure/session';
 interface AuthState {
   user: UserDto | null;
   loading: boolean; // true mientras se restaura la sesión al arrancar
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
   /** REQ-006 · ¿el usuario tiene esta feature? Es lo que decide qué ve/usa, en vez del nombre del rol. */
@@ -32,8 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email: string, password: string): Promise<void> {
-    const { token, user } = await authGateway.login(email, password);
+  async function login(email: string, password: string, remember = false): Promise<void> {
+    const { token, user } = await authGateway.login(email, password, remember);
     setToken(token);
     setUser(user);
   }

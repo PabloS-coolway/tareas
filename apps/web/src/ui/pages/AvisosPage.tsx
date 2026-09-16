@@ -7,7 +7,7 @@ import { Avatar, hace } from '../components/tareas-ui';
 import { Skeleton } from '../components/Skeleton';
 import { avisarAvisosLeidos } from '../layout/Sidebar';
 
-const ICONO: Record<NotificationDto['type'], string> = { MENTION: '@', ASSIGNED: '👤', COMMENT: '💬', STATUS: '↻', BLOCKER_DONE: '✅' };
+const ICONO: Record<NotificationDto['type'], string> = { MENTION: '@', ASSIGNED: '👤', COMMENT: '💬', STATUS: '↻', BLOCKER_DONE: '✅', PASSWORD_RESET: '🔑' };
 
 /** Avisos: menciones, asignaciones, comentarios y cambios de estado en tus tareas. */
 export function AvisosPage() {
@@ -54,7 +54,7 @@ export function AvisosPage() {
             {items.map((n) => (
               <Link
                 key={n.id}
-                to={n.taskKey ? `/t/${n.taskKey}` : '/inicio'}
+                to={n.taskKey ? `/t/${n.taskKey}` : n.type === 'PASSWORD_RESET' ? '/usuarios' : '/inicio'}
                 className={`aviso ${n.readAt ? '' : 'unread'}`}
                 onClick={() => {
                   if (!n.readAt) {

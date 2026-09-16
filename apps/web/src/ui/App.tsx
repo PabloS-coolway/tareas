@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './layout/AppShell';
 import { InicioPage } from './pages/InicioPage';
 import { LoginPage } from './pages/LoginPage';
+import { OlvidePage } from './pages/OlvidePage';
+import { RestablecerPage } from './pages/RestablecerPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 import { RolesPage } from './pages/RolesPage';
 import { ProyectosPage } from './pages/ProyectosPage';
@@ -27,6 +29,8 @@ export function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/olvide" element={<OlvidePage />} />
+          <Route path="/restablecer" element={<RestablecerPage />} />
           <Route element={<RequireAuth />}>
             <Route element={<AppShell />}>
               <Route index element={<Navigate to="/inicio" replace />} />
