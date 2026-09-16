@@ -304,6 +304,11 @@ export function TableroPage() {
                   <Droppable droppableId={String(s.id)} isDropDisabled={!hasFeature('tareas.editar')}>
                     {(prov, snap) => (
                       <div ref={prov.innerRef} {...prov.droppableProps} className={`board-col-body ${snap.isDraggingOver ? 'over' : ''}`}>
+                        {s.category === 'DONE' && !todasTerminadas && project.doneCount > col.length && (
+                          <button type="button" className="col-foot mb-2 mt-0" onClick={() => setTodasTerminadas(true)} title="El tablero enseña sólo las terminadas de los últimos 14 días">
+                            Últimos 14 días · {project.doneCount} terminadas en total → ver todas
+                          </button>
+                        )}
                         {col.map((t, i) => (
                           <Draggable key={t.id} draggableId={String(t.id)} index={i} isDragDisabled={!hasFeature('tareas.editar')}>
                             {(dp, ds) => (
@@ -315,11 +320,6 @@ export function TableroPage() {
                         ))}
                         {prov.placeholder}
                         {col.length === 0 && !snap.isDraggingOver && <div className="text-secondary small text-center py-3">vacío</div>}
-                        {s.category === 'DONE' && !todasTerminadas && project.doneCount > col.length && (
-                          <button type="button" className="col-foot" onClick={() => setTodasTerminadas(true)}>
-                            Sólo las de los últimos 14 días · {project.doneCount} terminadas en total. Ver todas
-                          </button>
-                        )}
                       </div>
                     )}
                   </Droppable>
