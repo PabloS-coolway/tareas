@@ -130,7 +130,9 @@
 .sprint-goal { white-space: pre-wrap; color: var(--ink); }
 .sprint-progress { height: 6px; }
 .backlog-list { display: flex; flex-direction: column; }
-.backlog-row { display: grid; grid-template-columns: auto minmax(88px, auto) minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 6px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.backlog-row { display: grid; grid-template-columns: 22px 96px minmax(0, 1fr) 250px 64px 28px; gap: 10px; align-items: center; padding: 6px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.backlog-row > .hide-sm:nth-child(4) { overflow: hidden; white-space: nowrap; }
+@media (max-width: 900px) { .backlog-row { grid-template-columns: 22px 80px minmax(0, 1fr) 28px; } .backlog-row .hide-sm { display: none; } }
 .backlog-row:hover, .backlog-row.sel { background: color-mix(in srgb, var(--brand) 6%, transparent); }
 .backlog-row .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .backlog-row .form-check { margin: 0; min-height: 0; }
