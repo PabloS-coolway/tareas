@@ -7,6 +7,20 @@ import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { Skeleton } from '../components/Skeleton';
 import { fmtFecha } from '../components/tareas-ui';
+import { useProyectos } from '../proyectos/ProyectosContext';
+
+/** Ámbito del sprint: chip con el proyecto (o «transversal»). */
+export function SprintAmbito({ s }: { s: SprintDto }) {
+  const { proyectos } = useProyectos();
+  if (!s.projectId) return <span className="pill ambito-pill transversal" title="Admite tareas de cualquier proyecto">transversal</span>;
+  const color = proyectos.find((p) => p.id === s.projectId)?.color ?? 'var(--muted)';
+  return (
+    <span className="pill ambito-pill" title={`Sólo tareas de ${s.projectName ?? s.projectKey}`}>
+      <span className="nav-proj-dot" style={{ background: color }} />
+      {s.projectName ?? s.projectKey}
+    </span>
+  );
+}
 
 export function SprintBadge({ s }: { s: SprintDto }) {
   const bg = s.status === 'ACTIVE' ? 'primary' : s.status === 'CLOSED' ? 'secondary' : 'info';
@@ -22,10 +36,14 @@ export function rangoSprint(s: SprintDto): string {
 export function SprintsPage() {
   const { hasFeature } = useAuth();
   const [sprints, setSprints] = useState<SprintDto[] | null>(null);
+  const { proyectos } = useProyectos();
   const [params] = useSearchParams();
   const [verCerrados, setVerCerrados] = useState(params.get('cerrados') === '1');
+  // Filtro de ámbito: todos, sólo transversales o los de un proyecto (por clave, para enlazar desde el tablero).
+  const [ambito, setAmbito] = useState<string>(params.get('proyecto') ?? '');
   const [nuevo, setNuevo] = useState(false);
   const [error, setError] = useState('');
+  const visibles = (sprints ?? []).filter((s) => (ambito === '' ? true : ambito === 'transversal' ? !s.projectId : s.projectKey === ambito));
 
   const load = useCallback(async () => {
     try {
@@ -45,20 +63,27 @@ export function SprintsPage() {
       <header className="page-head mb-4 d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
           <h1 className="h4 mb-1">Sprints</h1>
-          <p className="text-secondary mb-0">Bloques de trabajo con fecha. Un sprint junta tareas de cualquier proyecto en un solo tablero. Para llenarlos desde el backlog, usa <Link to="/backlog">Planificación</Link>.</p>
+          <p className="text-secondary mb-0">Bloques de trabajo con fecha. Un sprint <b>transversal</b> junta tareas de cualquier proyecto; un sprint <b>de proyecto</b> sólo las de ese proyecto. Para llenarlos desde el backlog, usa <Link to="/backlog">Planificación</Link>.</p>
         </div>
         {hasFeature('tareas.editar') && <Button className="btn-brand" onClick={() => setNuevo(true)}><Plus /> Nuevo sprint</Button>}
       </header>
       {error && <Alert variant="danger">⚠ {error}</Alert>}
-      <Form.Check type="switch" id="sp-closed" className="mb-3 small" label="Ver cerrados" checked={verCerrados} onChange={(e) => setVerCerrados(e.target.checked)} />
+      <div className="d-flex align-items-center gap-3 flex-wrap mb-3">
+        <Form.Select id="sp-ambito" size="sm" style={{ width: 'auto' }} value={ambito} onChange={(e) => setAmbito(e.target.value)}>
+          <option value="">Todos los ámbitos</option>
+          <option value="transversal">Sólo transversales</option>
+          {proyectos.map((p) => <option key={p.id} value={p.key}>{p.name}</option>)}
+        </Form.Select>
+        <Form.Check type="switch" id="sp-closed" className="small" label="Ver cerrados" checked={verCerrados} onChange={(e) => setVerCerrados(e.target.checked)} />
+      </div>
 
       {!sprints ? (
         <Skeleton className="skeleton-rounded" width="100%" height={160} />
-      ) : sprints.length === 0 ? (
-        <Card><Card.Body className="text-secondary">Aún no hay sprints. Crea el primero y añádele tareas desde el backlog.</Card.Body></Card>
+      ) : visibles.length === 0 ? (
+        <Card><Card.Body className="text-secondary">{sprints.length === 0 ? 'Aún no hay sprints. Crea el primero y añádele tareas desde el backlog.' : 'Ningún sprint con ese ámbito.'}</Card.Body></Card>
       ) : (
         <div className="sprint-grid">
-          {sprints.map((s) => {
+          {visibles.map((s) => {
             const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
             return (
               <Card key={s.id} className={`sprint-card ${s.status === 'ACTIVE' ? 'active' : ''}`}>
@@ -67,7 +92,7 @@ export function SprintsPage() {
                     <Link to={`/sprints/${s.id}`} className="fw-bold fs-5 text-decoration-none">{s.name}</Link>
                     <SprintBadge s={s} />
                   </div>
-                  <div className="small text-secondary mb-2">{rangoSprint(s)}</div>
+                  <div className="small text-secondary mb-2 d-flex align-items-center gap-2 flex-wrap"><SprintAmbito s={s} />{rangoSprint(s)}</div>
                   {s.goal && <div className="small mb-2 sprint-goal">{s.goal}</div>}
                   <ProgressBar now={pct} variant={pct === 100 ? 'success' : undefined} className="sprint-progress" />
                   <div className="small text-secondary mt-1">{s.done} de {s.total} terminadas{s.total > 0 && <> · {pct}%</>}</div>
@@ -80,6 +105,7 @@ export function SprintsPage() {
 
       {nuevo && (
         <SprintModal
+          projectId={ambito && ambito !== 'transversal' ? (proyectos.find((p) => p.key === ambito)?.id ?? null) : null}
           onClose={() => setNuevo(false)}
           onSaved={() => {
             setNuevo(false);
@@ -91,10 +117,12 @@ export function SprintsPage() {
   );
 }
 
-/** Alta o edición de un sprint (nombre, objetivo, fechas). */
-export function SprintModal({ sprint, onClose, onSaved }: { sprint?: SprintDto; onClose: () => void; onSaved: (s: SprintDto) => void }) {
+/** Alta o edición de un sprint (nombre, ámbito, objetivo, fechas). `projectId` preselecciona el ámbito al crear. */
+export function SprintModal({ sprint, projectId: proyectoInicial, onClose, onSaved }: { sprint?: SprintDto; projectId?: number | null; onClose: () => void; onSaved: (s: SprintDto) => void }) {
+  const { proyectos } = useProyectos();
   const [name, setName] = useState(sprint?.name ?? '');
   const [goal, setGoal] = useState(sprint?.goal ?? '');
+  const [projectId, setProjectId] = useState<string>(sprint ? String(sprint.projectId ?? '') : proyectoInicial ? String(proyectoInicial) : '');
   const [startDate, setStartDate] = useState(sprint?.startDate ?? '');
   const [endDate, setEndDate] = useState(sprint?.endDate ?? '');
   const [saving, setSaving] = useState(false);
@@ -105,7 +133,7 @@ export function SprintModal({ sprint, onClose, onSaved }: { sprint?: SprintDto; 
     setSaving(true);
     setError('');
     try {
-      const dto: CreateSprintDto & UpdateSprintDto = { name, goal, startDate: startDate || null, endDate: endDate || null };
+      const dto: CreateSprintDto & UpdateSprintDto = { name, goal, projectId: projectId ? Number(projectId) : null, startDate: startDate || null, endDate: endDate || null };
       onSaved(sprint ? await tareasGateway.editarSprint(sprint.id, dto) : await tareasGateway.crearSprint(dto));
     } catch (err) {
       setError((err as Error).message);
@@ -123,6 +151,14 @@ export function SprintModal({ sprint, onClose, onSaved }: { sprint?: SprintDto; 
           <Form.Group className="mb-3">
             <Form.Label className="small">Nombre</Form.Label>
             <Form.Control id="sp-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Sprint 1 · 15–26 sep" required />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label className="small">Ámbito</Form.Label>
+            <Form.Select id="sp-project" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+              <option value="">Transversal · tareas de cualquier proyecto</option>
+              {proyectos.map((p) => <option key={p.id} value={p.id}>Sólo {p.name} ({p.key})</option>)}
+            </Form.Select>
+            <Form.Text className="text-secondary">Un sprint de proyecto sólo admite tareas de ese proyecto. Para cambiarlo después, no puede tener tareas de otros.</Form.Text>
           </Form.Group>
           <div className="row g-3">
             <div className="col-6">

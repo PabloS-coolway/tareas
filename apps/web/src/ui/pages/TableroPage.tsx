@@ -8,6 +8,7 @@ import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar, EstadoPill, Etiquetas, PrioridadPill, Puntos, TaskCard, TipoPill, Vence } from '../components/tareas-ui';
 import { NuevaTareaModal } from '../components/NuevaTareaModal';
+import { SprintModal } from './SprintsPage';
 import { Column, DataTable, exportarCsv, useMemoryTable } from '../components/table';
 import { VistasGuardadas } from '../components/VistasGuardadas';
 import type { ViewFilters } from '@yorga/contracts';
@@ -25,6 +26,7 @@ export function TableroPage() {
   const [error, setError] = useState('');
   const [vista, setVista] = useState<Vista>(() => (localStorage.getItem(VISTA_KEY) as Vista) || 'tablero');
   const [nueva, setNueva] = useState(false);
+  const [nuevoSprint, setNuevoSprint] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // filtros
@@ -98,8 +100,12 @@ export function TableroPage() {
 
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
-    tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
   }, []);
+
+  // Sprints que admiten tareas de ESTE proyecto (transversales + los suyos).
+  useEffect(() => {
+    if (project) tareasGateway.sprints(false, project.id).then(setSprints).catch(() => setSprints([]));
+  }, [project?.id, nuevoSprint]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (project) tareasGateway.etiquetas(project.id).then(setEtiquetas).catch(() => setEtiquetas([]));
@@ -195,7 +201,10 @@ export function TableroPage() {
           </ButtonGroup>
           {vista === 'lista' && tasks && <Button size="sm" variant="outline-secondary" title="Exportar CSV" onClick={() => exportarCsv(`${key}-tareas`, columns, tabla.rows.length ? tabla.rows : tasks)}><Download /></Button>}
           {hasFeature('tareas.editar') && project && (
-            <Button className="btn-brand" size="sm" onClick={() => setNueva(true)}><Plus /> Nueva tarea</Button>
+            <>
+              <Button variant="outline-secondary" size="sm" onClick={() => setNuevoSprint(true)} title="Sprint sólo con tareas de este proyecto">Nuevo sprint</Button>
+              <Button className="btn-brand" size="sm" onClick={() => setNueva(true)}><Plus /> Nueva tarea</Button>
+            </>
           )}
         </div>
       </header>
@@ -221,7 +230,7 @@ export function TableroPage() {
         <Form.Select id="tb-sprint" size="sm" value={sprint} onChange={(e) => setSprint(e.target.value)}>
           <option value="">Cualquier sprint</option>
           <option value="none">Backlog (sin sprint)</option>
-          {sprints.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>)}
+          {sprints.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.projectId ? ` · ${sp.projectKey}` : ' · transversal'}{sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>)}
         </Form.Select>
         {(etiquetas.length > 0 || tag) && (
           <Form.Select id="tb-tag" size="sm" value={tag} onChange={(e) => setTag(e.target.value)}>
@@ -336,6 +345,13 @@ export function TableroPage() {
         </Card>
       )}
 
+      {nuevoSprint && project && (
+        <SprintModal
+          projectId={project.id}
+          onClose={() => setNuevoSprint(false)}
+          onSaved={() => setNuevoSprint(false)}
+        />
+      )}
       {nueva && project && (
         <NuevaTareaModal
           project={project}

@@ -3,7 +3,7 @@
 Gestor de tareas propio del equipo (sustituye a ClickUp). Un punto intermedio entre Jira y ClickUp, básico
 y funcional: proyectos con clave (`COOL-12`), tablero kanban con estados configurables, lista, tareas con
 tipo/prioridad/asignado/fecha/etiquetas/puntos, épicas y subtareas (árbol), descripción con editor de texto enriquecido (guardado en Markdown) y comentarios en Markdown, adjuntos, historial de cambios, feed de actividad, búsqueda global sin acentos (Ctrl+K), límites WIP por columna, avisos en la app (menciones con @, asignaciones, comentarios, cambios de estado), dependencias entre tareas (bloqueada por), carriles en el tablero por persona o épica, vistas guardadas, burndown por sprint, tareas recurrentes, plantillas con subtareas, exportar a CSV,
-**sprints de trabajo** transversales a los proyectos (mismo tablero para todos), **API con tokens personales** y **servidor MCP** para que Claude trabaje con las tareas. Importa todo lo
+**sprints de trabajo** transversales a los proyectos (mismo tablero para todos) o **de un solo proyecto** (sólo admiten sus tareas), **API con tokens personales** y **servidor MCP** para que Claude trabaje con las tareas. Importa todo lo
 que había en ClickUp.
 
 ## Puesta en marcha

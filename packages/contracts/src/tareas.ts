@@ -48,11 +48,17 @@ export const SPRINT_STATUS_LABELS: Record<SprintStatus, string> = {
   CLOSED: 'Cerrado',
 };
 
-/** Sprint de trabajo, transversal a los proyectos. */
+/**
+ * Sprint de trabajo. Ámbito: **transversal** (`projectId` null: admite tareas de cualquier proyecto) o
+ * **de un proyecto** (sólo admite tareas de ese proyecto).
+ */
 export interface SprintDto {
   id: number;
   name: string;
   goal: string;
+  projectId: number | null;
+  projectKey: string | null;
+  projectName: string | null;
   /** ISO date (YYYY-MM-DD) o null. */
   startDate: string | null;
   endDate: string | null;
@@ -67,6 +73,8 @@ export interface SprintDto {
 export interface CreateSprintDto {
   name: string;
   goal?: string;
+  /** Proyecto del sprint; null/ausente = transversal. */
+  projectId?: number | null;
   startDate?: string | null;
   endDate?: string | null;
 }
@@ -74,6 +82,8 @@ export interface CreateSprintDto {
 export interface UpdateSprintDto {
   name?: string;
   goal?: string;
+  /** Cambiar el ámbito: sólo si todas sus tareas caben en el nuevo (a un proyecto sólo si todas son de él). */
+  projectId?: number | null;
   startDate?: string | null;
   endDate?: string | null;
   status?: SprintStatus;

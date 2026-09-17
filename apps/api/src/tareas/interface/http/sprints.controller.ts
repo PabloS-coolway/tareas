@@ -10,8 +10,9 @@ export class SprintsController {
 
   @Get()
   @RequireFeature('tareas.ver')
-  list(@Query('closed') closed?: string): Promise<SprintDto[]> {
-    return this.sprints.list(closed === 'true');
+  /** `projectId`: sólo los que admiten tareas de ese proyecto (transversales + los suyos). */
+  list(@Query('closed') closed?: string, @Query('projectId') projectId?: string): Promise<SprintDto[]> {
+    return this.sprints.list(closed === 'true', projectId && /^\d+$/.test(projectId) ? Number(projectId) : undefined);
   }
 
   @Get(':id')

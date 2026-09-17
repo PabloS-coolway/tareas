@@ -11,7 +11,7 @@ import { Burndown } from '../components/Burndown';
 import { Skeleton } from '../components/Skeleton';
 import { TableroGlobal } from '../components/TableroGlobal';
 import { useProyectos } from '../proyectos/ProyectosContext';
-import { SprintBadge, SprintModal, rangoSprint } from './SprintsPage';
+import { SprintAmbito, SprintBadge, SprintModal, rangoSprint } from './SprintsPage';
 
 type Vista = 'tablero' | 'lista' | 'burndown';
 const VISTA_KEY = 'tareas.vista.sprint';
@@ -136,6 +136,7 @@ export function SprintPage() {
           <h1 className="h4 mb-0 d-flex align-items-center gap-2 flex-wrap">
             {sprint?.name ?? '…'}
             {sprint && <SprintBadge s={sprint} />}
+            {sprint && <SprintAmbito s={sprint} />}
             {busy && <Spinner as="span" size="sm" animation="border" />}
           </h1>
           {sprint && (
@@ -168,10 +169,12 @@ export function SprintPage() {
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>⚠ {error}</Alert>}
 
       <div className="board-toolbar">
-        <Form.Select id="sp-project" size="sm" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-          <option value="">Todos los proyectos</option>
-          {proyectos.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </Form.Select>
+        {!sprint?.projectId && (
+          <Form.Select id="sp-project" size="sm" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+            <option value="">Todos los proyectos</option>
+            {proyectos.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Form.Select>
+        )}
         <Form.Select id="sp-assignee" size="sm" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
           <option value="">Cualquier asignado</option>
           <option value="me">Mías</option>
@@ -244,7 +247,8 @@ function AnadirTareasModal({ sprint, onClose, onDone }: { sprint: SprintDto; onC
   const { proyectos } = useProyectos();
   const [tasks, setTasks] = useState<TaskDto[] | null>(null);
   const [q, setQ] = useState('');
-  const [projectId, setProjectId] = useState('');
+  // Un sprint de proyecto sólo admite tareas de ese proyecto: el filtro queda fijo.
+  const [projectId, setProjectId] = useState(sprint.projectId ? String(sprint.projectId) : '');
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -287,7 +291,7 @@ function AnadirTareasModal({ sprint, onClose, onDone }: { sprint: SprintDto; onC
         {error && <Alert variant="danger">⚠ {error}</Alert>}
         <div className="d-flex gap-2 mb-3">
           <Form.Control size="sm" autoFocus placeholder="Buscar en el backlog…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Form.Select size="sm" style={{ width: 'auto' }} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+          <Form.Select size="sm" style={{ width: 'auto' }} value={projectId} disabled={!!sprint.projectId} title={sprint.projectId ? 'Este sprint es sólo de este proyecto' : undefined} onChange={(e) => setProjectId(e.target.value)}>
             <option value="">Todos los proyectos</option>
             {proyectos.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Form.Select>
@@ -331,7 +335,8 @@ export function CerrarSprintModal({ sprint, abiertas, onClose, onDone }: { sprin
     tareasGateway
       .sprints()
       .then((ss) => {
-        const otros = ss.filter((s) => s.id !== sprint.id).sort((a, b) => (a.startDate ?? '9').localeCompare(b.startDate ?? '9'));
+        // Destinos compatibles: transversales siempre; de proyecto sólo si es el mismo proyecto que este sprint.
+        const otros = ss.filter((s) => s.id !== sprint.id && (!s.projectId || s.projectId === sprint.projectId)).sort((a, b) => (a.startDate ?? '9').localeCompare(b.startDate ?? '9'));
         setOtros(otros);
         // Por defecto, lo pendiente pasa al SIGUIENTE sprint (el planificado que antes empieza); si no hay, al backlog.
         const siguiente = otros.find((s) => s.status === 'PLANNED') ?? otros[0];
@@ -364,7 +369,7 @@ export function CerrarSprintModal({ sprint, abiertas, onClose, onDone }: { sprin
             <Form.Label className="small">Las {abiertas} que quedan abiertas van a…</Form.Label>
             <Form.Select id="cs-dest" value={destino} onChange={(e) => setDestino(e.target.value)}>
               <option value="">Backlog (sin sprint)</option>
-              {otros.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {otros.map((s) => <option key={s.id} value={s.id}>{s.name}{s.projectKey ? ` · ${s.projectKey}` : ''}</option>)}
             </Form.Select>
           </Form.Group>
         ) : (

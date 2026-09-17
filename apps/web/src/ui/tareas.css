@@ -301,3 +301,8 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .conectado { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px 4px 8px; font-size: 0.9rem; background: var(--surface); }
 .dot-on { width: 9px; height: 9px; border-radius: 50%; background: #1d6b3a; box-shadow: 0 0 0 3px #e7f7ed; }
 .log-table .detalle { max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; color: var(--muted); }
+
+/* Ámbito del sprint (transversal / de un proyecto) */
+.ambito-pill { background: var(--kpi-bg); border: 1px solid var(--border); color: var(--ink); gap: 6px; font-weight: 600; }
+.ambito-pill.transversal { color: var(--muted); font-style: normal; }
+.dropzone.no-admite { opacity: 0.45; background: repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(127, 127, 127, 0.08) 6px, rgba(127, 127, 127, 0.08) 12px); }

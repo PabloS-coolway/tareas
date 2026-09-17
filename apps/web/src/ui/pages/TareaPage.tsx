@@ -95,9 +95,13 @@ export function TareaPage() {
     void load();
   }, [load]);
 
+  // Sprints que admiten esta tarea: los transversales y los de su proyecto.
+  useEffect(() => {
+    if (task) tareasGateway.sprints(false, task.projectId).then(setSprints).catch(() => setSprints([]));
+  }, [task?.projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
-    tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
     tareasGateway.etiquetas().then((ts) => setEtiquetasUsadas(ts.map((t) => t.tag))).catch(() => setEtiquetasUsadas([]));
   }, []);
 

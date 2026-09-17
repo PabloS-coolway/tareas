@@ -9,7 +9,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Avatar, EstadoPill, Etiquetas, PrioridadPill, Puntos, Vence } from '../components/tareas-ui';
 import { Skeleton } from '../components/Skeleton';
 import { useProyectos } from '../proyectos/ProyectosContext';
-import { SprintBadge, SprintModal, rangoSprint } from './SprintsPage';
+import { SprintAmbito, SprintBadge, SprintModal, rangoSprint } from './SprintsPage';
 import { CerrarSprintModal } from './SprintPage';
 
 const PRIO: Record<string, number> = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
@@ -31,6 +31,9 @@ export function BacklogPage() {
   const [plegados, setPlegados] = useState<Set<number>>(new Set());
   const [nuevo, setNuevo] = useState(false);
   const [cerrar, setCerrar] = useState<SprintDto | null>(null);
+  /** Proyecto de la tarea que se está arrastrando: los sprints de OTRO proyecto se cierran al soltar. */
+  const [arrastrando, setArrastrando] = useState<number | null>(null);
+  const admite = (s: SprintDto, projectIds: number[]) => !s.projectId || projectIds.every((p) => p === s.projectId);
 
   const load = useCallback(async () => {
     setError('');
@@ -88,6 +91,7 @@ export function BacklogPage() {
   }
 
   async function onDragEnd(r: DropResult) {
+    setArrastrando(null);
     const { destination, draggableId } = r;
     if (!destination) return;
     const dest = destination.droppableId === 'backlog' ? null : Number(destination.droppableId.replace('sprint-', ''));
@@ -171,7 +175,7 @@ export function BacklogPage() {
             <span className="small fw-semibold">{sel.size} seleccionadas ·</span>
             <Form.Select size="sm" value="" onChange={(e) => { const v = e.target.value; if (v) void mover([...sel], v === 'backlog' ? null : Number(v)); }}>
               <option value="">Mover a…</option>
-              {orden.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {orden.filter((s) => admite(s, (tareas ?? []).filter((t) => sel.has(t.id)).map((t) => t.projectId))).map((s) => <option key={s.id} value={s.id}>{s.name}{s.projectKey ? ` · ${s.projectKey}` : ''}</option>)}
               <option value="backlog">Backlog</option>
             </Form.Select>
             <Button size="sm" variant="link" className="p-0" onClick={() => setSel(new Set())}>quitar selección</Button>
@@ -182,7 +186,7 @@ export function BacklogPage() {
       {!sprints || !tareas ? (
         <Skeleton className="skeleton-rounded" width="100%" height={300} />
       ) : (
-        <DragDropContext onDragEnd={onDragEnd}>
+        <DragDropContext onDragEnd={onDragEnd} onDragStart={(s) => setArrastrando(tareas?.find((t) => t.id === Number(s.draggableId))?.projectId ?? null)}>
           {orden.map((s) => {
             const ts = ordenar(porSprint.get(s.id) ?? []);
             const hechas = ts.filter((t) => t.status.category === 'DONE').length;
@@ -194,6 +198,7 @@ export function BacklogPage() {
                     <button type="button" className="subtree-caret" onClick={() => togglePlegado(s.id)} aria-label={plegado ? 'Desplegar' : 'Plegar'}>{plegado ? <ChevronRight /> : <ChevronDown />}</button>
                     <Link to={`/sprints/${s.id}`} className="fw-bold text-decoration-none">{s.name}</Link>
                     <SprintBadge s={s} />
+                    <SprintAmbito s={s} />
                     <span className="small text-secondary">{rangoSprint(s)} · {ts.length} tareas{hechas > 0 && <>, {hechas} hechas</>}{puntos(ts) > 0 && <> · {puntos(ts)} pt</>}</span>
                     {puede && (
                       <span className="ms-auto d-flex gap-2">
@@ -204,12 +209,12 @@ export function BacklogPage() {
                   </div>
                   {s.goal && <div className="small text-secondary sprint-goal mb-2 ps-4">{s.goal}</div>}
                   {!plegado && (
-                    <Droppable droppableId={`sprint-${s.id}`} isDropDisabled={!puede}>
+                    <Droppable droppableId={`sprint-${s.id}`} isDropDisabled={!puede || (arrastrando !== null && !admite(s, [arrastrando]))}>
                       {(prov, snap) => (
-                        <div ref={prov.innerRef} {...prov.droppableProps} className={`backlog-list dropzone ${snap.isDraggingOver ? 'over' : ''}`}>
+                        <div ref={prov.innerRef} {...prov.droppableProps} className={`backlog-list dropzone ${snap.isDraggingOver ? 'over' : ''} ${arrastrando !== null && !admite(s, [arrastrando]) ? 'no-admite' : ''}`}>
                           {ts.map(fila)}
                           {prov.placeholder}
-                          {ts.length === 0 && !snap.isDraggingOver && <div className="small text-secondary py-2 px-1">Sprint vacío: arrastra tareas aquí.</div>}
+                          {ts.length === 0 && !snap.isDraggingOver && <div className="small text-secondary py-2 px-1">{s.projectId ? `Sprint vacío: arrastra tareas de ${s.projectName ?? s.projectKey} aquí.` : 'Sprint vacío: arrastra tareas aquí.'}</div>}
                         </div>
                       )}
                     </Droppable>
@@ -246,6 +251,7 @@ export function BacklogPage() {
 
       {nuevo && (
         <SprintModal
+          projectId={projectId ? Number(projectId) : null}
           onClose={() => setNuevo(false)}
           onSaved={() => {
             setNuevo(false);

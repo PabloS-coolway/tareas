@@ -71,8 +71,13 @@ export class HttpTareasGateway {
   }
 
   // --- sprints ---
-  async sprints(includeClosed = false): Promise<SprintDto[]> {
-    return ok(await apiFetch(`/sprints${includeClosed ? '?closed=true' : ''}`), 'No se pudieron cargar los sprints.');
+  /** Con `projectId`, sólo los sprints que admiten tareas de ese proyecto (transversales + los suyos). */
+  async sprints(includeClosed = false, projectId?: number): Promise<SprintDto[]> {
+    const p = new URLSearchParams();
+    if (includeClosed) p.set('closed', 'true');
+    if (projectId) p.set('projectId', String(projectId));
+    const qs = p.toString();
+    return ok(await apiFetch(`/sprints${qs ? `?${qs}` : ''}`), 'No se pudieron cargar los sprints.');
   }
   async sprint(id: number): Promise<SprintDto> {
     return ok(await apiFetch(`/sprints/${id}`), 'Sprint no encontrado.');

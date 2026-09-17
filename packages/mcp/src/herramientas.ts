@@ -11,7 +11,7 @@ export type ApiFn = <T>(path: string, init?: RequestInit) => Promise<T>;
 interface Status { id: number; key: string; name: string; category: string }
 interface Project { id: number; key: string; name: string; statuses: Status[]; openCount: number; mineCount: number }
 interface UserRef { id: number; name: string; email: string }
-interface Sprint { id: number; name: string; goal: string; startDate: string | null; endDate: string | null; status: string; total: number; done: number }
+interface Sprint { id: number; name: string; goal: string; projectId: number | null; projectKey: string | null; startDate: string | null; endDate: string | null; status: string; total: number; done: number }
 interface Task {
   id: number; key: string; title: string; description: string; type: string; priority: string; status: Status;
   assignee: UserRef | null; parentKey: string | null; dueDate: string | null; tags: string[]; projectKey: string;
@@ -195,16 +195,17 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
   server.tool('listar_sprints', 'Sprints de trabajo (abiertos; con cerrados=true, todos) y su progreso.', { cerrados: z.boolean().optional() }, async ({ cerrados }) => {
     const ss = await api<Sprint[]>(`/sprints${cerrados ? '?closed=true' : ''}`);
     if (!ss.length) return texto('No hay sprints.');
-    return texto(ss.map((s) => `#${s.id} ${s.name} [${s.status}] ${s.startDate ?? '…'} → ${s.endDate ?? '…'} · ${s.done}/${s.total} terminadas${s.goal ? ` · objetivo: ${s.goal}` : ''}`).join('\n'));
+    return texto(ss.map((s) => `#${s.id} ${s.name} [${s.status}] ${s.projectKey ? `sólo ${s.projectKey}` : 'transversal'} · ${s.startDate ?? '…'} → ${s.endDate ?? '…'} · ${s.done}/${s.total} terminadas${s.goal ? ` · objetivo: ${s.goal}` : ''}`).join('\n'));
   });
 
   server.tool(
     'crear_sprint',
-    'Crea un sprint de trabajo (transversal a los proyectos).',
-    { nombre: z.string(), objetivo: z.string().optional(), empieza: z.string().optional().describe('AAAA-MM-DD'), termina: z.string().optional().describe('AAAA-MM-DD') },
+    'Crea un sprint de trabajo. Sin proyecto = transversal (tareas de cualquier proyecto); con proyecto = sólo tareas de ese proyecto.',
+    { nombre: z.string(), objetivo: z.string().optional(), proyecto: z.string().optional().describe('Clave del proyecto si el sprint es sólo suyo'), empieza: z.string().optional().describe('AAAA-MM-DD'), termina: z.string().optional().describe('AAAA-MM-DD') },
     async (a) => {
-      const s = await api<Sprint>('/sprints', { method: 'POST', body: JSON.stringify({ name: a.nombre, goal: a.objetivo, startDate: a.empieza, endDate: a.termina }) });
-      return texto(`Creado el sprint #${s.id} ${s.name}.`);
+      const projectId = a.proyecto ? (await proyecto(a.proyecto)).id : null;
+      const s = await api<Sprint>('/sprints', { method: 'POST', body: JSON.stringify({ name: a.nombre, goal: a.objetivo, projectId, startDate: a.empieza, endDate: a.termina }) });
+      return texto(`Creado el sprint #${s.id} ${s.name} (${s.projectKey ? `sólo ${s.projectKey}` : 'transversal'}).`);
     },
   );
 

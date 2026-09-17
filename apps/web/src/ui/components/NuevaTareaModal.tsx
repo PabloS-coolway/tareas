@@ -49,7 +49,7 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
 
   useEffect(() => {
     tareasGateway.directorio().then(setEquipo).catch(() => setEquipo([]));
-    tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
+    tareasGateway.sprints(false, project.id).then(setSprints).catch(() => setSprints([]));
     tareasGateway.etiquetas(project.id).then((ts) => setEtiquetasUsadas(ts.map((t) => t.tag))).catch(() => setEtiquetasUsadas([]));
     tareasGateway.plantillas(project.id).then(setPlantillas).catch(() => setPlantillas([]));
     if (!parent) {
@@ -189,7 +189,7 @@ export function NuevaTareaModal({ project, parent, sprintId: sprintInicial, onCl
               <Form.Select id="nt-sprint" value={sprintId} onChange={(e) => setSprintId(e.target.value)}>
                 <option value="">Backlog (sin sprint)</option>
                 {sprints.map((sp) => (
-                  <option key={sp.id} value={sp.id}>{sp.name}{sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>
+                  <option key={sp.id} value={sp.id}>{sp.name}{sp.projectId ? '' : ' · transversal'}{sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>
                 ))}
               </Form.Select>
             </div>

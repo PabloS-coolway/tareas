@@ -158,7 +158,7 @@ export class TasksService {
       this.prisma.task.count({ where: { assigneeId: userId, closedAt: { gte: d7 } } }),
       this.prisma.task.count({ where: { assigneeId: userId, closedAt: { gte: d14, lt: d7 } } }),
       this.prisma.task.count({ where: { assigneeId: userId, createdAt: { gte: d7 } } }),
-      this.prisma.sprint.findFirst({ where: { status: 'ACTIVE' }, orderBy: [{ endDate: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }], include: { tasks: { where: { assigneeId: userId }, select: { status: { select: { category: true } } } } } }),
+      this.prisma.sprint.findFirst({ where: { status: 'ACTIVE' }, orderBy: [{ projectId: { sort: 'asc', nulls: 'first' } }, { endDate: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }], include: { tasks: { where: { assigneeId: userId }, select: { status: { select: { category: true } } } } } }),
     ]);
     const miSprint = sprintActivo
       ? {
@@ -200,7 +200,7 @@ export class TasksService {
     if (dto.priority && !PRIORITIES.includes(dto.priority)) throw new BadRequestException('Prioridad no válida.');
     if (dto.parentId) await this.ensureParent(dto.parentId, project.id, null);
     if (dto.assigneeId) await this.ensureUser(dto.assigneeId);
-    if (dto.sprintId) await this.ensureSprint(dto.sprintId);
+    if (dto.sprintId) await this.ensureSprint(dto.sprintId, project.id);
 
     const id = await this.prisma.$transaction(async (tx) => {
       // El número se reserva en la MISMA transacción: dos altas a la vez no pueden compartir COOL-<n>.
@@ -287,7 +287,7 @@ export class TasksService {
       log('parent', antes, despues);
     }
     if (dto.sprintId !== undefined && dto.sprintId !== cur.sprintId) {
-      const sp = dto.sprintId ? await this.ensureSprint(dto.sprintId) : null;
+      const sp = dto.sprintId ? await this.ensureSprint(dto.sprintId, cur.projectId) : null;
       data.sprintId = sp?.id ?? null;
       log('sprint', cur.sprint?.name ?? null, sp?.name ?? null);
     }
@@ -440,7 +440,7 @@ export class TasksService {
     const avgAgeDays = abiertasRows.length ? Math.round(abiertasRows.reduce((n, t) => n + (ahora.getTime() - t.createdAt.getTime()) / 86_400_000, 0) / abiertasRows.length) : null;
 
     // Sprint activo (el primero en curso; si hay varios, el que antes termina).
-    const sp = await this.prisma.sprint.findFirst({ where: { status: 'ACTIVE' }, orderBy: [{ endDate: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }], include: { tasks: { select: { estimate: true, status: { select: { category: true } } } } } });
+    const sp = await this.prisma.sprint.findFirst({ where: { status: 'ACTIVE' }, orderBy: [{ projectId: { sort: 'asc', nulls: 'first' } }, { endDate: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }], include: { tasks: { select: { estimate: true, status: { select: { category: true } } } } } });
     const activeSprint = sp
       ? {
           id: sp.id,
@@ -614,10 +614,12 @@ export class TasksService {
     return u;
   }
 
-  private async ensureSprint(id: number): Promise<{ id: number; name: string }> {
-    const sp = await this.prisma.sprint.findFirst({ where: { id, status: { not: 'CLOSED' } }, select: { id: true, name: true } });
+  /** El sprint debe estar abierto y, si es de un proyecto, ser el de la tarea. */
+  private async ensureSprint(id: number, projectId: number): Promise<{ id: number; name: string }> {
+    const sp = await this.prisma.sprint.findFirst({ where: { id, status: { not: 'CLOSED' } }, select: { id: true, name: true, projectId: true, project: { select: { key: true } } } });
     if (!sp) throw new BadRequestException('Sprint no válido (no existe o está cerrado).');
-    return sp;
+    if (sp.projectId && sp.projectId !== projectId) throw new BadRequestException(`El sprint "${sp.name}" es sólo del proyecto ${sp.project?.key}: esta tarea no puede entrar en él.`);
+    return { id: sp.id, name: sp.name };
   }
 
   private async ensureParent(parentId: number, projectId: number, selfId: number | null): Promise<void> {

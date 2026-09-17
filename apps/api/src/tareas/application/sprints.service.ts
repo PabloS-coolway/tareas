@@ -12,7 +12,10 @@ const parseFecha = (s: string | null | undefined): Date | null | undefined => {
   return new Date(`${s}T00:00:00.000Z`);
 };
 
-/** Sprints de trabajo: transversales a los proyectos. */
+const conProyecto = { project: { select: { id: true, key: true, name: true } } } as const;
+type SprintRow = Prisma.SprintGetPayload<{ include: typeof conProyecto }>;
+
+/** Sprints de trabajo: transversales (sin proyecto) o de un proyecto concreto. */
 @Injectable()
 export class SprintsService {
   constructor(
@@ -20,16 +23,24 @@ export class SprintsService {
     private readonly activity: ActivityService,
   ) {}
 
-  async list(includeClosed = false): Promise<SprintDto[]> {
+  /**
+   * Lista sprints. Con `projectId`, los que ADMITEN tareas de ese proyecto: los transversales y los suyos
+   * (es lo que necesita cualquier selector de sprint dentro de un proyecto).
+   */
+  async list(includeClosed = false, projectId?: number): Promise<SprintDto[]> {
     const rows = await this.prisma.sprint.findMany({
-      where: includeClosed ? {} : { status: { not: 'CLOSED' } },
-      orderBy: [{ status: 'asc' }, { startDate: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
+      where: {
+        ...(includeClosed ? {} : { status: { not: 'CLOSED' } }),
+        ...(projectId ? { OR: [{ projectId: null }, { projectId }] } : {}),
+      },
+      include: conProyecto,
+      orderBy: [{ status: 'asc' }, { projectId: { sort: 'asc', nulls: 'first' } }, { startDate: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
     });
     return this.toDtos(rows);
   }
 
   async get(id: number): Promise<SprintDto> {
-    const row = await this.prisma.sprint.findUnique({ where: { id } });
+    const row = await this.prisma.sprint.findUnique({ where: { id }, include: conProyecto });
     if (!row) throw new NotFoundException('Sprint no encontrado.');
     return (await this.toDtos([row]))[0];
   }
@@ -40,7 +51,8 @@ export class SprintsService {
     const startDate = parseFecha(dto.startDate) ?? null;
     const endDate = parseFecha(dto.endDate) ?? null;
     if (startDate && endDate && endDate < startDate) throw new BadRequestException('El sprint no puede terminar antes de empezar.');
-    const row = await this.prisma.sprint.create({ data: { name, goal: dto.goal?.trim() ?? '', startDate, endDate } });
+    const projectId = dto.projectId ? (await this.ensureProject(dto.projectId)).id : null;
+    const row = await this.prisma.sprint.create({ data: { name, goal: dto.goal?.trim() ?? '', startDate, endDate, projectId } });
     return this.get(row.id);
   }
 
@@ -54,6 +66,17 @@ export class SprintsService {
       data.name = n;
     }
     if (dto.goal !== undefined) data.goal = dto.goal.trim();
+    if (dto.projectId !== undefined && (dto.projectId ?? null) !== cur.projectId) {
+      // Cambiar el ámbito: a un proyecto sólo si TODAS sus tareas son de ese proyecto; a transversal, siempre.
+      if (dto.projectId) {
+        const p = await this.ensureProject(dto.projectId);
+        const fuera = await this.prisma.task.count({ where: { sprintId: id, projectId: { not: p.id } } });
+        if (fuera > 0) throw new BadRequestException(`El sprint tiene ${fuera} tareas de otros proyectos: no puede pasar a ser sólo de ${p.key}.`);
+        data.project = { connect: { id: p.id } };
+      } else {
+        data.project = { disconnect: true };
+      }
+    }
     const start = parseFecha(dto.startDate);
     if (start !== undefined) data.startDate = start;
     const end = parseFecha(dto.endDate);
@@ -81,7 +104,10 @@ export class SprintsService {
       destino = await this.prisma.sprint.findUnique({ where: { id: dto.moveOpenTo } });
       if (!destino || destino.id === id || destino.status === 'CLOSED') throw new BadRequestException('Sprint de destino no válido.');
     }
-    const abiertas = await this.prisma.task.findMany({ where: { sprintId: id, status: { category: { not: 'DONE' } } }, select: { id: true } });
+    const abiertas = await this.prisma.task.findMany({ where: { sprintId: id, status: { category: { not: 'DONE' } } }, select: { id: true, projectId: true } });
+    if (destino?.projectId && abiertas.some((t) => t.projectId !== destino!.projectId)) {
+      throw new BadRequestException(`"${destino.name}" es un sprint de un solo proyecto y hay tareas abiertas de otros proyectos: elige un sprint transversal o el backlog.`);
+    }
     await this.prisma.$transaction(async (tx) => {
       if (abiertas.length) {
         await tx.task.updateMany({ where: { id: { in: abiertas.map((t) => t.id) } }, data: { sprintId: destino?.id ?? null } });
@@ -131,7 +157,13 @@ export class SprintsService {
     await this.prisma.sprint.delete({ where: { id } });
   }
 
-  private async toDtos(rows: Sprint[]): Promise<SprintDto[]> {
+  private async ensureProject(id: number): Promise<{ id: number; key: string }> {
+    const p = await this.prisma.project.findFirst({ where: { id, archived: false }, select: { id: true, key: true } });
+    if (!p) throw new BadRequestException('Proyecto no válido (no existe o está archivado).');
+    return p;
+  }
+
+  private async toDtos(rows: SprintRow[]): Promise<SprintDto[]> {
     const ids = rows.map((r) => r.id);
     const [total, done] = ids.length
       ? await Promise.all([
@@ -145,6 +177,9 @@ export class SprintsService {
       id: r.id,
       name: r.name,
       goal: r.goal,
+      projectId: r.projectId,
+      projectKey: r.project?.key ?? null,
+      projectName: r.project?.name ?? null,
       startDate: fecha(r.startDate),
       endDate: fecha(r.endDate),
       status: r.status,
