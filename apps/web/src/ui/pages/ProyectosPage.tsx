@@ -1,8 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, Card, Form, Modal, Spinner } from 'react-bootstrap';
 import { ArrowDown, ArrowUp, CloudUpload, Gear, ListUl, Plus, Trash } from 'react-bootstrap-icons';
-import { STATUS_CATEGORIES, STATUS_CATEGORY_LABELS, type ClickUpImportResultDto, type ProjectDto, type StatusCategory, type UpsertStatusDto } from '@yorga/contracts';
+import { STATUS_CATEGORIES, STATUS_CATEGORY_LABELS, type ClickUpImportResultDto, type ProjectDto, type StatusCategory, type TeamDto, type UpsertStatusDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { useProyectos } from '../proyectos/ProyectosContext';
@@ -64,6 +64,7 @@ export function ProyectosPage() {
                         <span className="proj-key ms-auto">{p.key}</span>
                       </div>
                       {p.description && <div className="small text-secondary mb-2">{p.description}</div>}
+                      {p.teamName && <div className="small mb-1"><span className="pill ambito-pill equipo">equipo {p.teamName}</span></div>}
                       <div className="small text-secondary">
                         {p.openCount} abiertas{p.mineCount > 0 && <> · <b className="text-brand">{p.mineCount} tuyas</b></>}
                         {p.archived && <span className="badge bg-secondary-subtle text-secondary ms-2">archivado</span>}
@@ -92,15 +93,24 @@ function NuevoProyectoModal({ onClose, onDone }: { onClose: () => void; onDone: 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState(COLORES[0]);
+  const [teamId, setTeamId] = useState('');
+  const [equipos, setEquipos] = useState<TeamDto[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    tareasGateway.equipos().then((ts) => {
+      setEquipos(ts);
+      const mios = ts.filter((t) => t.mine);
+      if (mios.length === 1) setTeamId(String(mios[0].id));
+    }).catch(() => setEquipos([]));
+  }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError('');
     try {
-      await tareasGateway.crearProyecto({ key, name, description, color });
+      await tareasGateway.crearProyecto({ key, name, description, color, teamId: teamId ? Number(teamId) : null });
       onDone();
     } catch (err) {
       setError((err as Error).message);
@@ -129,6 +139,14 @@ function NuevoProyectoModal({ onClose, onDone }: { onClose: () => void; onDone: 
             <Form.Label className="small">Descripción</Form.Label>
             <Form.Control id="np-desc" as="textarea" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
           </Form.Group>
+          <Form.Group className="mt-3">
+            <Form.Label className="small">Equipo</Form.Label>
+            <Form.Select id="np-team" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+              <option value="">Sin equipo · lo ve todo el mundo</option>
+              {equipos.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </Form.Select>
+            <Form.Text className="text-secondary">Sólo los miembros del equipo (y quien vea todo) verán este proyecto.</Form.Text>
+          </Form.Group>
           <div className="mt-3">
             <Form.Label className="small d-block">Color</Form.Label>
             <div className="d-flex gap-2 flex-wrap">
@@ -152,6 +170,11 @@ function EditarProyectoModal({ project, onClose, onDone }: { project: ProjectDto
   const [description, setDescription] = useState(project.description);
   const [color, setColor] = useState(project.color);
   const [archived, setArchived] = useState(project.archived);
+  const [teamId, setTeamId] = useState(project.teamId ? String(project.teamId) : '');
+  const [equipos, setEquipos] = useState<TeamDto[]>([]);
+  useEffect(() => {
+    tareasGateway.equipos().then(setEquipos).catch(() => setEquipos([]));
+  }, []);
   const [statuses, setStatuses] = useState<UpsertStatusDto[]>(project.statuses.map((s) => ({ id: s.id, key: s.key, name: s.name, color: s.color, category: s.category, wipLimit: s.wipLimit })));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -171,7 +194,7 @@ function EditarProyectoModal({ project, onClose, onDone }: { project: ProjectDto
     setSaving(true);
     setError('');
     try {
-      await tareasGateway.editarProyecto(project.id, { name, description, color, archived });
+      await tareasGateway.editarProyecto(project.id, { name, description, color, archived, teamId: teamId ? Number(teamId) : null });
       await tareasGateway.guardarEstados(project.id, statuses.map((s) => ({ ...s, key: s.key || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') })));
       onDone();
     } catch (err) {
@@ -204,6 +227,13 @@ function EditarProyectoModal({ project, onClose, onDone }: { project: ProjectDto
           <Form.Group className="mt-3">
             <Form.Label className="small">Descripción</Form.Label>
             <Form.Control id="ep-desc" as="textarea" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+          </Form.Group>
+          <Form.Group className="mt-3">
+            <Form.Label className="small">Equipo</Form.Label>
+            <Form.Select id="ep-team" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+              <option value="">Sin equipo · lo ve todo el mundo</option>
+              {equipos.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </Form.Select>
           </Form.Group>
           <Form.Check className="mt-3" type="switch" id="ep-arch" label="Archivado (no aparece en el menú; las tareas se conservan)" checked={archived} onChange={(e) => setArchived(e.target.checked)} />
 

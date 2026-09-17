@@ -14,6 +14,9 @@ import type {
   KpisDto,
   NotificationsPageDto,
   CreateProjectDto,
+  CreateTeamDto,
+  TeamDto,
+  UpdateTeamDto,
   CreateTaskDto,
   MoveTaskDto,
   ProjectDto,
@@ -68,6 +71,20 @@ export class HttpTareasGateway {
   }
   async guardarEstados(id: number, statuses: UpsertStatusDto[]): Promise<ProjectDto> {
     return ok(await apiFetch(`/projects/${id}/statuses`, json('PUT', statuses)), 'No se pudieron guardar los estados.');
+  }
+
+  // --- equipos ---
+  async equipos(): Promise<TeamDto[]> {
+    return ok(await apiFetch('/teams'), 'No se pudieron cargar los equipos.');
+  }
+  async crearEquipo(dto: CreateTeamDto): Promise<TeamDto> {
+    return ok(await apiFetch('/teams', json('POST', dto)), 'No se pudo crear el equipo.');
+  }
+  async editarEquipo(id: number, dto: UpdateTeamDto): Promise<TeamDto> {
+    return ok(await apiFetch(`/teams/${id}`, json('PATCH', dto)), 'No se pudo guardar el equipo.');
+  }
+  async borrarEquipo(id: number): Promise<void> {
+    return ok(await apiFetch(`/teams/${id}`, { method: 'DELETE' }), 'No se pudo borrar el equipo.');
   }
 
   // --- sprints ---

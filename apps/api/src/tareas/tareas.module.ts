@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../infrastructure/db/prisma.service';
 import { ActivityService } from './application/activity.service';
+import { AccessService } from './application/access.service';
+import { TeamsService } from './application/teams.service';
+import { TeamsController } from './interface/http/teams.controller';
 import { AttachmentsService } from './application/attachments.service';
 import { CommentsService } from './application/comments.service';
 import { ProjectsService } from './application/projects.service';
@@ -20,8 +23,8 @@ import { CommentsController, TasksController } from './interface/http/tasks.cont
 
 /** Proyectos, tareas, comentarios, adjuntos y actividad. */
 @Module({
-  controllers: [ProjectsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController],
-  providers: [PrismaService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, CommentsService, AttachmentsService, storageProvider],
-  exports: [ProjectsService, SprintsService, TasksService, NotificationsService, TemplatesService, CommentsService, AttachmentsService, ActivityService],
+  controllers: [ProjectsController, TeamsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController],
+  providers: [PrismaService, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, CommentsService, AttachmentsService, storageProvider],
+  exports: [AccessService, TeamsService, ProjectsService, SprintsService, TasksService, NotificationsService, TemplatesService, CommentsService, AttachmentsService, ActivityService],
 })
 export class TareasModule {}

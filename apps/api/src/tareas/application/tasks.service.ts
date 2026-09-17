@@ -21,6 +21,7 @@ import {
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea, parsearClaveTarea } from '../domain/clave';
 import { ordenPara, renumerar } from '../domain/orden';
+import { AccessService } from './access.service';
 import { ActivityInput, ActivityService } from './activity.service';
 import { NotificationsService } from './notifications.service';
 import { statusToDto } from './projects.service';
@@ -54,13 +55,16 @@ export class TasksService {
     private readonly prisma: PrismaService,
     private readonly activity: ActivityService,
     private readonly notifications: NotificationsService,
+    private readonly access: AccessService,
   ) {}
 
   // ---------- Lectura ----------
 
   async list(f: TaskFilter, userId: number): Promise<TaskPageDto> {
     const where: Prisma.TaskWhereInput = {};
-    if (f.projectId) where.projectId = f.projectId;
+    // Visibilidad por equipo: sólo proyectos que quien pregunta puede ver.
+    const proyecto = await this.access.projectFilter(userId, f.projectId);
+    if (proyecto !== undefined) where.projectId = proyecto;
     if (f.statusId) where.statusId = f.statusId;
     if (f.assigneeId === 'me') where.assigneeId = userId;
     else if (f.assigneeId === 'none') where.assigneeId = null;
@@ -122,17 +126,20 @@ export class TasksService {
     return { items: await this.toDtos(rows), total, page, pageSize };
   }
 
-  async get(id: number): Promise<TaskDto> {
+  /** `userId`: si se da, una tarea de un proyecto que no ve se comporta como inexistente. */
+  async get(id: number, userId?: number): Promise<TaskDto> {
     const row = await this.prisma.task.findUnique({ where: { id }, include: includeTask });
     if (!row) throw new NotFoundException('Tarea no encontrada.');
+    if (userId !== undefined) await this.access.assertProjectVisible(userId, row.projectId, 'Tarea');
     return (await this.toDtos([row]))[0];
   }
 
-  async getByKey(key: string): Promise<TaskDto> {
+  async getByKey(key: string, userId?: number): Promise<TaskDto> {
     const parsed = parsearClaveTarea(key);
     if (!parsed) throw new BadRequestException(`Clave de tarea inválida: ${key}.`);
     const project = await this.prisma.project.findUnique({ where: { key: parsed.projectKey }, select: { id: true } });
     if (!project) throw new NotFoundException('Tarea no encontrada.');
+    if (userId !== undefined) await this.access.assertProjectVisible(userId, project.id, 'Tarea');
     const row = await this.prisma.task.findUnique({ where: { projectId_number: { projectId: project.id, number: parsed.number } }, include: includeTask });
     if (!row) throw new NotFoundException('Tarea no encontrada.');
     return (await this.toDtos([row]))[0];
@@ -143,16 +150,18 @@ export class TasksService {
     return this.toDtos(rows);
   }
 
-  /** Resumen para la pantalla de inicio. */
+  /** Resumen para la pantalla de inicio (sólo proyectos visibles para quien pregunta). */
   async resumen(userId: number): Promise<ResumenDto> {
-    const abiertas: Prisma.TaskWhereInput = { assigneeId: userId, status: { category: { not: 'DONE' } } };
+    const vis = await this.access.visibleProjectIds(userId);
+    const visibles: Prisma.TaskWhereInput = vis ? { projectId: { in: vis } } : {};
+    const abiertas: Prisma.TaskWhereInput = { ...visibles, assigneeId: userId, status: { category: { not: 'DONE' } } };
     const hoy = new Date(new Date().toISOString().slice(0, 10));
     const d7 = new Date(Date.now() - 7 * 86_400_000);
     const d14 = new Date(Date.now() - 14 * 86_400_000);
     const [misAbiertas, misVencidas, proyectos, proximasRows, misEnCurso, misHechas7d, misHechas7dPrev, misNuevas7d, sprintActivo] = await Promise.all([
       this.prisma.task.count({ where: abiertas }),
       this.prisma.task.count({ where: { ...abiertas, dueDate: { lt: hoy } } }),
-      this.prisma.project.findMany({ where: { archived: false }, orderBy: { name: 'asc' }, select: { id: true, key: true, name: true, color: true } }),
+      this.prisma.project.findMany({ where: { archived: false, ...(vis ? { id: { in: vis } } : {}) }, orderBy: { name: 'asc' }, select: { id: true, key: true, name: true, color: true } }),
       this.prisma.task.findMany({ where: abiertas, include: includeTask, orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { priority: 'asc' }], take: 8 }),
       this.prisma.task.count({ where: { assigneeId: userId, status: { category: 'DOING', NOT: { key: { contains: 'bloq' } } } } }),
       this.prisma.task.count({ where: { assigneeId: userId, closedAt: { gte: d7 } } }),
@@ -169,7 +178,7 @@ export class TasksService {
           daysLeft: sprintActivo.endDate ? Math.max(0, Math.ceil((sprintActivo.endDate.getTime() - hoy.getTime()) / 86_400_000)) : null,
         }
       : null;
-    const open = await this.prisma.task.groupBy({ by: ['projectId'], where: { status: { category: { not: 'DONE' } } }, _count: { _all: true } });
+    const open = await this.prisma.task.groupBy({ by: ['projectId'], where: { ...visibles, status: { category: { not: 'DONE' } } }, _count: { _all: true } });
     const mine = await this.prisma.task.groupBy({ by: ['projectId'], where: abiertas, _count: { _all: true } });
     const o = new Map(open.map((x) => [x.projectId, x._count._all]));
     const m = new Map(mine.map((x) => [x.projectId, x._count._all]));
@@ -614,11 +623,15 @@ export class TasksService {
     return u;
   }
 
-  /** El sprint debe estar abierto y, si es de un proyecto, ser el de la tarea. */
+  /** El sprint debe estar abierto y admitir la tarea: de su proyecto, o del equipo de su proyecto, o global. */
   private async ensureSprint(id: number, projectId: number): Promise<{ id: number; name: string }> {
-    const sp = await this.prisma.sprint.findFirst({ where: { id, status: { not: 'CLOSED' } }, select: { id: true, name: true, projectId: true, project: { select: { key: true } } } });
+    const sp = await this.prisma.sprint.findFirst({ where: { id, status: { not: 'CLOSED' } }, select: { id: true, name: true, projectId: true, teamId: true, project: { select: { key: true } }, team: { select: { name: true } } } });
     if (!sp) throw new BadRequestException('Sprint no válido (no existe o está cerrado).');
     if (sp.projectId && sp.projectId !== projectId) throw new BadRequestException(`El sprint "${sp.name}" es sólo del proyecto ${sp.project?.key}: esta tarea no puede entrar en él.`);
+    if (sp.teamId) {
+      const p = await this.prisma.project.findUnique({ where: { id: projectId }, select: { teamId: true } });
+      if (p?.teamId !== sp.teamId) throw new BadRequestException(`El sprint "${sp.name}" es del equipo ${sp.team?.name}: sólo admite tareas de sus proyectos.`);
+    }
     return { id: sp.id, name: sp.name };
   }
 

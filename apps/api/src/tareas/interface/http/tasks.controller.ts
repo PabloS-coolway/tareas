@@ -73,8 +73,8 @@ export class TasksController {
   /** Por clave (COOL-12) o por id numérico. */
   @Get(':idOrKey')
   @RequireFeature('tareas.ver')
-  get(@Param('idOrKey') idOrKey: string): Promise<TaskDto> {
-    return /^\d+$/.test(idOrKey) ? this.tasks.get(Number(idOrKey)) : this.tasks.getByKey(idOrKey);
+  get(@Param('idOrKey') idOrKey: string, @CurrentUser() me: JwtPayload): Promise<TaskDto> {
+    return /^\d+$/.test(idOrKey) ? this.tasks.get(Number(idOrKey), me.sub) : this.tasks.getByKey(idOrKey, me.sub);
   }
 
   @Get(':id/subtasks')

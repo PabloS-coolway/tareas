@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { BoxArrowRight, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock } from 'react-bootstrap-icons';
+import { BoxArrowRight, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock, Collection } from 'react-bootstrap-icons';
 import { useEffect, useState, type ReactNode } from 'react';
 import { tareasGateway } from '../composition';
 import type { Feature } from '@yorga/contracts';
@@ -58,11 +58,22 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
     { to: '/usuarios', label: 'Usuarios', icon: <People />, feature: 'usuarios.gestionar' },
     { to: '/roles', label: 'Roles', icon: <ShieldLock />, feature: 'roles.gestionar' },
     { to: '/panel', label: 'Panel del equipo', icon: <BarChartLine />, feature: 'proyectos.gestionar' },
+    { to: '/equipos', label: 'Equipos', icon: <Collection />, feature: 'equipos.gestionar' },
     { to: '/plantillas', label: 'Plantillas', icon: <JournalText /> },
     { to: '/tokens', label: 'Tokens de API', icon: <Plugin /> },
     { to: '/integraciones', label: 'Integraciones', icon: <Diagram3 />, feature: 'usuarios.gestionar' },
   ];
   const visibles = (items: NavItem[]) => items.filter((n) => !n.feature || hasFeature(n.feature));
+  // Proyectos agrupados por equipo (si sólo hay uno, sin título). Los sin equipo van al final.
+  const grupos = (() => {
+    const m = new Map<string, { key: string; name: string; items: typeof proyectos }>();
+    for (const p of proyectos) {
+      const k = p.teamKey ?? '_';
+      if (!m.has(k)) m.set(k, { key: k, name: p.teamName ?? 'Sin equipo', items: [] });
+      m.get(k)!.items.push(p);
+    }
+    return [...m.values()].sort((a, b) => (a.key === '_' ? 1 : 0) - (b.key === '_' ? 1 : 0) || a.name.localeCompare(b.name));
+  })();
   const item = (n: NavItem) => (
     <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
       <span className="nav-ico">{n.icon}</span>
@@ -97,12 +108,17 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
             <span className="nav-ico"><ListUl /></span>
             <span className="nav-label">Todas las tareas</span>
           </NavLink>
-          {proyectos.map((p) => (
-            <NavLink key={p.id} to={`/p/${p.key}`} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={p.name}>
-              <span className="nav-ico"><span className="nav-proj-dot" style={{ background: p.color }} /></span>
-              <span className="nav-label text-truncate">{p.name}</span>
-              {p.mineDoingCount > 0 && <span className="badge bg-light text-dark rounded-pill ms-auto" title={`${p.mineDoingCount} tuyas en curso`}>{p.mineDoingCount}</span>}
-            </NavLink>
+          {grupos.map((g) => (
+            <div key={g.key} className="nav-subgroup">
+              {grupos.length > 1 && <div className="nav-subgroup-title">{g.name}</div>}
+              {g.items.map((p) => (
+                <NavLink key={p.id} to={`/p/${p.key}`} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={p.name}>
+                  <span className="nav-ico"><span className="nav-proj-dot" style={{ background: p.color }} /></span>
+                  <span className="nav-label text-truncate">{p.name}</span>
+                  {p.mineDoingCount > 0 && <span className="badge bg-light text-dark rounded-pill ms-auto" title={`${p.mineDoingCount} tuyas en curso`}>{p.mineDoingCount}</span>}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </div>
 

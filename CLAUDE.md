@@ -19,6 +19,7 @@ equipo (Robert, Juanmi, Pablo Vázquez, Catalina, Gemma, David, Tomás) y Claude
 - Los adjuntos se sirven **por la API** (con permiso), nunca por URL pública.
 - Un estado con tareas **no se borra**; se mueven antes.
 - Los permisos son **features** de un catálogo cerrado (`packages/contracts/src/permissions.ts`).
+- **Visibilidad por equipo**: se ven los proyectos de tus equipos y los sin equipo; `tareas.ver-todo` lo ve todo. Se aplica en la API (`AccessService`), no sólo en el menú: una tarea de un proyecto que no ves responde 404.
 
 ## Operativa técnica
 
@@ -33,9 +34,9 @@ equipo (Robert, Juanmi, Pablo Vázquez, Catalina, Gemma, David, Tomás) y Claude
 ```
 apps/api/src/auth        login JWT · tokens de API (tk_…) · usuarios · roles por feature · bootstrap admin/roles
 apps/api/src/mcp         MCP remoto por HTTP (/api/mcp y /api/mcp/t/:token; carga @yorga/tareas-mcp compilado con import() dinámico)
-apps/api/src/tareas      proyectos (estados, WIP) · tareas (clave, tablero, épicas/subtareas, dependencias, recurrencia, unaccent) · sprints (transversales o de un proyecto; burndown) · comentarios (menciones→avisos) · avisos · vistas guardadas · plantillas · adjuntos · actividad
+apps/api/src/tareas      equipos (áreas: proyectos + personas; AccessService decide quién ve qué) · proyectos (estados, WIP, equipo) · tareas (clave, tablero, épicas/subtareas, dependencias, recurrencia, unaccent) · sprints (de equipo, de proyecto o globales; burndown) · comentarios (menciones→avisos) · avisos · vistas guardadas · plantillas · adjuntos · actividad
 apps/api/src/importar    import idempotente desde el JSON de scripts/clickup-export.mjs
 apps/web/src/ui/components  TableroGlobal (kanban multi-proyecto) · Paleta (búsqueda Ctrl+K) · SubtareasArbol · Markdown · ActividadTexto · NuevaTareaModal (plantillas) · Dependencias · ComentarioInput (@menciones) · VistasGuardadas · Burndown (SVG) · table/csv
-apps/web/src/ui/pages    Inicio (KPIs + feed de actividad) · MisTareas · Equipo (/equipo/:userId, quién tiene qué por proyecto) · TodasTareas (/tareas, tablero+lista global) · Planificación (/backlog: sprints arriba + backlog abajo, drag y mover en bloque, activar/cerrar) · Sprints (/sprints, /sprints/:id: tablero, lista, burndown, cerrar) · Proyectos · Tablero (/p/:key) · Tarea (/t/:key) · Tokens · Usuarios · Roles
+apps/web/src/ui/pages    Inicio (KPIs + feed de actividad) · MisTareas · Equipo (/equipo/:userId, quién tiene qué por proyecto) · TodasTareas (/tareas, tablero+lista global) · Planificación (/backlog: sprints arriba + backlog abajo, drag y mover en bloque, activar/cerrar) · Sprints (/sprints, /sprints/:id: tablero, lista, burndown, cerrar) · Proyectos · Tablero (/p/:key) · Tarea (/t/:key) · Equipos (/equipos, admin) · Tokens · Usuarios · Roles
 packages/mcp             servidor MCP (stdio) sobre la API, con token personal
 ```

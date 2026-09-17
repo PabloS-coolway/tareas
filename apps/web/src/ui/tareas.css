@@ -306,3 +306,10 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .ambito-pill { background: var(--kpi-bg); border: 1px solid var(--border); color: var(--ink); gap: 6px; font-weight: 600; }
 .ambito-pill.transversal { color: var(--muted); font-style: normal; }
 .dropzone.no-admite { opacity: 0.45; background: repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(127, 127, 127, 0.08) 6px, rgba(127, 127, 127, 0.08) 12px); }
+.ambito-pill.equipo { color: var(--brand); border-color: color-mix(in srgb, var(--brand) 35%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+/* Menú: proyectos agrupados por equipo */
+.nav-subgroup { display: flex; flex-direction: column; gap: 2px; }
+.nav-subgroup + .nav-subgroup { margin-top: 6px; }
+.nav-subgroup-title { padding: 6px 12px 2px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--sidebar-fg-muted); opacity: 0.85; }
+/* Equipos (administración) */
+.equipo-miembros { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; }

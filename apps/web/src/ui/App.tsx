@@ -6,6 +6,7 @@ import { OlvidePage } from './pages/OlvidePage';
 import { RestablecerPage } from './pages/RestablecerPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 import { RolesPage } from './pages/RolesPage';
+import { EquiposPage } from './pages/EquiposPage';
 import { ProyectosPage } from './pages/ProyectosPage';
 import { TableroPage } from './pages/TableroPage';
 import { TareaPage } from './pages/TareaPage';
@@ -54,6 +55,9 @@ export function App() {
               <Route element={<RequireFeature feature="usuarios.gestionar" />}>
                 <Route path="/usuarios" element={<UsuariosPage />} />
                 <Route path="/integraciones" element={<IntegracionesPage />} />
+              </Route>
+              <Route element={<RequireFeature feature="equipos.gestionar" />}>
+                <Route path="/equipos" element={<EquiposPage />} />
               </Route>
               <Route element={<RequireFeature feature="roles.gestionar" />}>
                 <Route path="/roles" element={<RolesPage />} />

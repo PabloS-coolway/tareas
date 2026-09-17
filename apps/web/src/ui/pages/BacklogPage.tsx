@@ -33,7 +33,8 @@ export function BacklogPage() {
   const [cerrar, setCerrar] = useState<SprintDto | null>(null);
   /** Proyecto de la tarea que se está arrastrando: los sprints de OTRO proyecto se cierran al soltar. */
   const [arrastrando, setArrastrando] = useState<number | null>(null);
-  const admite = (s: SprintDto, projectIds: number[]) => !s.projectId || projectIds.every((p) => p === s.projectId);
+  const equipoDe = (projectId: number) => proyectos.find((p) => p.id === projectId)?.teamId ?? null;
+  const admite = (s: SprintDto, projectIds: number[]) => (s.projectId ? projectIds.every((p) => p === s.projectId) : s.teamId ? projectIds.every((p) => equipoDe(p) === s.teamId) : true);
 
   const load = useCallback(async () => {
     setError('');
@@ -214,7 +215,7 @@ export function BacklogPage() {
                         <div ref={prov.innerRef} {...prov.droppableProps} className={`backlog-list dropzone ${snap.isDraggingOver ? 'over' : ''} ${arrastrando !== null && !admite(s, [arrastrando]) ? 'no-admite' : ''}`}>
                           {ts.map(fila)}
                           {prov.placeholder}
-                          {ts.length === 0 && !snap.isDraggingOver && <div className="small text-secondary py-2 px-1">{s.projectId ? `Sprint vacío: arrastra tareas de ${s.projectName ?? s.projectKey} aquí.` : 'Sprint vacío: arrastra tareas aquí.'}</div>}
+                          {ts.length === 0 && !snap.isDraggingOver && <div className="small text-secondary py-2 px-1">{s.projectId ? `Sprint vacío: arrastra tareas de ${s.projectName ?? s.projectKey} aquí.` : s.teamId ? `Sprint vacío: arrastra tareas de los proyectos del equipo ${s.teamName ?? s.teamKey} aquí.` : 'Sprint vacío: arrastra tareas aquí.'}</div>}
                         </div>
                       )}
                     </Droppable>

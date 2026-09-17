@@ -3,6 +3,9 @@ import { CreateProjectDto, ProjectDto, ProjectStatusDto, UpdateProjectDto, Upser
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { esClaveProyectoValida, normalizarClaveProyecto } from '../domain/clave';
+import { AccessService } from './access.service';
+
+const conEquipo = { statuses: { orderBy: { order: 'asc' as const } }, team: { select: { id: true, key: true, name: true } } };
 
 /** Estados con los que nace un proyecto (los mismos que usaba el equipo en ClickUp, más "bloqueada"). */
 export const ESTADOS_POR_DEFECTO: Omit<UpsertStatusDto, 'id'>[] = [
@@ -17,13 +20,17 @@ const EN_CURSO: Prisma.TaskWhereInput = { status: { category: 'DOING', NOT: { ke
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
 
   async list(userId: number, includeArchived = false): Promise<ProjectDto[]> {
+    const vis = await this.access.visibleProjectIds(userId);
     const projects = await this.prisma.project.findMany({
-      where: includeArchived ? {} : { archived: false },
+      where: { ...(includeArchived ? {} : { archived: false }), ...(vis ? { id: { in: vis } } : {}) },
       orderBy: { name: 'asc' },
-      include: { statuses: { orderBy: { order: 'asc' } } },
+      include: conEquipo,
     });
     // Conteos de abiertas y "mías" en una consulta cada uno (no una por proyecto).
     const abiertas = await this.prisma.task.groupBy({ by: ['projectId'], where: { status: { category: { not: 'DONE' } } }, _count: { _all: true } });
@@ -39,8 +46,9 @@ export class ProjectsService {
 
   async get(idOrKey: string, userId: number): Promise<ProjectDto> {
     const where = /^\d+$/.test(idOrKey) ? { id: Number(idOrKey) } : { key: normalizarClaveProyecto(idOrKey) };
-    const p = await this.prisma.project.findUnique({ where, include: { statuses: { orderBy: { order: 'asc' } } } });
+    const p = await this.prisma.project.findUnique({ where, include: conEquipo });
     if (!p) throw new NotFoundException('Proyecto no encontrado.');
+    await this.access.assertProjectVisible(userId, p.id);
     const open = await this.prisma.task.count({ where: { projectId: p.id, status: { category: { not: 'DONE' } } } });
     const mine = await this.prisma.task.count({ where: { projectId: p.id, assigneeId: userId, status: { category: { not: 'DONE' } } } });
     const doing = await this.prisma.task.count({ where: { projectId: p.id, assigneeId: userId, ...EN_CURSO } });
@@ -54,21 +62,24 @@ export class ProjectsService {
     const name = dto.name?.trim();
     if (!name) throw new BadRequestException('Indica el nombre del proyecto.');
     if (await this.prisma.project.findUnique({ where: { key } })) throw new ConflictException(`Ya existe un proyecto con la clave ${key}.`);
+    const teamId = dto.teamId ? (await this.ensureTeam(dto.teamId)).id : null;
     const p = await this.prisma.project.create({
       data: {
         key,
         name,
         description: dto.description?.trim() ?? '',
         color: dto.color ?? '#6d28d9',
+        teamId,
         statuses: { create: ESTADOS_POR_DEFECTO.map((s, order) => ({ ...s, order })) },
       },
-      include: { statuses: { orderBy: { order: 'asc' } } },
+      include: conEquipo,
     });
     return this.get(String(p.id), userId);
   }
 
   async update(id: number, dto: UpdateProjectDto, userId: number): Promise<ProjectDto> {
-    const data: { key?: string; name?: string; description?: string; color?: string; archived?: boolean } = {};
+    const data: { key?: string; name?: string; description?: string; color?: string; archived?: boolean; teamId?: number | null } = {};
+    if (dto.teamId !== undefined) data.teamId = dto.teamId ? (await this.ensureTeam(dto.teamId)).id : null;
     if (dto.key !== undefined) {
       const key = normalizarClaveProyecto(dto.key);
       if (!esClaveProyectoValida(key)) throw new BadRequestException('La clave debe tener 2-24 letras/números (guiones entre tramos) y empezar por letra, p. ej. COOL o INC.');
@@ -124,6 +135,12 @@ export class ProjectsService {
   private async ensure(id: number): Promise<void> {
     if (!(await this.prisma.project.findUnique({ where: { id } }))) throw new NotFoundException('Proyecto no encontrado.');
   }
+
+  private async ensureTeam(id: number): Promise<{ id: number }> {
+    const t = await this.prisma.team.findUnique({ where: { id }, select: { id: true } });
+    if (!t) throw new BadRequestException('Equipo no válido.');
+    return t;
+  }
 }
 
 export function statusToDto(s: { id: number; key: string; name: string; color: string; order: number; category: 'TODO' | 'DOING' | 'DONE'; wipLimit?: number | null }): ProjectStatusDto {
@@ -131,7 +148,7 @@ export function statusToDto(s: { id: number; key: string; name: string; color: s
 }
 
 function toDto(
-  p: { id: number; key: string; name: string; description: string; color: string; archived: boolean; createdAt: Date; statuses: Parameters<typeof statusToDto>[0][] },
+  p: { id: number; key: string; name: string; description: string; color: string; archived: boolean; createdAt: Date; statuses: Parameters<typeof statusToDto>[0][]; team: { id: number; key: string; name: string } | null },
   openCount: number,
   mineCount: number,
   mineDoingCount = 0,
@@ -145,6 +162,9 @@ function toDto(
     color: p.color,
     archived: p.archived,
     statuses: p.statuses.map(statusToDto),
+    teamId: p.team?.id ?? null,
+    teamKey: p.team?.key ?? null,
+    teamName: p.team?.name ?? null,
     openCount,
     mineCount,
     mineDoingCount,

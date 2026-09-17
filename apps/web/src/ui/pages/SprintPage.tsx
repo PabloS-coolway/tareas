@@ -247,8 +247,9 @@ function AnadirTareasModal({ sprint, onClose, onDone }: { sprint: SprintDto; onC
   const { proyectos } = useProyectos();
   const [tasks, setTasks] = useState<TaskDto[] | null>(null);
   const [q, setQ] = useState('');
-  // Un sprint de proyecto sólo admite tareas de ese proyecto: el filtro queda fijo.
-  const [projectId, setProjectId] = useState(sprint.projectId ? String(sprint.projectId) : '');
+  // Un sprint de proyecto sólo admite tareas de ese proyecto (filtro fijo); uno de equipo, las de sus proyectos.
+  const proyectosAdmitidos = sprint.projectId ? proyectos.filter((p) => p.id === sprint.projectId) : sprint.teamId ? proyectos.filter((p) => p.teamId === sprint.teamId) : proyectos;
+  const [projectId, setProjectId] = useState(sprint.projectId ? String(sprint.projectId) : sprint.teamId ? String(proyectosAdmitidos[0]?.id ?? '') : '');
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -291,9 +292,9 @@ function AnadirTareasModal({ sprint, onClose, onDone }: { sprint: SprintDto; onC
         {error && <Alert variant="danger">⚠ {error}</Alert>}
         <div className="d-flex gap-2 mb-3">
           <Form.Control size="sm" autoFocus placeholder="Buscar en el backlog…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Form.Select size="sm" style={{ width: 'auto' }} value={projectId} disabled={!!sprint.projectId} title={sprint.projectId ? 'Este sprint es sólo de este proyecto' : undefined} onChange={(e) => setProjectId(e.target.value)}>
-            <option value="">Todos los proyectos</option>
-            {proyectos.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          <Form.Select size="sm" style={{ width: 'auto' }} value={projectId} disabled={!!sprint.projectId} title={sprint.projectId ? 'Este sprint es sólo de este proyecto' : sprint.teamId ? 'Sólo proyectos del equipo del sprint' : undefined} onChange={(e) => setProjectId(e.target.value)}>
+            {!sprint.teamId && <option value="">Todos los proyectos</option>}
+            {proyectosAdmitidos.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Form.Select>
         </div>
         {!tasks ? (
@@ -326,6 +327,7 @@ function AnadirTareasModal({ sprint, onClose, onDone }: { sprint: SprintDto; onC
 
 /** Cerrar el sprint decidiendo a dónde va lo no terminado. */
 export function CerrarSprintModal({ sprint, abiertas, onClose, onDone }: { sprint: SprintDto; abiertas: number; onClose: () => void; onDone: () => void }) {
+  const { proyectos } = useProyectos();
   const [otros, setOtros] = useState<SprintDto[]>([]);
   const [destino, setDestino] = useState('');
   const [saving, setSaving] = useState(false);
@@ -335,8 +337,12 @@ export function CerrarSprintModal({ sprint, abiertas, onClose, onDone }: { sprin
     tareasGateway
       .sprints()
       .then((ss) => {
-        // Destinos compatibles: transversales siempre; de proyecto sólo si es el mismo proyecto que este sprint.
-        const otros = ss.filter((s) => s.id !== sprint.id && (!s.projectId || s.projectId === sprint.projectId)).sort((a, b) => (a.startDate ?? '9').localeCompare(b.startDate ?? '9'));
+        // Destinos compatibles: globales siempre; de proyecto sólo el mismo proyecto; de equipo sólo si este
+        // sprint es de ese equipo o de un proyecto de ese equipo. (La API vuelve a comprobarlo tarea a tarea.)
+        const equipoActual = sprint.teamId ?? proyectos.find((p) => p.id === sprint.projectId)?.teamId ?? null;
+        const otros = ss
+          .filter((s) => s.id !== sprint.id && (s.projectId ? s.projectId === sprint.projectId : s.teamId ? s.teamId === equipoActual : true))
+          .sort((a, b) => (a.startDate ?? '9').localeCompare(b.startDate ?? '9'));
         setOtros(otros);
         // Por defecto, lo pendiente pasa al SIGUIENTE sprint (el planificado que antes empieza); si no hay, al backlog.
         const siguiente = otros.find((s) => s.status === 'PLANNED') ?? otros[0];
@@ -369,7 +375,7 @@ export function CerrarSprintModal({ sprint, abiertas, onClose, onDone }: { sprin
             <Form.Label className="small">Las {abiertas} que quedan abiertas van a…</Form.Label>
             <Form.Select id="cs-dest" value={destino} onChange={(e) => setDestino(e.target.value)}>
               <option value="">Backlog (sin sprint)</option>
-              {otros.map((s) => <option key={s.id} value={s.id}>{s.name}{s.projectKey ? ` · ${s.projectKey}` : ''}</option>)}
+              {otros.map((s) => <option key={s.id} value={s.id}>{s.name}{s.projectKey ? ` · ${s.projectKey}` : s.teamKey ? ` · equipo ${s.teamKey}` : ' · global'}</option>)}
             </Form.Select>
           </Form.Group>
         ) : (

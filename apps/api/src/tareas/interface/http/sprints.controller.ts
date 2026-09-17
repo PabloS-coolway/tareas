@@ -10,9 +10,9 @@ export class SprintsController {
 
   @Get()
   @RequireFeature('tareas.ver')
-  /** `projectId`: sólo los que admiten tareas de ese proyecto (transversales + los suyos). */
-  list(@Query('closed') closed?: string, @Query('projectId') projectId?: string): Promise<SprintDto[]> {
-    return this.sprints.list(closed === 'true', projectId && /^\d+$/.test(projectId) ? Number(projectId) : undefined);
+  /** `projectId`: sólo los que admiten tareas de ese proyecto (globales + el de su equipo + los suyos). */
+  list(@CurrentUser() me: JwtPayload, @Query('closed') closed?: string, @Query('projectId') projectId?: string): Promise<SprintDto[]> {
+    return this.sprints.list(closed === 'true', projectId && /^\d+$/.test(projectId) ? Number(projectId) : undefined, me.sub);
   }
 
   @Get(':id')

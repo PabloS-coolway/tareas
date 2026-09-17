@@ -49,8 +49,8 @@ export const SPRINT_STATUS_LABELS: Record<SprintStatus, string> = {
 };
 
 /**
- * Sprint de trabajo. Ámbito: **transversal** (`projectId` null: admite tareas de cualquier proyecto) o
- * **de un proyecto** (sólo admite tareas de ese proyecto).
+ * Sprint de trabajo. Ámbito: de un **proyecto** (`projectId`: sólo sus tareas), de un **equipo** (`teamId`:
+ * tareas de los proyectos de ese equipo) o **global** (ninguno: tareas de cualquier proyecto).
  */
 export interface SprintDto {
   id: number;
@@ -59,6 +59,9 @@ export interface SprintDto {
   projectId: number | null;
   projectKey: string | null;
   projectName: string | null;
+  teamId: number | null;
+  teamKey: string | null;
+  teamName: string | null;
   /** ISO date (YYYY-MM-DD) o null. */
   startDate: string | null;
   endDate: string | null;
@@ -73,8 +76,10 @@ export interface SprintDto {
 export interface CreateSprintDto {
   name: string;
   goal?: string;
-  /** Proyecto del sprint; null/ausente = transversal. */
+  /** Proyecto del sprint (sólo sus tareas). Excluyente con `teamId`. */
   projectId?: number | null;
+  /** Equipo del sprint (tareas de sus proyectos). Sin ninguno de los dos = global. */
+  teamId?: number | null;
   startDate?: string | null;
   endDate?: string | null;
 }
@@ -84,6 +89,7 @@ export interface UpdateSprintDto {
   goal?: string;
   /** Cambiar el ámbito: sólo si todas sus tareas caben en el nuevo (a un proyecto sólo si todas son de él). */
   projectId?: number | null;
+  teamId?: number | null;
   startDate?: string | null;
   endDate?: string | null;
   status?: SprintStatus;
@@ -116,6 +122,10 @@ export interface ProjectDto {
   color: string;
   archived: boolean;
   statuses: ProjectStatusDto[];
+  /** Equipo dueño (null = lo ve todo el mundo). */
+  teamId: number | null;
+  teamKey: string | null;
+  teamName: string | null;
   /** Tareas abiertas (no DONE). */
   openCount: number;
   /** Tareas terminadas (DONE), todas, sin ventana de tiempo. */
@@ -132,6 +142,7 @@ export interface CreateProjectDto {
   name: string;
   description?: string;
   color?: string;
+  teamId?: number | null;
 }
 
 export interface UpdateProjectDto {
@@ -141,6 +152,36 @@ export interface UpdateProjectDto {
   description?: string;
   color?: string;
   archived?: boolean;
+  teamId?: number | null;
+}
+
+// ---------- Equipos ----------
+
+/** Equipo (área): agrupa proyectos y personas; decide qué proyectos ve cada uno. */
+export interface TeamDto {
+  id: number;
+  key: string;
+  name: string;
+  color: string;
+  memberIds: number[];
+  projectCount: number;
+  /** ¿Quien pregunta pertenece a él? */
+  mine: boolean;
+  createdAt: string;
+}
+
+export interface CreateTeamDto {
+  key: string;
+  name: string;
+  color?: string;
+  memberIds?: number[];
+}
+
+export interface UpdateTeamDto {
+  name?: string;
+  color?: string;
+  /** Reemplaza la lista completa de miembros. */
+  memberIds?: number[];
 }
 
 /** Estado a guardar. Sin `id` = nuevo. Los estados que no vengan en la lista se borran (si no tienen tareas). */

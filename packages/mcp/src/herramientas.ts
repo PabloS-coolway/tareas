@@ -11,7 +11,8 @@ export type ApiFn = <T>(path: string, init?: RequestInit) => Promise<T>;
 interface Status { id: number; key: string; name: string; category: string }
 interface Project { id: number; key: string; name: string; statuses: Status[]; openCount: number; mineCount: number }
 interface UserRef { id: number; name: string; email: string }
-interface Sprint { id: number; name: string; goal: string; projectId: number | null; projectKey: string | null; startDate: string | null; endDate: string | null; status: string; total: number; done: number }
+interface Team { id: number; key: string; name: string; mine: boolean }
+interface Sprint { id: number; name: string; goal: string; projectId: number | null; projectKey: string | null; teamId: number | null; teamKey: string | null; startDate: string | null; endDate: string | null; status: string; total: number; done: number }
 interface Task {
   id: number; key: string; title: string; description: string; type: string; priority: string; status: Status;
   assignee: UserRef | null; parentKey: string | null; dueDate: string | null; tags: string[]; projectKey: string;
@@ -195,19 +196,31 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
   server.tool('listar_sprints', 'Sprints de trabajo (abiertos; con cerrados=true, todos) y su progreso.', { cerrados: z.boolean().optional() }, async ({ cerrados }) => {
     const ss = await api<Sprint[]>(`/sprints${cerrados ? '?closed=true' : ''}`);
     if (!ss.length) return texto('No hay sprints.');
-    return texto(ss.map((s) => `#${s.id} ${s.name} [${s.status}] ${s.projectKey ? `sólo ${s.projectKey}` : 'transversal'} · ${s.startDate ?? '…'} → ${s.endDate ?? '…'} · ${s.done}/${s.total} terminadas${s.goal ? ` · objetivo: ${s.goal}` : ''}`).join('\n'));
+    return texto(ss.map((s) => `#${s.id} ${s.name} [${s.status}] ${s.projectKey ? `sólo ${s.projectKey}` : s.teamKey ? `equipo ${s.teamKey}` : 'global'} · ${s.startDate ?? '…'} → ${s.endDate ?? '…'} · ${s.done}/${s.total} terminadas${s.goal ? ` · objetivo: ${s.goal}` : ''}`).join('\n'));
   });
 
   server.tool(
     'crear_sprint',
-    'Crea un sprint de trabajo. Sin proyecto = transversal (tareas de cualquier proyecto); con proyecto = sólo tareas de ese proyecto.',
-    { nombre: z.string(), objetivo: z.string().optional(), proyecto: z.string().optional().describe('Clave del proyecto si el sprint es sólo suyo'), empieza: z.string().optional().describe('AAAA-MM-DD'), termina: z.string().optional().describe('AAAA-MM-DD') },
+    'Crea un sprint de trabajo. Ámbito: de un proyecto (sólo sus tareas), de un equipo (tareas de sus proyectos) o global (ninguno de los dos).',
+    { nombre: z.string(), objetivo: z.string().optional(), proyecto: z.string().optional().describe('Clave del proyecto si el sprint es sólo suyo'), equipo: z.string().optional().describe('Clave o nombre del equipo si es un sprint de equipo'), empieza: z.string().optional().describe('AAAA-MM-DD'), termina: z.string().optional().describe('AAAA-MM-DD') },
     async (a) => {
       const projectId = a.proyecto ? (await proyecto(a.proyecto)).id : null;
-      const s = await api<Sprint>('/sprints', { method: 'POST', body: JSON.stringify({ name: a.nombre, goal: a.objetivo, projectId, startDate: a.empieza, endDate: a.termina }) });
-      return texto(`Creado el sprint #${s.id} ${s.name} (${s.projectKey ? `sólo ${s.projectKey}` : 'transversal'}).`);
+      let teamId: number | null = null;
+      if (a.equipo) {
+        const ts = await api<Team[]>('/teams');
+        const t = ts.find((x) => x.key.toLowerCase() === a.equipo!.toLowerCase() || x.name.toLowerCase() === a.equipo!.toLowerCase());
+        if (!t) throw new Error(`No encuentro el equipo "${a.equipo}" (equipos: ${ts.map((x) => x.key).join(', ')}).`);
+        teamId = t.id;
+      }
+      const s = await api<Sprint>('/sprints', { method: 'POST', body: JSON.stringify({ name: a.nombre, goal: a.objetivo, projectId, teamId, startDate: a.empieza, endDate: a.termina }) });
+      return texto(`Creado el sprint #${s.id} ${s.name} (${s.projectKey ? `sólo ${s.projectKey}` : s.teamKey ? `equipo ${s.teamKey}` : 'global'}).`);
     },
   );
+
+  server.tool('listar_equipos', 'Equipos (áreas) y a cuáles pertenece quien pregunta.', {}, async () => {
+    const ts = await api<Team[]>('/teams');
+    return texto(ts.map((t) => `${t.key} · ${t.name}${t.mine ? ' · (tuyo)' : ''}`).join('\n') || 'Sin equipos.');
+  });
 
   server.tool('equipo', 'Personas del equipo (para asignar tareas).', {}, async () => {
     const dir = await api<UserRef[]>('/users/directorio');

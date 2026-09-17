@@ -2,17 +2,18 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Alert, Badge, Button, Card, Form, Modal, ProgressBar, Spinner } from 'react-bootstrap';
 import { Plus } from 'react-bootstrap-icons';
-import { SPRINT_STATUS_LABELS, type CreateSprintDto, type SprintDto, type UpdateSprintDto } from '@yorga/contracts';
+import { SPRINT_STATUS_LABELS, type CreateSprintDto, type SprintDto, type TeamDto, type UpdateSprintDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { Skeleton } from '../components/Skeleton';
 import { fmtFecha } from '../components/tareas-ui';
 import { useProyectos } from '../proyectos/ProyectosContext';
 
-/** Ámbito del sprint: chip con el proyecto (o «transversal»). */
+/** Ámbito del sprint: chip con el proyecto, el equipo o «global». */
 export function SprintAmbito({ s }: { s: SprintDto }) {
   const { proyectos } = useProyectos();
-  if (!s.projectId) return <span className="pill ambito-pill transversal" title="Admite tareas de cualquier proyecto">transversal</span>;
+  if (s.teamId) return <span className="pill ambito-pill equipo" title={`Tareas de los proyectos del equipo ${s.teamName ?? s.teamKey}`}>equipo {s.teamName ?? s.teamKey}</span>;
+  if (!s.projectId) return <span className="pill ambito-pill transversal" title="Admite tareas de cualquier proyecto y equipo">global</span>;
   const color = proyectos.find((p) => p.id === s.projectId)?.color ?? 'var(--muted)';
   return (
     <span className="pill ambito-pill" title={`Sólo tareas de ${s.projectName ?? s.projectKey}`}>
@@ -43,7 +44,11 @@ export function SprintsPage() {
   const [ambito, setAmbito] = useState<string>(params.get('proyecto') ?? '');
   const [nuevo, setNuevo] = useState(false);
   const [error, setError] = useState('');
-  const visibles = (sprints ?? []).filter((s) => (ambito === '' ? true : ambito === 'transversal' ? !s.projectId : s.projectKey === ambito));
+  const visibles = (sprints ?? []).filter((s) => (ambito === '' ? true : ambito === 'transversal' ? !s.projectId : ambito.startsWith('t:') ? s.teamKey === ambito.slice(2) : s.projectKey === ambito));
+  const [equipos, setEquipos] = useState<TeamDto[]>([]);
+  useEffect(() => {
+    tareasGateway.equipos().then(setEquipos).catch(() => setEquipos([]));
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -63,7 +68,7 @@ export function SprintsPage() {
       <header className="page-head mb-4 d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
           <h1 className="h4 mb-1">Sprints</h1>
-          <p className="text-secondary mb-0">Bloques de trabajo con fecha. Un sprint <b>transversal</b> junta tareas de cualquier proyecto; un sprint <b>de proyecto</b> sólo las de ese proyecto. Para llenarlos desde el backlog, usa <Link to="/backlog">Planificación</Link>.</p>
+          <p className="text-secondary mb-0">Bloques de trabajo con fecha. Un sprint <b>de equipo</b> junta tareas de los proyectos de ese equipo; uno <b>de proyecto</b>, sólo las suyas; uno <b>global</b>, de cualquiera. Para llenarlos desde el backlog, usa <Link to="/backlog">Planificación</Link>.</p>
         </div>
         {hasFeature('tareas.editar') && <Button className="btn-brand" onClick={() => setNuevo(true)}><Plus /> Nuevo sprint</Button>}
       </header>
@@ -71,7 +76,8 @@ export function SprintsPage() {
       <div className="d-flex align-items-center gap-3 flex-wrap mb-3">
         <Form.Select id="sp-ambito" size="sm" style={{ width: 'auto' }} value={ambito} onChange={(e) => setAmbito(e.target.value)}>
           <option value="">Todos los ámbitos</option>
-          <option value="transversal">Sólo transversales</option>
+          <option value="transversal">Globales y de equipo</option>
+          {equipos.map((t) => <option key={t.id} value={`t:${t.key}`}>Equipo {t.name}</option>)}
           {proyectos.map((p) => <option key={p.id} value={p.key}>{p.name}</option>)}
         </Form.Select>
         <Form.Check type="switch" id="sp-closed" className="small" label="Ver cerrados" checked={verCerrados} onChange={(e) => setVerCerrados(e.target.checked)} />
@@ -117,12 +123,26 @@ export function SprintsPage() {
   );
 }
 
-/** Alta o edición de un sprint (nombre, ámbito, objetivo, fechas). `projectId` preselecciona el ámbito al crear. */
+/**
+ * Alta o edición de un sprint (nombre, ámbito, objetivo, fechas). `projectId` preselecciona el ámbito al crear.
+ * El ámbito se codifica como `p:<id>` (proyecto), `t:<id>` (equipo) o vacío (global).
+ */
 export function SprintModal({ sprint, projectId: proyectoInicial, onClose, onSaved }: { sprint?: SprintDto; projectId?: number | null; onClose: () => void; onSaved: (s: SprintDto) => void }) {
   const { proyectos } = useProyectos();
+  const [equipos, setEquipos] = useState<TeamDto[]>([]);
   const [name, setName] = useState(sprint?.name ?? '');
   const [goal, setGoal] = useState(sprint?.goal ?? '');
-  const [projectId, setProjectId] = useState<string>(sprint ? String(sprint.projectId ?? '') : proyectoInicial ? String(proyectoInicial) : '');
+  const [ambito, setAmbito] = useState<string>(sprint ? (sprint.projectId ? `p:${sprint.projectId}` : sprint.teamId ? `t:${sprint.teamId}` : '') : proyectoInicial ? `p:${proyectoInicial}` : '');
+  useEffect(() => {
+    tareasGateway.equipos().then((ts) => {
+      setEquipos(ts);
+      // Al crear sin proyecto: por defecto, el sprint de MI equipo (si sólo tengo uno); si no, global.
+      if (!sprint && !proyectoInicial) {
+        const mios = ts.filter((t) => t.mine);
+        if (mios.length === 1) setAmbito(`t:${mios[0].id}`);
+      }
+    }).catch(() => setEquipos([]));
+  }, [sprint, proyectoInicial]);
   const [startDate, setStartDate] = useState(sprint?.startDate ?? '');
   const [endDate, setEndDate] = useState(sprint?.endDate ?? '');
   const [saving, setSaving] = useState(false);
@@ -133,7 +153,14 @@ export function SprintModal({ sprint, projectId: proyectoInicial, onClose, onSav
     setSaving(true);
     setError('');
     try {
-      const dto: CreateSprintDto & UpdateSprintDto = { name, goal, projectId: projectId ? Number(projectId) : null, startDate: startDate || null, endDate: endDate || null };
+      const dto: CreateSprintDto & UpdateSprintDto = {
+        name,
+        goal,
+        projectId: ambito.startsWith('p:') ? Number(ambito.slice(2)) : null,
+        teamId: ambito.startsWith('t:') ? Number(ambito.slice(2)) : null,
+        startDate: startDate || null,
+        endDate: endDate || null,
+      };
       onSaved(sprint ? await tareasGateway.editarSprint(sprint.id, dto) : await tareasGateway.crearSprint(dto));
     } catch (err) {
       setError((err as Error).message);
@@ -154,11 +181,12 @@ export function SprintModal({ sprint, projectId: proyectoInicial, onClose, onSav
           </Form.Group>
           <Form.Group className="mb-3">
             <Form.Label className="small">Ámbito</Form.Label>
-            <Form.Select id="sp-project" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-              <option value="">Transversal · tareas de cualquier proyecto</option>
-              {proyectos.map((p) => <option key={p.id} value={p.id}>Sólo {p.name} ({p.key})</option>)}
+            <Form.Select id="sp-project" value={ambito} onChange={(e) => setAmbito(e.target.value)}>
+              {equipos.map((t) => <option key={t.id} value={`t:${t.id}`}>Equipo {t.name} · tareas de sus proyectos{t.mine ? '' : ' (no eres miembro)'}</option>)}
+              {proyectos.map((p) => <option key={p.id} value={`p:${p.id}`}>Sólo {p.name} ({p.key})</option>)}
+              <option value="">Global · tareas de cualquier proyecto y equipo</option>
             </Form.Select>
-            <Form.Text className="text-secondary">Un sprint de proyecto sólo admite tareas de ese proyecto. Para cambiarlo después, no puede tener tareas de otros.</Form.Text>
+            <Form.Text className="text-secondary">Un sprint de equipo admite tareas de los proyectos de ese equipo; uno de proyecto, sólo las suyas. Para cambiarlo después, todas sus tareas tienen que caber en el nuevo ámbito.</Form.Text>
           </Form.Group>
           <div className="row g-3">
             <div className="col-6">
