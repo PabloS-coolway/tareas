@@ -11,9 +11,13 @@ import type { ViewFilters } from '@yorga/contracts';
 import { Skeleton } from '../components/Skeleton';
 import { TableroGlobal } from '../components/TableroGlobal';
 import { useProyectos } from '../proyectos/ProyectosContext';
+import { useFiltrosUrl } from '../filtros/useFiltrosUrl';
 
 type Vista = 'tablero' | 'lista';
 const VISTA_KEY = 'tareas.vista.global';
+
+/** Filtros (los resuelve el servidor); viven en la URL para que no se pierdan al abrir una tarea y volver. */
+const FILTROS = { q: '', projectId: '', assignee: '', priority: '', type: '', sprint: '', tag: '', soloVencidas: false, includeDone: false, sigo: false };
 
 /** Todas las tareas de todos los proyectos: tablero (mismos estados en todos) o lista, con filtros. */
 export function TodasTareasPage() {
@@ -24,30 +28,25 @@ export function TodasTareasPage() {
   const [error, setError] = useState('');
   const [vista, setVista] = useState<Vista>(() => (localStorage.getItem(VISTA_KEY) as Vista) || 'tablero');
 
-  // filtros (los resuelve el servidor)
-  const [q, setQ] = useState('');
-  const [projectId, setProjectId] = useState('');
-  const [assignee, setAssignee] = useState('');
-  const [priority, setPriority] = useState('');
-  const [type, setType] = useState('');
-  const [sprint, setSprint] = useState('');
-  const [tag, setTag] = useState('');
-  const [soloVencidas, setSoloVencidas] = useState(false);
+  const { filtros, cambiar, limpiar, activos } = useFiltrosUrl(FILTROS, 'tareas');
+  const { q, projectId, assignee, priority, type, sprint, tag, soloVencidas, includeDone, sigo } = filtros;
+  const setTag = useCallback((t: string) => cambiar({ tag: t }), [cambiar]);
   const [etiquetas, setEtiquetas] = useState<TagCountDto[]>([]);
-  const [includeDone, setIncludeDone] = useState(false);
 
-  const filtrosActuales: ViewFilters = { q, projectId, assignee, priority, type, sprint, tag, soloVencidas, includeDone };
-  const aplicarVista = (f: ViewFilters) => {
-    setQ(String(f.q ?? ''));
-    setProjectId(String(f.projectId ?? ''));
-    setAssignee(String(f.assignee ?? ''));
-    setPriority(String(f.priority ?? ''));
-    setType(String(f.type ?? ''));
-    setSprint(String(f.sprint ?? ''));
-    setTag(String(f.tag ?? ''));
-    setSoloVencidas(!!f.soloVencidas);
-    setIncludeDone(!!f.includeDone);
-  };
+  const filtrosActuales: ViewFilters = { q, projectId, assignee, priority, type, sprint, tag, soloVencidas, includeDone, sigo };
+  const aplicarVista = (f: ViewFilters) =>
+    cambiar({
+      q: String(f.q ?? ''),
+      projectId: String(f.projectId ?? ''),
+      assignee: String(f.assignee ?? ''),
+      priority: String(f.priority ?? ''),
+      type: String(f.type ?? ''),
+      sprint: String(f.sprint ?? ''),
+      tag: String(f.tag ?? ''),
+      soloVencidas: !!f.soloVencidas,
+      includeDone: !!f.includeDone,
+      sigo: !!f.sigo,
+    });
 
   const cambiarVista = (v: Vista) => {
     setVista(v);
@@ -71,6 +70,7 @@ export function TodasTareasPage() {
         sprintId: sprint === 'none' ? 'none' : sprint ? Number(sprint) : undefined,
         tag: tag || undefined,
         overdue: soloVencidas || undefined,
+        followedBy: sigo ? 'me' : undefined,
         q: q || undefined,
         // En tablero: sin épicas ni subtareas (como en el de cada proyecto) y las terminadas de los últimos 14 días.
         board: vista === 'tablero',
@@ -82,7 +82,7 @@ export function TodasTareasPage() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [q, projectId, assignee, priority, type, sprint, tag, soloVencidas, includeDone, vista]);
+  }, [q, projectId, assignee, priority, type, sprint, tag, soloVencidas, includeDone, sigo, vista]);
 
   useEffect(() => {
     setTasks(null);
@@ -119,7 +119,7 @@ export function TodasTareasPage() {
       { key: 'due', label: 'vence', value: (t) => t.dueDate ?? '', render: (t) => <Vence date={t.dueDate} done={t.status.category === 'DONE'} /> },
       { key: 'parent', label: 'épica / padre', value: (t) => t.parentKey ?? '', render: (t) => (t.parentKey ? <Link to={`/t/${t.parentKey}`} className="task-key">{t.parentKey}</Link> : null) },
     ],
-    [proyectoDe],
+    [proyectoDe, setTag],
   );
   const tabla = useMemoryTable(tasks ?? [], columns);
 
@@ -138,7 +138,7 @@ export function TodasTareasPage() {
           </div>
         </div>
         <div className="d-flex align-items-center gap-3 flex-wrap">
-          {vista === 'lista' && <Form.Check type="switch" id="tt-done" label="Incluir terminadas (30 días)" checked={includeDone} onChange={(e) => setIncludeDone(e.target.checked)} />}
+          {vista === 'lista' && <Form.Check type="switch" id="tt-done" label="Incluir terminadas (30 días)" checked={includeDone} onChange={(e) => cambiar({ includeDone: e.target.checked })} />}
           <VistasGuardadas scope="global" actual={filtrosActuales} aplicar={aplicarVista} onError={setError} />
           <ButtonGroup className="view-toggle">
             <Button variant={vista === 'tablero' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => cambiarVista('tablero')} title="Tablero"><Kanban /></Button>
@@ -151,37 +151,39 @@ export function TodasTareasPage() {
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>⚠ {error}</Alert>}
 
       <div className="board-toolbar">
-        <Form.Control id="tt-q" size="sm" className="grow" placeholder="Buscar por título o clave…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Form.Select id="tt-project" size="sm" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+        <Form.Control id="tt-q" size="sm" className="grow" placeholder="Buscar por título o clave…" value={q} onChange={(e) => cambiar({ q: e.target.value })} />
+        <Form.Select id="tt-project" size="sm" value={projectId} onChange={(e) => cambiar({ projectId: e.target.value })}>
           <option value="">Todos los proyectos</option>
           {proyectos.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </Form.Select>
-        <Form.Select id="tt-sprint" size="sm" value={sprint} onChange={(e) => setSprint(e.target.value)}>
+        <Form.Select id="tt-sprint" size="sm" value={sprint} onChange={(e) => cambiar({ sprint: e.target.value })}>
           <option value="">Cualquier sprint</option>
           <option value="none">Backlog (sin sprint)</option>
           {sprints.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.status === 'CLOSED' ? ' (cerrado)' : sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>)}
         </Form.Select>
-        <Form.Select id="tt-assignee" size="sm" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+        <Form.Select id="tt-assignee" size="sm" value={assignee} onChange={(e) => cambiar({ assignee: e.target.value })}>
           <option value="">Cualquier asignado</option>
           <option value="me">Mías</option>
           <option value="none">Sin asignar</option>
           {equipo.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
         </Form.Select>
-        <Form.Select id="tt-prio" size="sm" value={priority} onChange={(e) => setPriority(e.target.value)}>
+        <Form.Select id="tt-prio" size="sm" value={priority} onChange={(e) => cambiar({ priority: e.target.value })}>
           <option value="">Cualquier prioridad</option>
           {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
         </Form.Select>
-        <Form.Select id="tt-type" size="sm" value={type} onChange={(e) => setType(e.target.value)}>
+        <Form.Select id="tt-type" size="sm" value={type} onChange={(e) => cambiar({ type: e.target.value })}>
           <option value="">Cualquier tipo</option>
           {TASK_TYPES.map((t) => <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>)}
         </Form.Select>
         {(etiquetas.length > 0 || tag) && (
-          <Form.Select id="tt-tag" size="sm" value={tag} onChange={(e) => setTag(e.target.value)}>
+          <Form.Select id="tt-tag" size="sm" value={tag} onChange={(e) => cambiar({ tag: e.target.value })}>
             <option value="">Cualquier etiqueta</option>
             {etiquetas.map((t) => <option key={t.tag} value={t.tag}>{t.tag} ({t.count})</option>)}
           </Form.Select>
         )}
-        <button type="button" className={`toolbar-chip ${soloVencidas ? 'on' : ''}`} onClick={() => setSoloVencidas((v) => !v)} title="Sólo las que han pasado su fecha límite">Vencidas</button>
+        <button type="button" className={`toolbar-chip ${soloVencidas ? 'on' : ''}`} onClick={() => cambiar({ soloVencidas: !soloVencidas })} title="Sólo las que han pasado su fecha límite">Vencidas</button>
+        <button type="button" className={`toolbar-chip ${sigo ? 'on' : ''}`} onClick={() => cambiar({ sigo: !sigo })} title="Sólo las tareas en las que estás de seguimiento">Sigo yo</button>
+        {activos && <button type="button" className="toolbar-chip" onClick={limpiar} title="Quitar todos los filtros">Limpiar filtros</button>}
       </div>
 
       {!tasks ? (

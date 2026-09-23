@@ -13,9 +13,13 @@ import { Column, DataTable, exportarCsv, useMemoryTable } from '../components/ta
 import { VistasGuardadas } from '../components/VistasGuardadas';
 import type { ViewFilters } from '@yorga/contracts';
 import { Skeleton } from '../components/Skeleton';
+import { useFiltrosUrl } from '../filtros/useFiltrosUrl';
 
 type Vista = 'tablero' | 'lista';
 const VISTA_KEY = 'tareas.vista';
+
+/** Filtros del tablero: viven en la URL para que no se pierdan al abrir una tarea y volver. */
+const FILTROS = { q: '', assignee: '', priority: '', type: '', sprint: '', tag: '', vencidas: false, verEpicas: false, todasTerminadas: false, sigo: false };
 
 export function TableroPage() {
   const { key = '' } = useParams();
@@ -30,30 +34,27 @@ export function TableroPage() {
   const [saving, setSaving] = useState(false);
 
   // filtros
-  const [q, setQ] = useState('');
-  const [assignee, setAssignee] = useState('');
-  const [priority, setPriority] = useState('');
-  const [type, setType] = useState('');
-  const [verEpicas, setVerEpicas] = useState(false);
-  const [sprint, setSprint] = useState('');
-  const [tag, setTag] = useState('');
-  const [vencidas, setVencidas] = useState(false);
-  const [todasTerminadas, setTodasTerminadas] = useState(false);
+  const { filtros, cambiar, limpiar, activos } = useFiltrosUrl(FILTROS, `p/${key}`);
+  const { q, assignee, priority, type, verEpicas, sprint, tag, vencidas, todasTerminadas, sigo } = filtros;
+  const setTag = useCallback((t: string) => cambiar({ tag: t }), [cambiar]);
   const [sprints, setSprints] = useState<SprintDto[]>([]);
   const [etiquetas, setEtiquetas] = useState<TagCountDto[]>([]);
   const [epicas, setEpicas] = useState<TaskDto[]>([]);
   const [carriles, setCarriles] = useState<'' | 'assignee' | 'epic'>(() => (localStorage.getItem('tareas.carriles') as '' | 'assignee' | 'epic') || '');
 
-  const filtrosActuales: ViewFilters = { q, assignee, priority, type, sprint, tag, vencidas, verEpicas, carriles };
+  const filtrosActuales: ViewFilters = { q, assignee, priority, type, sprint, tag, vencidas, verEpicas, sigo, carriles };
   const aplicarVista = (f: ViewFilters) => {
-    setQ(String(f.q ?? ''));
-    setAssignee(String(f.assignee ?? ''));
-    setPriority(String(f.priority ?? ''));
-    setType(String(f.type ?? ''));
-    setSprint(String(f.sprint ?? ''));
-    setTag(String(f.tag ?? ''));
-    setVencidas(!!f.vencidas);
-    setVerEpicas(!!f.verEpicas);
+    cambiar({
+      q: String(f.q ?? ''),
+      assignee: String(f.assignee ?? ''),
+      priority: String(f.priority ?? ''),
+      type: String(f.type ?? ''),
+      sprint: String(f.sprint ?? ''),
+      tag: String(f.tag ?? ''),
+      vencidas: !!f.vencidas,
+      verEpicas: !!f.verEpicas,
+      sigo: !!f.sigo,
+    });
     setCarriles((f.carriles as '' | 'assignee' | 'epic') ?? '');
   };
   const cambiarCarriles = (c: '' | 'assignee' | 'epic') => {
@@ -83,6 +84,7 @@ export function TableroPage() {
         sprintId: sprint === 'none' ? 'none' : sprint ? Number(sprint) : undefined,
         tag: tag || undefined,
         overdue: vencidas || undefined,
+        followedBy: sigo ? 'me' : undefined,
         q: q || undefined,
         pageSize: 1000,
       });
@@ -90,7 +92,7 @@ export function TableroPage() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [key, verEpicas, type, assignee, priority, q, sprint, tag, vencidas, todasTerminadas]);
+  }, [key, verEpicas, type, assignee, priority, q, sprint, tag, vencidas, todasTerminadas, sigo]);
 
   useEffect(() => {
     setTasks(null);
@@ -173,7 +175,7 @@ export function TableroPage() {
       { key: 'due', label: 'vence', value: (t) => t.dueDate ?? '', render: (t) => <Vence date={t.dueDate} done={t.status.category === 'DONE'} /> },
       { key: 'parent', label: 'épica / padre', value: (t) => t.parentKey ?? '', render: (t) => (t.parentKey ? <Link to={`/t/${t.parentKey}`} className="task-key">{t.parentKey}</Link> : null) },
     ],
-    [],
+    [setTag],
   );
   const tabla = useMemoryTable(tasks ?? [], columns);
 
@@ -212,34 +214,35 @@ export function TableroPage() {
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>⚠ {error}</Alert>}
 
       <div className="board-toolbar">
-        <Form.Control id="tb-q" size="sm" className="grow" placeholder="Buscar por título o clave…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Form.Select id="tb-assignee" size="sm" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+        <Form.Control id="tb-q" size="sm" className="grow" placeholder="Buscar por título o clave…" value={q} onChange={(e) => cambiar({ q: e.target.value })} />
+        <Form.Select id="tb-assignee" size="sm" value={assignee} onChange={(e) => cambiar({ assignee: e.target.value })}>
           <option value="">Cualquier asignado</option>
           <option value="me">Mías</option>
           <option value="none">Sin asignar</option>
           {equipo.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
         </Form.Select>
-        <Form.Select id="tb-prio" size="sm" value={priority} onChange={(e) => setPriority(e.target.value)}>
+        <Form.Select id="tb-prio" size="sm" value={priority} onChange={(e) => cambiar({ priority: e.target.value })}>
           <option value="">Cualquier prioridad</option>
           {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
         </Form.Select>
-        <Form.Select id="tb-type" size="sm" value={type} onChange={(e) => setType(e.target.value)} disabled={verEpicas}>
+        <Form.Select id="tb-type" size="sm" value={type} onChange={(e) => cambiar({ type: e.target.value })} disabled={verEpicas}>
           <option value="">Cualquier tipo</option>
           {TASK_TYPES.filter((t) => t !== 'EPIC').map((t) => <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>)}
         </Form.Select>
-        <Form.Select id="tb-sprint" size="sm" value={sprint} onChange={(e) => setSprint(e.target.value)}>
+        <Form.Select id="tb-sprint" size="sm" value={sprint} onChange={(e) => cambiar({ sprint: e.target.value })}>
           <option value="">Cualquier sprint</option>
           <option value="none">Backlog (sin sprint)</option>
           {sprints.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.projectId ? ` · ${sp.projectKey}` : ' · transversal'}{sp.status === 'ACTIVE' ? ' · en curso' : ''}</option>)}
         </Form.Select>
         {(etiquetas.length > 0 || tag) && (
-          <Form.Select id="tb-tag" size="sm" value={tag} onChange={(e) => setTag(e.target.value)}>
+          <Form.Select id="tb-tag" size="sm" value={tag} onChange={(e) => cambiar({ tag: e.target.value })}>
             <option value="">Cualquier etiqueta</option>
             {etiquetas.map((t) => <option key={t.tag} value={t.tag}>{t.tag} ({t.count})</option>)}
             {tag && !etiquetas.some((t) => t.tag === tag) && <option value={tag}>{tag}</option>}
           </Form.Select>
         )}
-        <button type="button" className={`toolbar-chip ${vencidas ? 'on' : ''}`} onClick={() => setVencidas((v) => !v)} title="Sólo las que han pasado su fecha límite">Vencidas</button>
+        <button type="button" className={`toolbar-chip ${vencidas ? 'on' : ''}`} onClick={() => cambiar({ vencidas: !vencidas })} title="Sólo las que han pasado su fecha límite">Vencidas</button>
+        <button type="button" className={`toolbar-chip ${sigo ? 'on' : ''}`} onClick={() => cambiar({ sigo: !sigo })} title="Sólo las tareas en las que estás de seguimiento">Sigo yo</button>
         {vista === 'tablero' && (
           <Form.Select id="tb-lanes" size="sm" value={carriles} onChange={(e) => cambiarCarriles(e.target.value as '' | 'assignee' | 'epic')} title="Carriles: agrupa el tablero en filas">
             <option value="">Sin carriles</option>
@@ -247,8 +250,9 @@ export function TableroPage() {
             <option value="epic">Carriles por épica</option>
           </Form.Select>
         )}
-        <Form.Check type="switch" id="tb-epics" label="Épicas" checked={verEpicas} onChange={(e) => setVerEpicas(e.target.checked)} className="small" />
-        <Form.Check type="switch" id="tb-alldone" label="Todas las terminadas" checked={todasTerminadas} onChange={(e) => setTodasTerminadas(e.target.checked)} className="small" title="Por defecto sólo se ven las terminadas en los últimos 14 días" />
+        <Form.Check type="switch" id="tb-epics" label="Épicas" checked={verEpicas} onChange={(e) => cambiar({ verEpicas: e.target.checked })} className="small" />
+        <Form.Check type="switch" id="tb-alldone" label="Todas las terminadas" checked={todasTerminadas} onChange={(e) => cambiar({ todasTerminadas: e.target.checked })} className="small" title="Por defecto sólo se ven las terminadas en los últimos 14 días" />
+        {activos && <button type="button" className="toolbar-chip" onClick={limpiar} title="Quitar todos los filtros">Limpiar filtros</button>}
       </div>
 
       {!project || !tasks ? (
@@ -314,7 +318,7 @@ export function TableroPage() {
                     {(prov, snap) => (
                       <div ref={prov.innerRef} {...prov.droppableProps} className={`board-col-body ${snap.isDraggingOver ? 'over' : ''}`}>
                         {s.category === 'DONE' && !todasTerminadas && project.doneCount > col.length && (
-                          <button type="button" className="col-foot mb-2 mt-0" onClick={() => setTodasTerminadas(true)} title="El tablero enseña sólo las terminadas de los últimos 14 días">
+                          <button type="button" className="col-foot mb-2 mt-0" onClick={() => cambiar({ todasTerminadas: true })} title="El tablero enseña sólo las terminadas de los últimos 14 días">
                             Últimos 14 días · {project.doneCount} terminadas en total → ver todas
                           </button>
                         )}
