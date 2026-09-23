@@ -1,5 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { BoxArrowRight, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock, Collection } from 'react-bootstrap-icons';
+import { NavLink, useLocation, useParams } from 'react-router-dom';
+import { BoxArrowRight, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock, Collection, Eye, EyeSlash } from 'react-bootstrap-icons';
 import { useEffect, useState, type ReactNode } from 'react';
 import { tareasGateway } from '../composition';
 import type { Feature } from '@yorga/contracts';
@@ -9,6 +9,7 @@ import type { Theme } from '../useTheme';
 import { useAuth } from '../auth/AuthContext';
 import { CambiarPasswordModal } from '../auth/CambiarPasswordModal';
 import { useProyectos } from '../proyectos/ProyectosContext';
+import { proyectosDelMenu } from './menu-proyectos';
 
 interface NavItem {
   to: string;
@@ -20,6 +21,9 @@ interface NavItem {
   /** Contador (avisos sin leer). */
   badge?: number;
 }
+
+/** Recuerda si el menú enseña sólo los proyectos con tareas mías. Por defecto sí, salvo para quien ve todo. */
+const CLAVE_SOLO_MIOS = 'tareas.menu-solo-mios';
 
 /** Evento para refrescar el contador de avisos (lo lanza la página de avisos al marcar leídos). */
 export const EVENTO_AVISOS = 'avisos:cambio';
@@ -33,6 +37,15 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
   const [cambiarPass, setCambiarPass] = useState(false);
   const [sinLeer, setSinLeer] = useState(0);
   const { pathname } = useLocation();
+  const { key: claveRuta } = useParams();
+  const [soloMios, setSoloMios] = useState(() => {
+    const guardado = localStorage.getItem(CLAVE_SOLO_MIOS);
+    return guardado === null ? !hasFeature('tareas.ver-todo') : guardado === '1';
+  });
+  const cambiarSoloMios = (v: boolean) => {
+    setSoloMios(v);
+    localStorage.setItem(CLAVE_SOLO_MIOS, v ? '1' : '0');
+  };
 
   useEffect(() => {
     const refrescar = () => tareasGateway.avisosSinLeer().then(setSinLeer).catch(() => undefined);
@@ -64,10 +77,12 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
     { to: '/integraciones', label: 'Integraciones', icon: <Diagram3 />, feature: 'usuarios.gestionar' },
   ];
   const visibles = (items: NavItem[]) => items.filter((n) => !n.feature || hasFeature(n.feature));
+  const listados = proyectosDelMenu(proyectos, soloMios, claveRuta);
+  const ocultos = proyectos.length - listados.length;
   // Proyectos agrupados por equipo (si sólo hay uno, sin título). Los sin equipo van al final.
   const grupos = (() => {
     const m = new Map<string, { key: string; name: string; items: typeof proyectos }>();
-    for (const p of proyectos) {
+    for (const p of listados) {
       const k = p.teamKey ?? '_';
       if (!m.has(k)) m.set(k, { key: k, name: p.teamName ?? 'Sin equipo', items: [] });
       m.get(k)!.items.push(p);
@@ -120,6 +135,12 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
               ))}
             </div>
           ))}
+          {(ocultos > 0 || !soloMios) && (
+            <button type="button" className="nav-item nav-filtro" onClick={() => cambiarSoloMios(!soloMios)}>
+              <span className="nav-ico">{soloMios ? <Eye /> : <EyeSlash />}</span>
+              <span className="nav-label">{soloMios ? `Ver todos (${ocultos} más)` : 'Ver sólo los míos'}</span>
+            </button>
+          )}
         </div>
 
         <div className="nav-group">

@@ -132,6 +132,8 @@ export interface ProjectDto {
   doneCount: number;
   /** Tareas abiertas asignadas a quien pregunta. */
   mineCount: number;
+  /** Tareas asignadas a quien pregunta, en cualquier estado. Decide si el proyecto sale en «solo mis proyectos». */
+  mineTotalCount: number;
   /** De las mías, las que están EN CURSO (categoría DOING, sin contar las bloqueadas): el número del menú. */
   mineDoingCount: number;
   createdAt: string;

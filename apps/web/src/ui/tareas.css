@@ -313,3 +313,7 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .nav-subgroup-title { padding: 6px 12px 2px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--sidebar-fg-muted); opacity: 0.85; }
 /* Equipos (administración) */
 .equipo-miembros { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; }
+
+/* Menú: interruptor «solo mis proyectos» (se ven los que tienen alguna tarea mía). */
+.nav-filtro { width: 100%; border: 0; background: none; text-align: left; opacity: 0.75; font-size: 0.86rem; }
+.nav-filtro:hover { opacity: 1; }

@@ -37,11 +37,14 @@ export class ProjectsService {
     const mias = await this.prisma.task.groupBy({ by: ['projectId'], where: { status: { category: { not: 'DONE' } }, assigneeId: userId }, _count: { _all: true } });
     const enCurso = await this.prisma.task.groupBy({ by: ['projectId'], where: { ...EN_CURSO, assigneeId: userId }, _count: { _all: true } });
     const hechas = await this.prisma.task.groupBy({ by: ['projectId'], where: { status: { category: 'DONE' } }, _count: { _all: true } });
+    // Todas mis tareas (también las terminadas): con esto el menú sabe en qué proyectos participo.
+    const miasTotal = await this.prisma.task.groupBy({ by: ['projectId'], where: { assigneeId: userId }, _count: { _all: true } });
     const hm = new Map(hechas.map((a) => [a.projectId, a._count._all]));
     const ab = new Map(abiertas.map((a) => [a.projectId, a._count._all]));
     const mi = new Map(mias.map((a) => [a.projectId, a._count._all]));
     const ec = new Map(enCurso.map((a) => [a.projectId, a._count._all]));
-    return projects.map((p) => toDto(p, ab.get(p.id) ?? 0, mi.get(p.id) ?? 0, ec.get(p.id) ?? 0, hm.get(p.id) ?? 0));
+    const mt = new Map(miasTotal.map((a) => [a.projectId, a._count._all]));
+    return projects.map((p) => toDto(p, ab.get(p.id) ?? 0, mi.get(p.id) ?? 0, ec.get(p.id) ?? 0, hm.get(p.id) ?? 0, mt.get(p.id) ?? 0));
   }
 
   async get(idOrKey: string, userId: number): Promise<ProjectDto> {
@@ -53,7 +56,8 @@ export class ProjectsService {
     const mine = await this.prisma.task.count({ where: { projectId: p.id, assigneeId: userId, status: { category: { not: 'DONE' } } } });
     const doing = await this.prisma.task.count({ where: { projectId: p.id, assigneeId: userId, ...EN_CURSO } });
     const done = await this.prisma.task.count({ where: { projectId: p.id, status: { category: 'DONE' } } });
-    return toDto(p, open, mine, doing, done);
+    const mineTotal = await this.prisma.task.count({ where: { projectId: p.id, assigneeId: userId } });
+    return toDto(p, open, mine, doing, done, mineTotal);
   }
 
   async create(dto: CreateProjectDto, userId: number): Promise<ProjectDto> {
@@ -153,6 +157,7 @@ function toDto(
   mineCount: number,
   mineDoingCount = 0,
   doneCount = 0,
+  mineTotalCount = 0,
 ): ProjectDto {
   return {
     id: p.id,
@@ -167,6 +172,7 @@ function toDto(
     teamName: p.team?.name ?? null,
     openCount,
     mineCount,
+    mineTotalCount,
     mineDoingCount,
     doneCount,
     createdAt: p.createdAt.toISOString(),
