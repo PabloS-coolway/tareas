@@ -31,6 +31,8 @@ import type {
   UpdateProjectDto,
   UpdateSprintDto,
   UpdateTaskDto,
+  BulkUpdateTasksDto,
+  BulkUpdateResultDto,
   UpsertStatusDto,
   UserRefDto,
 } from '@yorga/contracts';
@@ -134,6 +136,11 @@ export class HttpTareasGateway {
     const t = await ok<TaskDto>(await apiFetch(`/tasks/${id}`, json('PATCH', dto)), 'No se pudo guardar la tarea.');
     avisarCambioTareas();
     return t;
+  }
+  async editarEnBloque(dto: BulkUpdateTasksDto): Promise<BulkUpdateResultDto> {
+    const r = await ok<BulkUpdateResultDto>(await apiFetch('/tasks/bulk', json('POST', dto)), 'No se pudieron guardar los cambios.');
+    avisarCambioTareas();
+    return r;
   }
   async moverTarea(id: number, dto: MoveTaskDto): Promise<TaskDto> {
     const t = await ok<TaskDto>(await apiFetch(`/tasks/${id}/move`, json('POST', dto)), 'No se pudo mover la tarea.');

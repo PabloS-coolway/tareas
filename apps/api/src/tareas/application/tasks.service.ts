@@ -17,6 +17,8 @@ import {
   TaskRefDto,
   RECURRENCES,
   KpisDto,
+  BulkUpdateTasksDto,
+  BulkUpdateResultDto,
 } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea, parsearClaveTarea } from '../domain/clave';
@@ -107,6 +109,14 @@ export class TasksService {
           ],
         },
       ];
+    }
+    if (f.dueFrom || f.dueTo) {
+      // Calendario / cronograma: con vencimiento, y su periodo (inicio → vencimiento) cruza el rango.
+      const desde = parseFecha(f.dueFrom);
+      const hasta = parseFecha(f.dueTo);
+      const rango: Prisma.TaskWhereInput[] = [{ dueDate: desde ? { gte: desde } : { not: null } }];
+      if (hasta) rango.push({ OR: [{ startDate: { lte: hasta } }, { startDate: null, dueDate: { lte: hasta } }] });
+      where.AND = [...((where.AND as Prisma.TaskWhereInput[]) ?? []), ...rango];
     }
     if (!f.includeDone) where.status = { category: { not: 'DONE' } };
     else if (f.doneDays) {
@@ -377,6 +387,41 @@ export class TasksService {
     });
     if (data.closedAt instanceof Date) await this.alTerminar(id, actorId);
     return this.get(id);
+  }
+
+  /** Edición en bloque: cada tarea pasa por `update` (historial y avisos); los fallos no paran el resto. */
+  async bulkUpdate(dto: BulkUpdateTasksDto, actorId: number): Promise<BulkUpdateResultDto> {
+    const ids = [...new Set((dto.ids ?? []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    if (!ids.length) throw new BadRequestException('Selecciona alguna tarea.');
+    if (ids.length > 200) throw new BadRequestException('Como mucho 200 tareas a la vez.');
+    const filas = await this.prisma.task.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, number: true, tags: true, project: { select: { key: true, statuses: { select: { id: true, key: true } } } }, followers: { select: { userId: true } } },
+    });
+    const errors: BulkUpdateResultDto['errors'] = ids.filter((id) => !filas.some((f) => f.id === id)).map((id) => ({ id, key: String(id), error: 'No existe.' }));
+    const quitar = new Set(limpiarTags(dto.removeTags));
+    let updated = 0;
+    for (const t of filas) {
+      const clave = claveTarea(t.project.key, t.number);
+      try {
+        const cambio: UpdateTaskDto = {};
+        if (dto.statusKey) {
+          const st = t.project.statuses.find((s) => s.key === dto.statusKey);
+          if (!st) throw new BadRequestException(`El proyecto ${t.project.key} no tiene el estado «${dto.statusKey}».`);
+          cambio.statusId = st.id;
+        }
+        if (dto.assigneeId !== undefined) cambio.assigneeId = dto.assigneeId;
+        if (dto.sprintId !== undefined) cambio.sprintId = dto.sprintId;
+        if (dto.priority) cambio.priority = dto.priority;
+        if (dto.addTags?.length || quitar.size) cambio.tags = [...t.tags, ...limpiarTags(dto.addTags)].filter((x) => !quitar.has(x));
+        if (dto.addFollowerIds?.length) cambio.followerIds = [...t.followers.map((f) => f.userId), ...dto.addFollowerIds];
+        await this.update(t.id, cambio, actorId);
+        updated++;
+      } catch (e) {
+        errors.push({ id: t.id, key: clave, error: (e as Error).message });
+      }
+    }
+    return { updated, errors };
   }
 
   /** Mover en el tablero (columna + posición). Escribe una fila; renumera la columna sólo si el hueco se agotó. */

@@ -12,6 +12,8 @@ import { Skeleton } from '../components/Skeleton';
 import { TableroGlobal } from '../components/TableroGlobal';
 import { useProyectos } from '../proyectos/ProyectosContext';
 import { useFiltrosUrl } from '../filtros/useFiltrosUrl';
+import { AccionesEnBloque } from '../components/AccionesEnBloque';
+import { useAuth } from '../auth/AuthContext';
 
 type Vista = 'tablero' | 'lista';
 const VISTA_KEY = 'tareas.vista.global';
@@ -26,6 +28,9 @@ export function TodasTareasPage() {
   const [equipo, setEquipo] = useState<UserRefDto[]>([]);
   const [sprints, setSprints] = useState<SprintDto[]>([]);
   const [error, setError] = useState('');
+  const { hasFeature } = useAuth();
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [aviso, setAviso] = useState('');
   const [vista, setVista] = useState<Vista>(() => (localStorage.getItem(VISTA_KEY) as Vista) || 'tablero');
 
   const { filtros, cambiar, limpiar, activos } = useFiltrosUrl(FILTROS, 'tareas');
@@ -193,7 +198,11 @@ export function TodasTareasPage() {
       ) : (
         <Card>
           <Card.Body className="p-3">
-            <DataTable model={tabla} allRows={tasks} rowKey={(t) => String(t.id)} empty="Ninguna tarea cumple el filtro." />
+            {aviso && <Alert variant={aviso.startsWith('⚠') || aviso.includes('no se pudo') ? 'warning' : 'success'} dismissible onClose={() => setAviso('')} className="py-2 small">{aviso}</Alert>}
+            {sel.size > 0 && hasFeature('tareas.editar') && (
+              <AccionesEnBloque tareas={tasks.filter((t) => sel.has(String(t.id)))} proyectos={proyectos} equipo={equipo} sprints={sprints} limpiar={() => setSel(new Set())} hecho={(a) => { setAviso(a); void load(); }} />
+            )}
+            <DataTable model={tabla} allRows={tasks} rowKey={(t) => String(t.id)} empty="Ninguna tarea cumple el filtro." seleccion={hasFeature('tareas.editar') ? sel : undefined} onSeleccion={setSel} />
           </Card.Body>
         </Card>
       )}

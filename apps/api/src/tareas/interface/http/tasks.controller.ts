@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
-import { ActivityDto, ActivityFeedItemDto, CommentDto, CreateTaskDto, DependenciesDto, KpisDto, MoveTaskDto, Priority, ResumenDto, TagCountDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
+import { ActivityDto, ActivityFeedItemDto, BulkUpdateResultDto, BulkUpdateTasksDto, CommentDto, CreateTaskDto, DependenciesDto, KpisDto, MoveTaskDto, Priority, ResumenDto, TagCountDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
 import { JwtPayload } from '../../../auth/application/auth.service';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
 import { ActivityService } from '../../application/activity.service';
@@ -21,6 +21,8 @@ export function parseFilter(q: Record<string, string | undefined>): TaskFilter {
     sprintId: q.sprintId === 'none' ? 'none' : num(q.sprintId),
     tag: q.tag,
     followedBy: q.followedBy === 'me' ? 'me' : num(q.followedBy),
+    dueFrom: q.dueFrom,
+    dueTo: q.dueTo,
     overdue: q.overdue === 'true',
     board: q.board === 'true',
     includeDone: q.includeDone === 'true',
@@ -88,6 +90,12 @@ export class TasksController {
   @RequireFeature('tareas.editar')
   create(@Body() body: CreateTaskDto, @CurrentUser() me: JwtPayload): Promise<TaskDto> {
     return this.tasks.create(body, me.sub);
+  }
+
+  @Post('bulk')
+  @RequireFeature('tareas.editar')
+  bulk(@Body() body: BulkUpdateTasksDto, @CurrentUser() me: JwtPayload): Promise<BulkUpdateResultDto> {
+    return this.tasks.bulkUpdate(body, me.sub);
   }
 
   @Patch(':id')

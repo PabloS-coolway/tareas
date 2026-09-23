@@ -12,6 +12,7 @@ import { TableroPage } from './pages/TableroPage';
 import { TareaPage } from './pages/TareaPage';
 import { MisTareasPage } from './pages/MisTareasPage';
 import { EquipoPage } from './pages/EquipoPage';
+import { CalendarioPage } from './pages/CalendarioPage';
 import { TodasTareasPage } from './pages/TodasTareasPage';
 import { SprintsPage } from './pages/SprintsPage';
 import { SprintPage } from './pages/SprintPage';
@@ -42,6 +43,7 @@ export function App() {
               <Route path="/equipo/:userId" element={<EquipoPage />} />
               <Route path="/proyectos" element={<ProyectosPage />} />
               <Route path="/tareas" element={<TodasTareasPage />} />
+              <Route path="/calendario" element={<CalendarioPage />} />
               <Route path="/sprints" element={<SprintsPage />} />
               <Route path="/sprints/:id" element={<SprintPage />} />
               <Route path="/backlog" element={<BacklogPage />} />

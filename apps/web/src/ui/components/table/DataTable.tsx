@@ -29,12 +29,17 @@ export function DataTable<T>({
   allRows,
   empty = 'Sin resultados.',
   size = 'sm',
+  seleccion,
+  onSeleccion,
 }: {
   model: TableModel<T>;
   rowKey: (row: T, i: number) => string;
   allRows: T[];
   empty?: string;
   size?: 'sm';
+  /** Selección de filas (por `rowKey`) para acciones en bloque. Sin ella, la tabla no enseña casillas. */
+  seleccion?: Set<string>;
+  onSeleccion?: (s: Set<string>) => void;
 }) {
   const [abierta, setAbierta] = useState<string | null>(null);
 
@@ -42,6 +47,17 @@ export function DataTable<T>({
     () => new Map(model.columns.map((c) => [c.key, tipoDeFiltro(c, allRows)] as const)),
     [model.columns, allRows],
   );
+
+  const seleccionable = !!seleccion && !!onSeleccion;
+  // «Marcar todo» marca TODO lo filtrado (no sólo la página visible), como en Gmail.
+  const filtradas = seleccionable ? model.allFilteredRows().map((r, i) => rowKey(r, i)) : [];
+  const marcadas = filtradas.filter((k) => seleccion?.has(k)).length;
+  const alternar = (k: string) => {
+    const next = new Set(seleccion);
+    if (next.has(k)) next.delete(k);
+    else next.add(k);
+    onSeleccion?.(next);
+  };
 
   const cabecera = (col: Column<T>) => {
     const kind = kinds.get(col.key) ?? 'none';
@@ -136,18 +152,37 @@ export function DataTable<T>({
       <div className="labels-preview">
         <Table size={size} striped hover className="mb-0 align-middle">
           <thead>
-            <tr>{model.columns.map(cabecera)}</tr>
+            <tr>
+              {seleccionable && (
+                <th className="col-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    aria-label="Seleccionar todas las filas filtradas"
+                    checked={filtradas.length > 0 && marcadas === filtradas.length}
+                    ref={(el) => { if (el) el.indeterminate = marcadas > 0 && marcadas < filtradas.length; }}
+                    onChange={() => onSeleccion?.(marcadas === filtradas.length ? new Set() : new Set(filtradas))}
+                  />
+                </th>
+              )}
+              {model.columns.map(cabecera)}
+            </tr>
           </thead>
           <tbody>
             {model.rows.length === 0 && (
               <tr>
-                <td colSpan={model.columns.length} className="text-secondary text-center py-3">
+                <td colSpan={model.columns.length + (seleccionable ? 1 : 0)} className="text-secondary text-center py-3">
                   {empty}
                 </td>
               </tr>
             )}
             {model.rows.map((row, i) => (
-              <tr key={rowKey(row, i)}>
+              <tr key={rowKey(row, i)} className={seleccion?.has(rowKey(row, i)) ? 'table-active' : undefined}>
+                {seleccionable && (
+                  <td className="col-check">
+                    <input type="checkbox" className="form-check-input" aria-label="Seleccionar fila" checked={seleccion!.has(rowKey(row, i))} onChange={() => alternar(rowKey(row, i))} />
+                  </td>
+                )}
                 {model.columns.map((c) => (
                   <td key={c.key} className={c.align === 'end' ? 'text-end' : undefined}>
                     {c.render ? c.render(row) : (c.value(row) ?? '')}

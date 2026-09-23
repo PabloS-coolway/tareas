@@ -14,6 +14,7 @@ import { VistasGuardadas } from '../components/VistasGuardadas';
 import type { ViewFilters } from '@yorga/contracts';
 import { Skeleton } from '../components/Skeleton';
 import { useFiltrosUrl } from '../filtros/useFiltrosUrl';
+import { AccionesEnBloque } from '../components/AccionesEnBloque';
 
 type Vista = 'tablero' | 'lista';
 const VISTA_KEY = 'tareas.vista';
@@ -32,6 +33,8 @@ export function TableroPage() {
   const [nueva, setNueva] = useState(false);
   const [nuevoSprint, setNuevoSprint] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [aviso, setAviso] = useState('');
 
   // filtros
   const { filtros, cambiar, limpiar, activos } = useFiltrosUrl(FILTROS, `p/${key}`);
@@ -344,7 +347,11 @@ export function TableroPage() {
       ) : (
         <Card>
           <Card.Body className="p-3">
-            <DataTable model={tabla} allRows={tasks} rowKey={(t) => String(t.id)} empty="Ninguna tarea cumple el filtro." />
+            {aviso && <Alert variant={aviso.startsWith('⚠') || aviso.includes('no se pudo') ? 'warning' : 'success'} dismissible onClose={() => setAviso('')} className="py-2 small">{aviso}</Alert>}
+            {sel.size > 0 && hasFeature('tareas.editar') && (
+              <AccionesEnBloque tareas={tasks.filter((t) => sel.has(String(t.id)))} proyectos={[project]} equipo={equipo} sprints={sprints} limpiar={() => setSel(new Set())} hecho={(a) => { setAviso(a); void load(); }} />
+            )}
+            <DataTable model={tabla} allRows={tasks} rowKey={(t) => String(t.id)} empty="Ninguna tarea cumple el filtro." seleccion={hasFeature('tareas.editar') ? sel : undefined} onSeleccion={setSel} />
           </Card.Body>
         </Card>
       )}

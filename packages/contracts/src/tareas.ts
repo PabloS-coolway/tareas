@@ -277,6 +277,29 @@ export interface UpdateTaskDto {
   recurrence?: Recurrence;
 }
 
+/**
+ * Edición en bloque: los mismos cambios a varias tareas (pueden ser de proyectos distintos). Cada una pasa
+ * por la edición normal (historial, avisos, validaciones); las que fallen se informan sin parar el resto.
+ */
+export interface BulkUpdateTasksDto {
+  ids: number[];
+  /** Estado por su CLAVE (`en-curso`…): cada proyecto tiene sus propios estados. */
+  statusKey?: string;
+  assigneeId?: number | null;
+  sprintId?: number | null;
+  priority?: Priority;
+  /** Etiquetas a añadir / quitar (no sustituyen las que ya tiene cada tarea). */
+  addTags?: string[];
+  removeTags?: string[];
+  /** Personas a añadir al seguimiento. */
+  addFollowerIds?: number[];
+}
+
+export interface BulkUpdateResultDto {
+  updated: number;
+  errors: { id: number; key: string; error: string }[];
+}
+
 /** Mover en el tablero: a una columna (estado) y a una posición dentro de ella. */
 export interface MoveTaskDto {
   statusId: number;
@@ -297,6 +320,9 @@ export interface TaskFilter {
   sprintId?: number | 'none';
   /** Etiqueta exacta (en minúsculas). */
   tag?: string;
+  /** Rango de fechas (AAAA-MM-DD): tareas con vencimiento cuyo periodo inicio→vencimiento se cruza con él. */
+  dueFrom?: string;
+  dueTo?: string;
   /** Tareas que sigue esta persona (`me` = quien pregunta). */
   followedBy?: number | 'me';
   /** Sólo vencidas (fecha límite pasada y no terminadas). */

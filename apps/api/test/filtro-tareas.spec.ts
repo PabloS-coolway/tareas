@@ -6,4 +6,8 @@ describe('filtros de GET /tasks', () => {
     expect(parseFilter({ followedBy: '7' }).followedBy).toBe(7);
     expect(parseFilter({}).followedBy).toBeUndefined();
   });
+
+  it('el rango del calendario llega al servicio', () => {
+    expect(parseFilter({ dueFrom: '2026-09-01', dueTo: '2026-09-30' })).toMatchObject({ dueFrom: '2026-09-01', dueTo: '2026-09-30' });
+  });
 });
