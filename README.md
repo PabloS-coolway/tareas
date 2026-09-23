@@ -45,6 +45,17 @@ llamadas (herramienta MCP o petición a la API, argumentos, resultado y tiempo; 
 Herramientas: listar_proyectos, listar_tareas, mis_tareas, ver_tarea, crear_tarea, editar_tarea, comentar,
 listar_sprints, crear_sprint, equipo. Las mismas en las dos formas (`packages/mcp/src/herramientas.ts`).
 
+## Commits y PRs de GitHub en las tareas
+
+Si un commit o una PR mencionan una clave de tarea (`COOL-32`, `TAREAS-6`…) en el mensaje, el título, la
+descripción o el nombre de la rama, la tarea recibe un comentario con el enlace (a nombre de quien hizo el
+commit si su correo es del equipo; si no, de «GitHub»). Sólo comenta: ninguna tarea se cierra sola.
+
+- Endpoint: `POST /api/integrations/github`, firmado con `GITHUB_WEBHOOK_SECRET` (secreto de la API en DO).
+- Alta del webhook en todos los repos de la cuenta (idempotente; `--seco` para ver qué haría):
+  `GITHUB_TOKEN=$(gh auth token) GITHUB_WEBHOOK_SECRET=… node scripts/github-webhooks.mjs`
+  El token debe ser de la cuenta dueña de los repos (PabloS-coolway).
+
 ## Arquitectura
 
 Monorepo (npm workspaces + Turborepo), mismas convenciones que `automatizaciones`:
