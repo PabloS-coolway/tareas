@@ -33,6 +33,7 @@ import { Dependencias } from '../components/Dependencias';
 import { ComentarioInput } from '../components/ComentarioInput';
 import { EditorTexto } from '../components/EditorTexto';
 import { Seguimiento } from '../components/Seguimiento';
+import { Desarrollo } from '../components/Desarrollo';
 
 const fmtBytes = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
@@ -431,6 +432,8 @@ export function TareaPage() {
               )}
             </Card.Body>
           </Card>
+
+          <Desarrollo taskId={task.id} taskKey={task.key} />
 
           <Card>
             <Card.Body>

@@ -34,6 +34,7 @@ import type {
   BulkUpdateTasksDto,
   RuleDto,
   IntakeConfigDto,
+  DevelopmentDto,
   UpdateIntakeDto,
   UpsertRuleDto,
   BulkUpdateResultDto,
@@ -238,6 +239,11 @@ export class HttpTareasGateway {
   }
   async borrarPlantilla(id: number): Promise<void> {
     return ok(await apiFetch(`/templates/${id}`, { method: 'DELETE' }), 'No se pudo borrar la plantilla.');
+  }
+
+  // --- desarrollo (GitHub) ---
+  async desarrollo(taskId: number): Promise<DevelopmentDto> {
+    return ok(await apiFetch(`/tasks/${taskId}/development`), 'No se pudo cargar el desarrollo.');
   }
 
   // --- formulario público y plazos ---

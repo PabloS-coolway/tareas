@@ -1,6 +1,7 @@
-import { Body, Controller, Headers, HttpCode, Post, Req, type RawBodyRequest } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, ParseIntPipe, Post, Req, type RawBodyRequest } from '@nestjs/common';
+import type { DevelopmentDto } from '@yorga/contracts';
 import type { Request } from 'express';
-import { Public } from '../../../auth/interface/http/decorators';
+import { Public, RequireFeature } from '../../../auth/interface/http/decorators';
 import { GithubService } from '../../application/github.service';
 
 /** Webhook de GitHub (push y pull_request). Público, pero sólo acepta peticiones firmadas con el secreto. */
@@ -15,5 +16,17 @@ export class GithubController {
     this.github.verificar(req.rawBody, firma);
     if (evento === 'ping') return { ok: true };
     return this.github.recibir(evento, body as Parameters<GithubService['recibir']>[1]);
+  }
+}
+
+/** Panel «Desarrollo» de una tarea (ramas, commits y PRs de GitHub). */
+@Controller('tasks')
+export class DevelopmentController {
+  constructor(private readonly github: GithubService) {}
+
+  @Get(':id/development')
+  @RequireFeature('tareas.ver')
+  get(@Param('id', ParseIntPipe) id: number): Promise<DevelopmentDto> {
+    return this.github.desarrollo(id);
   }
 }

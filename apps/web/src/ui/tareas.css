@@ -374,3 +374,13 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .form-publico { min-height: 100dvh; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; background: var(--sidebar-bg); }
 .form-publico .card { width: 100%; max-width: 560px; border-radius: 16px; }
 .form-publico .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* ---------- Panel Desarrollo (GitHub) ---------- */
+.dev-panel .card-title { font-size: 1rem; }
+.dev-seccion { margin-top: 10px; }
+.dev-titulo { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px; }
+.dev-titulo .count { font-weight: 600; margin-left: 4px; }
+.dev-fila { display: flex; align-items: center; gap: 8px; padding: 5px 6px; margin: 0 -6px; border-radius: 6px; color: inherit; text-decoration: none; font-size: 0.85rem; min-width: 0; }
+.dev-fila:hover { background: color-mix(in srgb, var(--brand) 8%, transparent); color: inherit; }
+.dev-estado { font-size: 0.65rem; flex-shrink: 0; }
+.dev-crear { background: color-mix(in srgb, var(--brand) 5%, transparent); border-radius: 8px; padding: 10px; }

@@ -487,12 +487,21 @@ model TaskGitRef {
   id        Int      @id @default(autoincrement())
   taskId    Int      @map("task_id")
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  /// commit | pr-opened | pr-merged
+  /// commit | branch | pr-opened | pr-merged
   kind      String
-  /// «owner/repo@sha» o «owner/repo#12».
+  /// «owner/repo@sha», «owner/repo#12» o «owner/repo:rama».
   ref       String
   url       String
   title     String
+  /// owner/repo
+  repo      String   @default("")
+  /// Rama del commit, o la rama de la PR / la propia rama.
+  branch    String?
+  author    String?
+  /// Número de la PR.
+  number    Int?
+  /// Cuándo ocurrió en GitHub (fecha del commit, de la PR…).
+  at        DateTime?
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([taskId, kind, ref])

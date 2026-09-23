@@ -712,3 +712,18 @@ export interface PublicFormSubmitDto {
 export interface PublicFormResultDto {
   key: string;
 }
+
+// ---------- Desarrollo (GitHub) ----------
+
+export interface DevBranchDto { repo: string; name: string; url: string }
+export interface DevCommitDto { repo: string; sha: string; message: string; url: string; author: string | null; branch: string | null; at: string | null }
+export interface DevPullRequestDto { repo: string; number: number; title: string; url: string; state: 'open' | 'merged'; branch: string | null; author: string | null; at: string | null }
+
+/** Panel «Desarrollo» de una tarea: ramas, commits y PRs de GitHub que la mencionan. */
+export interface DevelopmentDto {
+  branches: DevBranchDto[];
+  commits: DevCommitDto[];
+  pullRequests: DevPullRequestDto[];
+  /** Nombre de rama sugerido para empezar a trabajar en ella («feat/COOL-32-guia-de-tallas»). */
+  suggestedBranch: string;
+}
