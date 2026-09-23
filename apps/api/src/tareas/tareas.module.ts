@@ -16,6 +16,8 @@ import { RulesService } from './application/rules.service';
 import { RulesController } from './interface/http/rules.controller';
 import { IntakeService } from './application/intake.service';
 import { IntakeController, PublicFormController } from './interface/http/intake.controller';
+import { GithubService } from './application/github.service';
+import { GithubController } from './interface/http/github.controller';
 import { storageProvider } from './infrastructure/storage.provider';
 import { AttachmentsController } from './interface/http/attachments.controller';
 import { ProjectsController } from './interface/http/projects.controller';
@@ -27,8 +29,8 @@ import { CommentsController, TasksController } from './interface/http/tasks.cont
 
 /** Proyectos, tareas, comentarios, adjuntos y actividad. */
 @Module({
-  controllers: [ProjectsController, TeamsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController, RulesController, IntakeController, PublicFormController],
-  providers: [PrismaService, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, RulesService, IntakeService, CommentsService, AttachmentsService, storageProvider],
+  controllers: [ProjectsController, TeamsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController, RulesController, IntakeController, PublicFormController, GithubController],
+  providers: [PrismaService, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, RulesService, IntakeService, GithubService, CommentsService, AttachmentsService, storageProvider],
   exports: [AccessService, TeamsService, ProjectsService, SprintsService, TasksService, NotificationsService, TemplatesService, CommentsService, AttachmentsService, ActivityService],
 })
 export class TareasModule {}

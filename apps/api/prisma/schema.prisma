@@ -304,6 +304,8 @@ model Task {
   notifications Notification[]
   /// Personas de seguimiento: reciben los mismos avisos que el responsable.
   followers     TaskFollower[]
+  /// Commits y PRs de GitHub que la mencionan.
+  gitRefs       TaskGitRef[]
 
   @@unique([projectId, number])
   @@index([projectId, statusId, order])
@@ -478,4 +480,21 @@ model AutomationRule {
 
   @@index([projectId, active])
   @@map("automation_rule")
+}
+
+/// Commit o PR de GitHub que menciona una tarea (evita comentar dos veces lo mismo).
+model TaskGitRef {
+  id        Int      @id @default(autoincrement())
+  taskId    Int      @map("task_id")
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  /// commit | pr-opened | pr-merged
+  kind      String
+  /// «owner/repo@sha» o «owner/repo#12».
+  ref       String
+  url       String
+  title     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([taskId, kind, ref])
+  @@map("task_git_ref")
 }

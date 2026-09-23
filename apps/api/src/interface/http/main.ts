@@ -12,7 +12,8 @@ import { crearManejadorMcp } from '../../mcp/mcp-http';
 
 async function bootstrap(): Promise<void> {
   // bodyParser propio: el import de ClickUp manda un JSON grande (descripciones y comentarios de todo el equipo).
-  const app = await NestFactory.create<NestExpressApplication>(HttpModule, { bodyParser: false });
+  // rawBody: el webhook de GitHub firma el cuerpo tal cual llega.
+  const app = await NestFactory.create<NestExpressApplication>(HttpModule, { bodyParser: false, rawBody: true });
   app.useBodyParser('json', { limit: '50mb' });
   app.useBodyParser('urlencoded', { extended: true, limit: '50mb' });
   app.setGlobalPrefix('api');
