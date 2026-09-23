@@ -12,6 +12,8 @@ import { SprintsService } from './application/sprints.service';
 import { TemplatesService } from './application/templates.service';
 import { ViewsService } from './application/views.service';
 import { TasksService } from './application/tasks.service';
+import { RulesService } from './application/rules.service';
+import { RulesController } from './interface/http/rules.controller';
 import { storageProvider } from './infrastructure/storage.provider';
 import { AttachmentsController } from './interface/http/attachments.controller';
 import { ProjectsController } from './interface/http/projects.controller';
@@ -23,8 +25,8 @@ import { CommentsController, TasksController } from './interface/http/tasks.cont
 
 /** Proyectos, tareas, comentarios, adjuntos y actividad. */
 @Module({
-  controllers: [ProjectsController, TeamsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController],
-  providers: [PrismaService, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, CommentsService, AttachmentsService, storageProvider],
+  controllers: [ProjectsController, TeamsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController, RulesController],
+  providers: [PrismaService, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, RulesService, CommentsService, AttachmentsService, storageProvider],
   exports: [AccessService, TeamsService, ProjectsService, SprintsService, TasksService, NotificationsService, TemplatesService, CommentsService, AttachmentsService, ActivityService],
 })
 export class TareasModule {}

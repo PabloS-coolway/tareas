@@ -361,3 +361,10 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
   .cal-chip .task-key { display: none; }
   .crono-row { grid-template-columns: 140px minmax(calc(var(--dias) * 18px), 1fr); }
 }
+
+/* ---------- Reglas ---------- */
+.regla { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.regla:last-child { border-bottom: 0; }
+.regla.apagada { opacity: 0.55; }
+.regla-ico { color: var(--brand); font-size: 1.1rem; margin-top: 3px; flex-shrink: 0; }
+.regla-seccion { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 4px; }

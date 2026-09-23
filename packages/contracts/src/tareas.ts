@@ -364,7 +364,7 @@ export interface DependenciesDto {
 
 // ---------- Avisos ----------
 
-export const NOTIFICATION_TYPES = ['MENTION', 'ASSIGNED', 'COMMENT', 'STATUS', 'BLOCKER_DONE', 'PASSWORD_RESET', 'FOLLOW'] as const;
+export const NOTIFICATION_TYPES = ['MENTION', 'ASSIGNED', 'COMMENT', 'STATUS', 'BLOCKER_DONE', 'PASSWORD_RESET', 'FOLLOW', 'RULE'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export interface NotificationDto {
@@ -603,4 +603,61 @@ export interface ClickUpImportResultDto {
   adjuntos: number;
   usuariosCreados: { email: string; name: string; passwordTemporal: string }[];
   avisos: string[];
+}
+
+// ---------- Reglas automáticas ----------
+
+/** Cuándo salta una regla: al crear la tarea o al pasar a un estado. */
+export const RULE_TRIGGERS = ['CREATED', 'STATUS'] as const;
+export type RuleTrigger = (typeof RULE_TRIGGERS)[number];
+export const RULE_TRIGGER_LABELS: Record<RuleTrigger, string> = {
+  CREATED: 'Al crear una tarea',
+  STATUS: 'Al pasar a un estado',
+};
+
+/** Condiciones (todas opcionales; las que vengan tienen que cumplirse todas). */
+export interface RuleConditionsDto {
+  /** Sólo con trigger STATUS: clave del estado al que pasa (vacío = cualquier cambio de estado). */
+  statusKey?: string;
+  type?: TaskType;
+  priority?: Priority;
+  /** La tarea lleva esta etiqueta. */
+  tag?: string;
+}
+
+/** Acciones (catálogo cerrado). */
+export interface RuleActionsDto {
+  assigneeId?: number;
+  /** Por defecto la regla sólo asigna si la tarea no tiene responsable (no pisa decisiones de nadie). */
+  reassign?: boolean;
+  addFollowerIds?: number[];
+  priority?: Priority;
+  addTags?: string[];
+  /** A quién avisar (aviso en la app). */
+  notifyUserIds?: number[];
+}
+
+export interface RuleDto {
+  id: number;
+  projectId: number;
+  projectKey: string;
+  name: string;
+  active: boolean;
+  trigger: RuleTrigger;
+  conditions: RuleConditionsDto;
+  actions: RuleActionsDto;
+  createdBy: UserRefDto | null;
+  /** Cuántas veces ha saltado y cuándo fue la última. */
+  runs: number;
+  lastRunAt: string | null;
+  createdAt: string;
+}
+
+export interface UpsertRuleDto {
+  projectId: number;
+  name: string;
+  active?: boolean;
+  trigger: RuleTrigger;
+  conditions?: RuleConditionsDto;
+  actions: RuleActionsDto;
 }

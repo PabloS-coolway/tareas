@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useParams } from 'react-router-dom';
-import { BoxArrowRight, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock, Collection, Eye, EyeSlash, Calendar3 } from 'react-bootstrap-icons';
+import { BoxArrowRight, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock, Collection, Eye, EyeSlash, Calendar3, Lightning } from 'react-bootstrap-icons';
 import { useEffect, useState, type ReactNode } from 'react';
 import { tareasGateway } from '../composition';
 import type { Feature } from '@yorga/contracts';
@@ -74,6 +74,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
     { to: '/panel', label: 'Panel del equipo', icon: <BarChartLine />, feature: 'proyectos.gestionar' },
     { to: '/equipos', label: 'Equipos', icon: <Collection />, feature: 'equipos.gestionar' },
     { to: '/plantillas', label: 'Plantillas', icon: <JournalText /> },
+    { to: '/reglas', label: 'Reglas', icon: <Lightning /> },
     { to: '/tokens', label: 'Tokens de API', icon: <Plugin /> },
     { to: '/integraciones', label: 'Integraciones', icon: <Diagram3 />, feature: 'usuarios.gestionar' },
   ];

@@ -30,6 +30,8 @@ export function ActividadTexto({ a }: { a: ActivityDto }) {
       return <><b>{quien}</b> adjuntó <span className="chg">{a.after}</span></>;
     case 'attachment_removed':
       return <><b>{quien}</b> quitó el adjunto <span className="chg">{a.before}</span></>;
+    case 'rule':
+      return <>se aplicó la regla <span className="chg">{a.after}</span>{a.actor ? <> (al actuar {quien})</> : null}</>;
     case 'description':
       return <><b>{quien}</b> editó la descripción</>;
     default:

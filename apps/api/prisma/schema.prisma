@@ -45,6 +45,7 @@ model User {
   tasksAssigned Task[]         @relation("assignee")
   tasksReported Task[]         @relation("reporter")
   tasksFollowed TaskFollower[]
+  rulesCreated  AutomationRule[]
   comments      TaskComment[]
   attachments   Attachment[]
   activities    TaskActivity[]
@@ -169,6 +170,7 @@ enum NotificationType {
   BLOCKER_DONE
   PASSWORD_RESET
   FOLLOW
+  RULE
 }
 
 /// Sprint de trabajo. Ámbito: de un **proyecto** (`projectId`: sólo sus tareas), de un **equipo**
@@ -217,6 +219,8 @@ model Project {
   sprints  Sprint[]
 
   @@index([teamId])
+  rules       AutomationRule[]
+
   @@map("project")
 }
 
@@ -437,4 +441,27 @@ model PasswordReset {
 
   @@index([userId])
   @@map("password_reset")
+}
+
+/// Regla automática de un proyecto: cuando pasa X (y se cumplen las condiciones) → acciones.
+model AutomationRule {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  active      Boolean  @default(true)
+  /// CREATED | STATUS (ver RULE_TRIGGERS en contracts).
+  trigger     String
+  /// RuleConditionsDto / RuleActionsDto (catálogo cerrado, validado en el servicio).
+  conditions  Json     @default("{}")
+  actions     Json     @default("{}")
+  createdById Int?     @map("created_by_id")
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  runs        Int      @default(0)
+  lastRunAt   DateTime? @map("last_run_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([projectId, active])
+  @@map("automation_rule")
 }

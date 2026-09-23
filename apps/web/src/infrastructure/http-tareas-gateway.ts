@@ -32,6 +32,8 @@ import type {
   UpdateSprintDto,
   UpdateTaskDto,
   BulkUpdateTasksDto,
+  RuleDto,
+  UpsertRuleDto,
   BulkUpdateResultDto,
   UpsertStatusDto,
   UserRefDto,
@@ -234,6 +236,17 @@ export class HttpTareasGateway {
   }
   async borrarPlantilla(id: number): Promise<void> {
     return ok(await apiFetch(`/templates/${id}`, { method: 'DELETE' }), 'No se pudo borrar la plantilla.');
+  }
+
+  // --- reglas automáticas ---
+  async reglas(projectId?: number): Promise<RuleDto[]> {
+    return ok(await apiFetch(`/rules${projectId ? `?projectId=${projectId}` : ''}`), 'No se pudieron cargar las reglas.');
+  }
+  async guardarRegla(dto: UpsertRuleDto, id?: number): Promise<RuleDto> {
+    return ok(await apiFetch(id ? `/rules/${id}` : '/rules', json(id ? 'PUT' : 'POST', dto)), 'No se pudo guardar la regla.');
+  }
+  async borrarRegla(id: number): Promise<void> {
+    return ok(await apiFetch(`/rules/${id}`, { method: 'DELETE' }), 'No se pudo borrar la regla.');
   }
 
   // --- comentarios ---

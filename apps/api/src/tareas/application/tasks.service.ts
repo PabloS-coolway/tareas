@@ -24,6 +24,7 @@ import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea, parsearClaveTarea } from '../domain/clave';
 import { ordenPara, renumerar } from '../domain/orden';
 import { interesados, limpiarSeguidores } from '../domain/interesados';
+import { aplica, cambiosDeRegla, type EventoTarea, type Regla } from '../domain/reglas';
 import { AccessService } from './access.service';
 import { ActivityInput, ActivityService } from './activity.service';
 import { NotificationsService } from './notifications.service';
@@ -210,7 +211,7 @@ export class TasksService {
 
   // ---------- Escritura ----------
 
-  async create(dto: CreateTaskDto, actorId: number): Promise<TaskDto> {
+  async create(dto: CreateTaskDto, actorId: number, opts: { sinReglas?: boolean } = {}): Promise<TaskDto> {
     const title = dto.title?.trim();
     if (!title) throw new BadRequestException('Indica el título de la tarea.');
     const project = await this.prisma.project.findUnique({ where: { id: dto.projectId }, include: { statuses: { orderBy: { order: 'asc' } } } });
@@ -260,10 +261,11 @@ export class TasksService {
       }
       return t.id;
     });
+    if (!opts.sinReglas) await this.ejecutarReglas(id, 'CREATED', actorId);
     return this.get(id);
   }
 
-  async update(id: number, dto: UpdateTaskDto, actorId: number): Promise<TaskDto> {
+  async update(id: number, dto: UpdateTaskDto, actorId: number, opts: { sinReglas?: boolean } = {}): Promise<TaskDto> {
     const cur = await this.prisma.task.findUnique({ where: { id }, include: { status: true, assignee: userRef, parent: { select: { id: true, number: true, project: { select: { key: true } } } }, project: { select: { key: true } }, sprint: { select: { id: true, name: true } }, followers: { select: { user: userRef }, orderBy: { createdAt: 'asc' } } } });
     if (!cur) throw new NotFoundException('Tarea no encontrada.');
     const antesSeguidores = cur.followers.map((f) => f.user);
@@ -386,6 +388,7 @@ export class TasksService {
       }
     });
     if (data.closedAt instanceof Date) await this.alTerminar(id, actorId);
+    if (data.statusId !== undefined && !opts.sinReglas) await this.ejecutarReglas(id, 'STATUS', actorId);
     return this.get(id);
   }
 
@@ -453,7 +456,35 @@ export class TasksService {
       }
     });
     if (st.id !== cur.statusId && st.category === 'DONE') await this.alTerminar(id, actorId);
+    if (st.id !== cur.statusId) await this.ejecutarReglas(id, 'STATUS', actorId);
     return this.get(id);
+  }
+
+  /**
+   * Reglas automáticas del proyecto para este evento. Sus cambios pasan por `update` (historial, avisos)
+   * pero NO disparan otras reglas (sin bucles). Un fallo en una regla nunca tumba la acción de la persona.
+   */
+  private async ejecutarReglas(id: number, trigger: 'CREATED' | 'STATUS', actorId: number): Promise<void> {
+    try {
+      const base = await this.prisma.task.findUnique({ where: { id }, select: { projectId: true } });
+      if (!base) return;
+      const reglas = await this.prisma.automationRule.findMany({ where: { projectId: base.projectId, active: true, trigger }, orderBy: { id: 'asc' } });
+      for (const r of reglas) {
+        const t = await this.prisma.task.findUnique({ where: { id }, include: { status: true, project: { select: { key: true } }, followers: { select: { userId: true } } } });
+        if (!t) return;
+        const evento: EventoTarea = { trigger, statusKey: t.status.key, type: t.type, priority: t.priority, tags: t.tags, assigneeId: t.assigneeId, followerIds: t.followers.map((f) => f.userId) };
+        const regla = r as unknown as Regla;
+        if (!aplica(regla, evento)) continue;
+        const cambio = cambiosDeRegla(regla.actions, evento);
+        if (cambio) await this.update(id, cambio, actorId, { sinReglas: true });
+        await this.activity.record({ taskId: id, actorId, action: 'rule', after: r.name });
+        const avisar = regla.actions.notifyUserIds ?? [];
+        if (avisar.length) await this.notifications.notify(avisar, 'RULE', `regla «${r.name}»: ${claveTarea(t.project.key, t.number)} · ${t.title}`, { taskId: id, actorId: null });
+        await this.prisma.automationRule.update({ where: { id: r.id }, data: { runs: { increment: 1 }, lastRunAt: new Date() } });
+      }
+    } catch (e) {
+      console.error(`[reglas] tarea ${id}:`, (e as Error).message);
+    }
   }
 
   /** Al terminar una tarea: avisa a quienes esperaban por ella y, si se repite, crea la siguiente ocurrencia. */
