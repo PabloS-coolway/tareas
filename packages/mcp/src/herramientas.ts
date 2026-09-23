@@ -15,7 +15,7 @@ interface Team { id: number; key: string; name: string; mine: boolean }
 interface Sprint { id: number; name: string; goal: string; projectId: number | null; projectKey: string | null; teamId: number | null; teamKey: string | null; startDate: string | null; endDate: string | null; status: string; total: number; done: number }
 interface Task {
   id: number; key: string; title: string; description: string; type: string; priority: string; status: Status;
-  assignee: UserRef | null; parentKey: string | null; dueDate: string | null; tags: string[]; projectKey: string;
+  assignee: UserRef | null; followers: UserRef[]; parentKey: string | null; dueDate: string | null; tags: string[]; projectKey: string;
   subtaskCount: number; doneSubtaskCount: number; commentCount: number; updatedAt: string; sprintId: number | null; sprintName: string | null;
 }
 
@@ -60,6 +60,7 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
     if (!s) throw new Error(`No encuentro el sprint "${nombreOId}" (abiertos: ${ss.map((x) => x.name).join(', ') || 'ninguno'}).`);
     return s;
   };
+  const personas = async (lista: string[]): Promise<number[]> => Promise.all(lista.map(async (x) => (await porEmail(x)).id));
   const resumenTarea = (t: Task) =>
     `${t.key} [${t.status.name}] (${t.priority}${t.type !== 'TASK' ? `, ${t.type}` : ''}) ${t.title}` +
     `${t.assignee ? ` → ${t.assignee.name}` : ''}${t.dueDate ? ` · vence ${t.dueDate}` : ''}${t.parentKey ? ` · padre ${t.parentKey}` : ''}` +
@@ -74,10 +75,11 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
 
   server.tool(
     'listar_tareas',
-    'Busca tareas. Filtra por proyecto (clave), asignado ("me", "none" o email), estado, prioridad, tipo, sprint o texto.',
+    'Busca tareas. Filtra por proyecto (clave), asignado ("me", "none" o email), quién la sigue, estado, prioridad, tipo, sprint o texto.',
     {
       proyecto: z.string().optional().describe('Clave del proyecto, p. ej. COOL'),
       asignado: z.string().optional().describe('"me", "none" o el email/nombre de una persona'),
+      seguidor: z.string().optional().describe('Tareas que sigue esta persona: "me" o su email/nombre'),
       estado: z.string().optional().describe('Clave o nombre del estado (requiere proyecto)'),
       prioridad: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).optional(),
       tipo: z.enum(['EPIC', 'TASK', 'BUG', 'INCIDENT']).optional(),
@@ -99,6 +101,7 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
         q.set('statusId', String(estado(p, a.estado).id));
       }
       if (a.asignado) q.set('assigneeId', a.asignado === 'me' || a.asignado === 'none' ? a.asignado : String((await porEmail(a.asignado)).id));
+      if (a.seguidor) q.set('followedBy', a.seguidor === 'me' ? 'me' : String((await porEmail(a.seguidor)).id));
       if (a.prioridad) q.set('priority', a.prioridad);
       if (a.tipo) q.set('type', a.tipo);
       if (a.texto) q.set('q', a.texto);
@@ -119,7 +122,7 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
     const [subs, comments] = await Promise.all([api<Task[]>(`/tasks/${t.id}/subtasks`), api<{ author: UserRef; body: string; createdAt: string }[]>(`/tasks/${t.id}/comments`)]);
     const out = [
       resumenTarea(t),
-      `proyecto: ${t.projectKey} · etiquetas: ${t.tags.join(', ') || '—'} · actualizada ${t.updatedAt}`,
+      `proyecto: ${t.projectKey} · etiquetas: ${t.tags.join(', ') || '—'} · seguimiento: ${t.followers?.map((f) => f.name).join(', ') || '—'} · actualizada ${t.updatedAt}`,
       '',
       t.description || '(sin descripción)',
       '',
@@ -141,6 +144,7 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
       prioridad: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).optional(),
       estado: z.string().optional().describe('Clave del estado inicial (por defecto el primero)'),
       asignado: z.string().optional().describe('Email o nombre de quien la hará'),
+      seguimiento: z.array(z.string()).optional().describe('Emails/nombres de las personas de seguimiento (reciben sus avisos)'),
       vence: z.string().optional().describe('AAAA-MM-DD'),
       padre: z.string().optional().describe('Clave de la épica o tarea padre (COOL-3)'),
       etiquetas: z.array(z.string()).optional(),
@@ -151,6 +155,7 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
       const body: Record<string, unknown> = { projectId: p.id, title: a.titulo, description: a.descripcion, type: a.tipo, priority: a.prioridad, dueDate: a.vence, tags: a.etiquetas };
       if (a.estado) body.statusId = estado(p, a.estado).id;
       if (a.asignado) body.assigneeId = (await porEmail(a.asignado)).id;
+      if (a.seguimiento?.length) body.followerIds = await personas(a.seguimiento);
       if (a.padre) body.parentId = (await api<Task>(`/tasks/${encodeURIComponent(a.padre)}`)).id;
       if (a.sprint) body.sprintId = (await sprintPorNombre(a.sprint)).id;
       const t = await api<Task>('/tasks', { method: 'POST', body: JSON.stringify(body) });
@@ -160,7 +165,7 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
 
   server.tool(
     'editar_tarea',
-    'Cambia campos de una tarea: título, descripción, estado, prioridad, tipo, asignado, fecha, padre, etiquetas o sprint.',
+    'Cambia campos de una tarea: título, descripción, estado, prioridad, tipo, asignado, seguimiento, fecha, padre, etiquetas o sprint.',
     {
       clave: z.string(),
       titulo: z.string().optional(),
@@ -169,6 +174,9 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
       prioridad: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).optional(),
       tipo: z.enum(['EPIC', 'TASK', 'BUG', 'INCIDENT']).optional(),
       asignado: z.string().optional().describe('Email/nombre, o "none" para desasignar'),
+      seguimiento: z.array(z.string()).optional().describe('Lista COMPLETA de personas de seguimiento (sustituye a la actual; [] = nadie)'),
+      anadirSeguimiento: z.array(z.string()).optional().describe('Personas a añadir al seguimiento ("me" = yo)'),
+      quitarSeguimiento: z.array(z.string()).optional().describe('Personas a quitar del seguimiento ("me" = yo)'),
       vence: z.string().optional().describe('AAAA-MM-DD o "" para quitar'),
       padre: z.string().optional().describe('Clave del padre, o "" para quitar'),
       etiquetas: z.array(z.string()).optional(),
@@ -182,6 +190,13 @@ export function registrarHerramientas(mcp: McpServer, api: ApiFn, hook?: Hook): 
       if (a.asignado !== undefined) body.assigneeId = a.asignado === 'none' || a.asignado === '' ? null : (await porEmail(a.asignado)).id;
       if (a.padre !== undefined) body.parentId = a.padre ? (await api<Task>(`/tasks/${encodeURIComponent(a.padre)}`)).id : null;
       if (a.sprint !== undefined) body.sprintId = a.sprint ? (await sprintPorNombre(a.sprint)).id : null;
+      if (a.seguimiento || a.anadirSeguimiento || a.quitarSeguimiento) {
+        const yo = async (x: string) => (x === 'me' ? (await api<{ id: number }>('/auth/me')).id : (await porEmail(x)).id);
+        const ids = new Set(a.seguimiento ? await personas(a.seguimiento) : (t.followers ?? []).map((f) => f.id));
+        for (const x of a.anadirSeguimiento ?? []) ids.add(await yo(x));
+        for (const x of a.quitarSeguimiento ?? []) ids.delete(await yo(x));
+        body.followerIds = [...ids];
+      }
       const u = await api<Task>(`/tasks/${t.id}`, { method: 'PATCH', body: JSON.stringify(body) });
       return texto(`Actualizada ${resumenTarea(u)}`);
     },

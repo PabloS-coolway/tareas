@@ -212,6 +212,8 @@ export interface TaskDto {
   priority: Priority;
   assignee: UserRefDto | null;
   reporter: UserRefDto;
+  /** Personas de seguimiento (además del responsable): reciben los mismos avisos. */
+  followers: UserRefDto[];
   parentId: number | null;
   parentKey: string | null;
   parentTitle: string | null;
@@ -246,6 +248,8 @@ export interface CreateTaskDto {
   statusId?: number;
   priority?: Priority;
   assigneeId?: number | null;
+  /** Personas de seguimiento (lista completa: sustituye a la anterior). */
+  followerIds?: number[];
   parentId?: number | null;
   sprintId?: number | null;
   dueDate?: string | null;
@@ -262,6 +266,8 @@ export interface UpdateTaskDto {
   statusId?: number;
   priority?: Priority;
   assigneeId?: number | null;
+  /** Personas de seguimiento (lista completa: sustituye a la anterior). */
+  followerIds?: number[];
   parentId?: number | null;
   sprintId?: number | null;
   dueDate?: string | null;
@@ -291,6 +297,8 @@ export interface TaskFilter {
   sprintId?: number | 'none';
   /** Etiqueta exacta (en minúsculas). */
   tag?: string;
+  /** Tareas que sigue esta persona (`me` = quien pregunta). */
+  followedBy?: number | 'me';
   /** Sólo vencidas (fecha límite pasada y no terminadas). */
   overdue?: boolean;
   /** Modo tablero: sin épicas y sin subtareas (se ven dentro de su padre). */
@@ -330,7 +338,7 @@ export interface DependenciesDto {
 
 // ---------- Avisos ----------
 
-export const NOTIFICATION_TYPES = ['MENTION', 'ASSIGNED', 'COMMENT', 'STATUS', 'BLOCKER_DONE', 'PASSWORD_RESET'] as const;
+export const NOTIFICATION_TYPES = ['MENTION', 'ASSIGNED', 'COMMENT', 'STATUS', 'BLOCKER_DONE', 'PASSWORD_RESET', 'FOLLOW'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export interface NotificationDto {

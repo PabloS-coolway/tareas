@@ -70,6 +70,9 @@
 .tarea-side .field { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.9rem; }
 .tarea-side .field > label { color: var(--muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin: 0; }
 .tarea-side .form-select-sm, .tarea-side .form-control-sm { border-radius: 8px; }
+.tarea-side .field-top { align-items: start; }
+.tarea-side .field-top > label { padding-top: 7px; }
+.tarea-side .seguidor { display: flex; align-items: center; gap: 8px; min-height: 28px; }
 .tarea-side .stamp { font-size: 0.78rem; color: var(--muted); }
 
 .sub-row { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }

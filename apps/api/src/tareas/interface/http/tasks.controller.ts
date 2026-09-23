@@ -6,8 +6,8 @@ import { ActivityService } from '../../application/activity.service';
 import { CommentsService } from '../../application/comments.service';
 import { TasksService } from '../../application/tasks.service';
 
-/** Los filtros llegan como query string (texto): aquí se tipan. */
-function parseFilter(q: Record<string, string | undefined>): TaskFilter {
+/** Los filtros llegan como query string (texto): aquí se tipan. Un filtro que no se copie aquí se ignora en silencio (test). */
+export function parseFilter(q: Record<string, string | undefined>): TaskFilter {
   const num = (v?: string) => (v && /^-?\d+$/.test(v) ? Number(v) : undefined);
   const assignee = q.assigneeId === 'me' || q.assigneeId === 'none' ? q.assigneeId : num(q.assigneeId);
   return {
@@ -20,6 +20,7 @@ function parseFilter(q: Record<string, string | undefined>): TaskFilter {
     parentId: q.parentId === 'null' ? null : num(q.parentId),
     sprintId: q.sprintId === 'none' ? 'none' : num(q.sprintId),
     tag: q.tag,
+    followedBy: q.followedBy === 'me' ? 'me' : num(q.followedBy),
     overdue: q.overdue === 'true',
     board: q.board === 'true',
     includeDone: q.includeDone === 'true',

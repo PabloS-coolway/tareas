@@ -7,6 +7,7 @@ const CAMPOS: Record<string, string> = {
   priority: 'la prioridad',
   status: 'el estado',
   assignee: 'el asignado',
+  followers: 'el seguimiento',
   parent: 'el padre',
   sprint: 'el sprint',
   estimate: 'la estimación',

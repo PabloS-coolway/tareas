@@ -8,7 +8,7 @@ import { Avatar, hace } from '../components/tareas-ui';
 import { Skeleton } from '../components/Skeleton';
 import { avisarAvisosLeidos } from '../layout/Sidebar';
 
-const ICONO: Record<NotificationDto['type'], string> = { MENTION: '@', ASSIGNED: '👤', COMMENT: '💬', STATUS: '↻', BLOCKER_DONE: '✅', PASSWORD_RESET: '🔑' };
+const ICONO: Record<NotificationDto['type'], string> = { MENTION: '@', ASSIGNED: '👤', COMMENT: '💬', STATUS: '↻', BLOCKER_DONE: '✅', PASSWORD_RESET: '🔑', FOLLOW: '👁' };
 
 /** Avisos: menciones, asignaciones, comentarios y cambios de estado en tus tareas. */
 export function AvisosPage() {

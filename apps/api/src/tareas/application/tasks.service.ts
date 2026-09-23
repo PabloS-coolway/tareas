@@ -21,6 +21,7 @@ import {
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea, parsearClaveTarea } from '../domain/clave';
 import { ordenPara, renumerar } from '../domain/orden';
+import { interesados, limpiarSeguidores } from '../domain/interesados';
 import { AccessService } from './access.service';
 import { ActivityInput, ActivityService } from './activity.service';
 import { NotificationsService } from './notifications.service';
@@ -36,6 +37,7 @@ const includeTask = {
   project: { select: { key: true } },
   parent: { select: { id: true, number: true, title: true, project: { select: { key: true } } } },
   sprint: { select: { id: true, name: true } },
+  followers: { select: { user: userRef }, orderBy: { createdAt: 'asc' } },
   _count: { select: { comments: true, attachments: true, subtasks: true } },
 } satisfies Prisma.TaskInclude;
 
@@ -73,6 +75,7 @@ export class TasksService {
     if (f.type) where.type = f.type;
     if (f.parentId !== undefined) where.parentId = f.parentId;
     if (f.tag?.trim()) where.tags = { has: f.tag.trim().toLowerCase() };
+    if (f.followedBy !== undefined) where.followers = { some: { userId: f.followedBy === 'me' ? userId : f.followedBy } };
     if (f.overdue) {
       where.dueDate = { lt: new Date(new Date().toISOString().slice(0, 10)) };
       where.status = { category: { not: 'DONE' } };
@@ -209,6 +212,7 @@ export class TasksService {
     if (dto.priority && !PRIORITIES.includes(dto.priority)) throw new BadRequestException('Prioridad no válida.');
     if (dto.parentId) await this.ensureParent(dto.parentId, project.id, null);
     if (dto.assigneeId) await this.ensureUser(dto.assigneeId);
+    const seguidores = await this.ensureUsers(limpiarSeguidores(dto.followerIds));
     if (dto.sprintId) await this.ensureSprint(dto.sprintId, project.id);
 
     const id = await this.prisma.$transaction(async (tx) => {
@@ -239,14 +243,20 @@ export class TasksService {
       });
       await this.activity.record({ taskId: t.id, actorId, action: 'created', after: title }, tx);
       if (t.assigneeId) await this.notifications.notify([t.assigneeId], 'ASSIGNED', `te asignó ${claveTarea(project.key, t.number)} · ${title}`, { taskId: t.id, actorId }, tx);
+      if (seguidores.length) {
+        await tx.taskFollower.createMany({ data: seguidores.map((u) => ({ taskId: t.id, userId: u.id })) });
+        await this.activity.record({ taskId: t.id, actorId, action: 'followers', field: 'followers', before: null, after: nombres(seguidores) }, tx);
+        await this.notifications.notify(seguidores.map((u) => u.id), 'FOLLOW', `te añadió al seguimiento de ${claveTarea(project.key, t.number)} · ${title}`, { taskId: t.id, actorId }, tx);
+      }
       return t.id;
     });
     return this.get(id);
   }
 
   async update(id: number, dto: UpdateTaskDto, actorId: number): Promise<TaskDto> {
-    const cur = await this.prisma.task.findUnique({ where: { id }, include: { status: true, assignee: userRef, parent: { select: { id: true, number: true, project: { select: { key: true } } } }, project: { select: { key: true } }, sprint: { select: { id: true, name: true } } } });
+    const cur = await this.prisma.task.findUnique({ where: { id }, include: { status: true, assignee: userRef, parent: { select: { id: true, number: true, project: { select: { key: true } } } }, project: { select: { key: true } }, sprint: { select: { id: true, name: true } }, followers: { select: { user: userRef }, orderBy: { createdAt: 'asc' } } } });
     if (!cur) throw new NotFoundException('Tarea no encontrada.');
+    const antesSeguidores = cur.followers.map((f) => f.user);
 
     const data: Prisma.TaskUncheckedUpdateInput = {};
     const cambios: ActivityInput[] = [];
@@ -330,17 +340,39 @@ export class TasksService {
       }
     }
 
-    if (Object.keys(data).length === 0) return this.get(id);
+    // Seguimiento: la lista que llega sustituye a la anterior.
+    let altas: number[] = [];
+    let bajas: number[] = [];
+    let seguidores = antesSeguidores;
+    if (dto.followerIds !== undefined) {
+      const nuevos = await this.ensureUsers(limpiarSeguidores(dto.followerIds));
+      const antes = new Set(antesSeguidores.map((u) => u.id));
+      const despues = new Set(nuevos.map((u) => u.id));
+      altas = [...despues].filter((u) => !antes.has(u));
+      bajas = [...antes].filter((u) => !despues.has(u));
+      if (altas.length || bajas.length) {
+        seguidores = nuevos;
+        log('followers', nombres(antesSeguidores), nombres(nuevos));
+      }
+    }
+
+    if (Object.keys(data).length === 0 && !altas.length && !bajas.length) return this.get(id);
     const clave = claveTarea(cur.project.key, cur.number);
     await this.prisma.$transaction(async (tx) => {
-      await tx.task.update({ where: { id }, data });
+      if (Object.keys(data).length) await tx.task.update({ where: { id }, data });
+      if (bajas.length) await tx.taskFollower.deleteMany({ where: { taskId: id, userId: { in: bajas } } });
+      if (altas.length) {
+        await tx.taskFollower.createMany({ data: altas.map((userId) => ({ taskId: id, userId })), skipDuplicates: true });
+        await this.notifications.notify(altas, 'FOLLOW', `te añadió al seguimiento de ${clave} · ${cur.title}`, { taskId: id, actorId }, tx);
+      }
       await this.activity.record(cambios, tx);
       if (data.assigneeId !== undefined && data.assigneeId) {
         await this.notifications.notify([data.assigneeId as number], 'ASSIGNED', `te asignó ${clave} · ${cur.title}`, { taskId: id, actorId }, tx);
       }
       if (data.statusId !== undefined) {
         const nuevo = cambios.find((c) => c.field === 'status');
-        await this.notifications.notify([cur.assigneeId, cur.reporterId], 'STATUS', `pasó ${clave} a ${nuevo?.after ?? 'otro estado'}`, { taskId: id, actorId }, tx);
+        const responsable = data.assigneeId !== undefined ? (data.assigneeId as number | null) : cur.assigneeId;
+        await this.notifications.notify(interesados({ assigneeId: responsable, reporterId: cur.reporterId, followerIds: seguidores.map((u) => u.id) }), 'STATUS', `pasó ${clave} a ${nuevo?.after ?? 'otro estado'}`, { taskId: id, actorId }, tx);
       }
     });
     if (data.closedAt instanceof Date) await this.alTerminar(id, actorId);
@@ -349,7 +381,7 @@ export class TasksService {
 
   /** Mover en el tablero (columna + posición). Escribe una fila; renumera la columna sólo si el hueco se agotó. */
   async move(id: number, dto: MoveTaskDto, actorId: number): Promise<TaskDto> {
-    const cur = await this.prisma.task.findUnique({ where: { id }, include: { status: true, project: { select: { key: true } } } });
+    const cur = await this.prisma.task.findUnique({ where: { id }, include: { status: true, project: { select: { key: true } }, followers: { select: { userId: true } } } });
     if (!cur) throw new NotFoundException('Tarea no encontrada.');
     const st = await this.prisma.projectStatus.findFirst({ where: { id: dto.statusId, projectId: cur.projectId } });
     if (!st) throw new BadRequestException('Estado no válido para este proyecto.');
@@ -372,7 +404,7 @@ export class TasksService {
       if (st.id !== cur.statusId) {
         await tx.task.update({ where: { id }, data: { closedAt: st.category === 'DONE' ? new Date() : null } });
         await this.activity.record({ taskId: id, actorId, action: 'status', field: 'status', before: cur.status.name, after: st.name }, tx);
-        await this.notifications.notify([cur.assigneeId, cur.reporterId], 'STATUS', `pasó ${claveTarea(cur.project.key, cur.number)} a ${st.name}`, { taskId: id, actorId }, tx);
+        await this.notifications.notify(interesados({ assigneeId: cur.assigneeId, reporterId: cur.reporterId, followerIds: cur.followers.map((f) => f.userId) }), 'STATUS', `pasó ${claveTarea(cur.project.key, cur.number)} a ${st.name}`, { taskId: id, actorId }, tx);
       }
     });
     if (st.id !== cur.statusId && st.category === 'DONE') await this.alTerminar(id, actorId);
@@ -381,11 +413,11 @@ export class TasksService {
 
   /** Al terminar una tarea: avisa a quienes esperaban por ella y, si se repite, crea la siguiente ocurrencia. */
   private async alTerminar(id: number, actorId: number): Promise<void> {
-    const t = await this.prisma.task.findUnique({ where: { id }, include: { project: { select: { key: true, statuses: { orderBy: { order: 'asc' } } } }, blocks: { include: { blocked: { select: { id: true, assigneeId: true, number: true, title: true, project: { select: { key: true } } } } } } } });
+    const t = await this.prisma.task.findUnique({ where: { id }, include: { followers: { select: { userId: true } }, project: { select: { key: true, statuses: { orderBy: { order: 'asc' } } } }, blocks: { include: { blocked: { select: { id: true, assigneeId: true, number: true, title: true, project: { select: { key: true } }, followers: { select: { userId: true } } } } } } } });
     if (!t) return;
     const clave = claveTarea(t.project.key, t.number);
     for (const d of t.blocks) {
-      await this.notifications.notify([d.blocked.assigneeId], 'BLOCKER_DONE', `terminó ${clave}, que bloqueaba ${claveTarea(d.blocked.project.key, d.blocked.number)} · ${d.blocked.title}`, { taskId: d.blocked.id, actorId });
+      await this.notifications.notify(interesados({ assigneeId: d.blocked.assigneeId, followerIds: d.blocked.followers.map((f) => f.userId) }), 'BLOCKER_DONE', `terminó ${clave}, que bloqueaba ${claveTarea(d.blocked.project.key, d.blocked.number)} · ${d.blocked.title}`, { taskId: d.blocked.id, actorId });
     }
     if (t.recurrence !== 'NONE') {
       const base = t.dueDate ?? new Date(new Date().toISOString().slice(0, 10));
@@ -405,6 +437,7 @@ export class TasksService {
           statusId: primero?.id,
           priority: t.priority,
           assigneeId: t.assigneeId,
+          followerIds: t.followers.map((f) => f.userId),
           parentId: t.parentId,
           sprintId: null,
           dueDate: next.toISOString().slice(0, 10),
@@ -579,7 +612,7 @@ export class TasksService {
 
   /** Copia de una tarea (título con «(copia)», mismo proyecto/estado inicial, sin comentarios ni adjuntos). */
   async duplicate(id: number, actorId: number): Promise<TaskDto> {
-    const cur = await this.prisma.task.findUnique({ where: { id }, include: { project: { select: { statuses: { orderBy: { order: 'asc' } } } } } });
+    const cur = await this.prisma.task.findUnique({ where: { id }, include: { followers: { select: { userId: true } }, project: { select: { statuses: { orderBy: { order: 'asc' } } } } } });
     if (!cur) throw new NotFoundException('Tarea no encontrada.');
     const primero = cur.project.statuses.find((s) => s.category !== 'DONE') ?? cur.project.statuses[0];
     return this.create(
@@ -591,6 +624,7 @@ export class TasksService {
         statusId: primero?.id,
         priority: cur.priority,
         assigneeId: cur.assigneeId,
+        followerIds: cur.followers.map((f) => f.userId),
         parentId: cur.parentId,
         sprintId: cur.sprintId,
         dueDate: fecha(cur.dueDate),
@@ -621,6 +655,15 @@ export class TasksService {
     const u = await this.prisma.user.findFirst({ where: { id, active: true }, select: { id: true, name: true } });
     if (!u) throw new BadRequestException('Usuario no válido.');
     return u;
+  }
+
+  /** Personas activas con esos ids (en el mismo orden); si alguna no existe o está desactivada, error. */
+  private async ensureUsers(ids: number[]): Promise<{ id: number; name: string; email: string }[]> {
+    if (!ids.length) return [];
+    const rows = await this.prisma.user.findMany({ where: { id: { in: ids }, active: true }, select: { id: true, name: true, email: true } });
+    if (rows.length !== ids.length) throw new BadRequestException('Alguna persona de seguimiento no es válida.');
+    const porId = new Map(rows.map((u) => [u.id, u]));
+    return ids.map((id) => porId.get(id)!);
   }
 
   /** El sprint debe estar abierto y admitir la tarea: de su proyecto, o del equipo de su proyecto, o global. */
@@ -674,6 +717,7 @@ export class TasksService {
       priority: r.priority,
       assignee: r.assignee,
       reporter: r.reporter,
+      followers: r.followers.map((f) => f.user),
       parentId: r.parentId,
       parentKey: r.parent ? claveTarea(r.parent.project.key, r.parent.number) : null,
       parentTitle: r.parent?.title ?? null,
@@ -704,6 +748,11 @@ function limpiarEstimacion(v: number | null | undefined): number | null {
   const n = Math.round(Number(v));
   if (!Number.isFinite(n) || n < 0) throw new BadRequestException('La estimación debe ser un número de puntos (0 o más).');
   return Math.min(n, 999);
+}
+
+/** Nombres para el historial: «Ana, Luis» (o null si no hay nadie). */
+function nombres(us: { name: string }[]): string | null {
+  return us.map((u) => u.name).join(', ') || null;
 }
 
 function limpiarTags(tags: string[] | undefined): string[] {

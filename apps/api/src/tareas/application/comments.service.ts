@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CommentDto } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
+import { interesados } from '../domain/interesados';
 import { ActivityService } from './activity.service';
 import { NotificationsService } from './notifications.service';
 
@@ -22,7 +23,7 @@ export class CommentsService {
   async add(taskId: number, body: string, actorId: number): Promise<CommentDto> {
     const texto = body?.trim();
     if (!texto) throw new BadRequestException('El comentario está vacío.');
-    const task = await this.prisma.task.findUnique({ where: { id: taskId }, include: { project: { select: { key: true } } } });
+    const task = await this.prisma.task.findUnique({ where: { id: taskId }, include: { project: { select: { key: true } }, followers: { select: { userId: true } } } });
     if (!task) throw new NotFoundException('Tarea no encontrada.');
     const clave = `${task.project.key}-${task.number}`;
     const mencionados = await this.notifications.mencionados(texto);
@@ -30,7 +31,7 @@ export class CommentsService {
       const c = await tx.taskComment.create({ data: { taskId, authorId: actorId, body: texto }, include: { author } });
       await this.activity.record({ taskId, actorId, action: 'comment', after: texto.slice(0, 120) }, tx);
       await this.notifications.notify(mencionados, 'MENTION', `te mencionó en ${clave}: “${texto.slice(0, 80)}”`, { taskId, actorId }, tx);
-      const resto = [task.assigneeId, task.reporterId].filter((u) => u !== null && !mencionados.includes(u as number));
+      const resto = interesados({ assigneeId: task.assigneeId, reporterId: task.reporterId, followerIds: task.followers.map((f) => f.userId) }).filter((u) => !mencionados.includes(u));
       await this.notifications.notify(resto, 'COMMENT', `comentó en ${clave}: “${texto.slice(0, 80)}”`, { taskId, actorId }, tx);
       return c;
     });

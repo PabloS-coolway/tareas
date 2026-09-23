@@ -44,6 +44,7 @@ model User {
   apiTokens     ApiToken[]
   tasksAssigned Task[]         @relation("assignee")
   tasksReported Task[]         @relation("reporter")
+  tasksFollowed TaskFollower[]
   comments      TaskComment[]
   attachments   Attachment[]
   activities    TaskActivity[]
@@ -167,6 +168,7 @@ enum NotificationType {
   STATUS
   BLOCKER_DONE
   PASSWORD_RESET
+  FOLLOW
 }
 
 /// Sprint de trabajo. Ámbito: de un **proyecto** (`projectId`: sólo sus tareas), de un **equipo**
@@ -282,6 +284,8 @@ model Task {
   blockedBy     TaskDependency[] @relation("blocked")
   blocks        TaskDependency[] @relation("blocker")
   notifications Notification[]
+  /// Personas de seguimiento: reciben los mismos avisos que el responsable.
+  followers     TaskFollower[]
 
   @@unique([projectId, number])
   @@index([projectId, statusId, order])
@@ -339,6 +343,19 @@ model TaskActivity {
 
   @@index([taskId, createdAt])
   @@map("task_activity")
+}
+
+/// Seguidor de una tarea (persona de seguimiento, además del responsable): recibe sus avisos.
+model TaskFollower {
+  taskId    Int      @map("task_id")
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([taskId, userId])
+  @@index([userId])
+  @@map("task_follower")
 }
 
 /// "blocked" no puede empezar/terminar hasta que "blocker" esté hecha.

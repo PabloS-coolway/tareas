@@ -32,6 +32,7 @@ import { ActividadTexto } from '../components/ActividadTexto';
 import { Dependencias } from '../components/Dependencias';
 import { ComentarioInput } from '../components/ComentarioInput';
 import { EditorTexto } from '../components/EditorTexto';
+import { Seguimiento } from '../components/Seguimiento';
 
 const fmtBytes = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
@@ -357,6 +358,7 @@ export function TareaPage() {
                   {equipo.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </Form.Select>
               </div>
+              <Seguimiento seguidores={task.followers ?? []} equipo={equipo} yo={user?.id} puedeEditar={puedeEditar} cambiar={(ids) => void guardar({ followerIds: ids })} />
               <div className="field">
                 <label htmlFor="t-sprint">Sprint</label>
                 <Form.Select id="t-sprint" size="sm" value={task.sprintId ?? ''} disabled={!puedeEditar} onChange={(e) => guardar({ sprintId: e.target.value ? Number(e.target.value) : null })}>
