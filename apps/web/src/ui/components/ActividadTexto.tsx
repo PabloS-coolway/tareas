@@ -32,6 +32,10 @@ export function ActividadTexto({ a }: { a: ActivityDto }) {
       return <><b>{quien}</b> quitó el adjunto <span className="chg">{a.before}</span></>;
     case 'rule':
       return <>se aplicó la regla <span className="chg">{a.after}</span>{a.actor ? <> (al actuar {quien})</> : null}</>;
+    case 'intake':
+      return <>entró por el formulario público (<span className="chg">{a.after}</span>)</>;
+    case 'sla':
+      return <>se salió del plazo de respuesta (<span className="chg">{a.after}</span> sin empezar)</>;
     case 'description':
       return <><b>{quien}</b> editó la descripción</>;
     default:

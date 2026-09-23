@@ -16,6 +16,8 @@ async function bootstrap(): Promise<void> {
   app.useBodyParser('json', { limit: '50mb' });
   app.useBodyParser('urlencoded', { extended: true, limit: '50mb' });
   app.setGlobalPrefix('api');
+  // Detrás del proxy de DigitalOcean: la IP real viene en X-Forwarded-For (el formulario público limita por IP).
+  app.set('trust proxy', true);
   app.enableCors(); // el front (Vite) corre en otro puerto en desarrollo
 
   const port = process.env.PORT ?? 3000;

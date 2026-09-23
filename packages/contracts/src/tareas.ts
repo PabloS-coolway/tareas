@@ -113,6 +113,9 @@ export interface ProjectStatusDto {
   wipLimit: number | null;
 }
 
+/** Horas de plazo de respuesta por prioridad (hasta que alguien empieza la tarea). */
+export type SlaHoursDto = Partial<Record<Priority, number>>;
+
 export interface ProjectDto {
   id: number;
   /** Prefijo de las claves de tarea: COOL → COOL-12. Corto, tipo Jira. */
@@ -136,6 +139,8 @@ export interface ProjectDto {
   mineTotalCount: number;
   /** De las mías, las que están EN CURSO (categoría DOING, sin contar las bloqueadas): el número del menú. */
   mineDoingCount: number;
+  /** Plazos de respuesta (null = el proyecto no tiene). */
+  sla: SlaHoursDto | null;
   createdAt: string;
 }
 
@@ -226,6 +231,8 @@ export interface TaskDto {
   /** Puntos de estimación; null = sin estimar. */
   estimate: number | null;
   recurrence: Recurrence;
+  /** Límite del plazo de respuesta (ISO) si su proyecto tiene plazos; fuera de plazo = sigue «por hacer» pasado este momento. */
+  slaDue: string | null;
   /** Cuántas tareas que la bloquean siguen sin terminar (0 = libre). */
   blockedByOpenCount: number;
   order: number;
@@ -364,7 +371,7 @@ export interface DependenciesDto {
 
 // ---------- Avisos ----------
 
-export const NOTIFICATION_TYPES = ['MENTION', 'ASSIGNED', 'COMMENT', 'STATUS', 'BLOCKER_DONE', 'PASSWORD_RESET', 'FOLLOW', 'RULE'] as const;
+export const NOTIFICATION_TYPES = ['MENTION', 'ASSIGNED', 'COMMENT', 'STATUS', 'BLOCKER_DONE', 'PASSWORD_RESET', 'FOLLOW', 'RULE', 'SLA'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export interface NotificationDto {
@@ -660,4 +667,48 @@ export interface UpsertRuleDto {
   trigger: RuleTrigger;
   conditions?: RuleConditionsDto;
   actions: RuleActionsDto;
+}
+
+// ---------- Formulario público de alta y plazos ----------
+
+/** Configuración del formulario público de un proyecto (sólo quien gestiona proyectos). */
+export interface IntakeConfigDto {
+  projectId: number;
+  active: boolean;
+  /** Secreto del enlace (/f/<token>); null si nunca se activó. */
+  token: string | null;
+  /** Opciones del desplegable «sucursal» (p. ej. «Sucursal 12 · Palermo»). */
+  sucursales: string[];
+  sla: SlaHoursDto | null;
+  /** Además del responsable y los seguidores, a quién avisar cuando una tarea se sale de plazo. */
+  slaNotifyUserIds: number[];
+}
+
+export interface UpdateIntakeDto {
+  active?: boolean;
+  sucursales?: string[];
+  sla?: SlaHoursDto | null;
+  slaNotifyUserIds?: number[];
+  /** true = generar un enlace nuevo (el anterior deja de funcionar). */
+  regenerate?: boolean;
+}
+
+/** Lo que ve la sucursal al abrir el formulario (sin datos internos). */
+export interface PublicFormDto {
+  projectName: string;
+  sucursales: string[];
+}
+
+export interface PublicFormSubmitDto {
+  sucursal: string;
+  nombre: string;
+  asunto: string;
+  descripcion: string;
+  urgencia: 'NORMAL' | 'HIGH' | 'URGENT';
+  /** Campo trampa: las personas no lo ven; si viene relleno es un bot. */
+  web?: string;
+}
+
+export interface PublicFormResultDto {
+  key: string;
 }

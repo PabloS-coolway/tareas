@@ -368,3 +368,9 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .regla.apagada { opacity: 0.55; }
 .regla-ico { color: var(--brand); font-size: 1.1rem; margin-top: 3px; flex-shrink: 0; }
 .regla-seccion { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.pill.sla { background: #fff4e5; color: #b54708; border: 1px solid #fcd9a8; }
+
+/* ---------- Formulario público ---------- */
+.form-publico { min-height: 100dvh; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; background: var(--sidebar-bg); }
+.form-publico .card { width: 100%; max-width: 560px; border-radius: 16px; }
+.form-publico .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }

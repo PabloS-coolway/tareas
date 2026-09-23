@@ -137,6 +137,16 @@ export function Subprogreso({ done, total }: { done: number; total: number }) {
 
 // ---------- Tarjeta del tablero ----------
 
+/** Fuera del plazo de respuesta: sigue «por hacer» pasado su límite. */
+export function fueraDePlazo(t: TaskDto, ahora = Date.now()): boolean {
+  return !!t.slaDue && t.status.category === 'TODO' && new Date(t.slaDue).getTime() <= ahora;
+}
+
+export function PlazoPill({ task }: { task: TaskDto }) {
+  if (!fueraDePlazo(task)) return null;
+  return <span className="pill sla" title={`Sin empezar desde ${fmtFechaHora(task.createdAt)}: plazo de respuesta vencido ${fmtFechaHora(task.slaDue!)}`}>⏱ fuera de plazo</span>;
+}
+
 export function TaskCard({ task, dragging, extra }: { task: TaskDto; dragging?: boolean; extra?: ReactNode }) {
   const done = task.status.category === 'DONE';
   return (
@@ -156,6 +166,7 @@ export function TaskCard({ task, dragging, extra }: { task: TaskDto; dragging?: 
       <div className="title">{task.title}</div>
       <Etiquetas tags={task.tags} />
       <div className="meta">
+        <PlazoPill task={task} />
         {task.blockedByOpenCount > 0 && <span className="pill blocked" title={`Bloqueada por ${task.blockedByOpenCount} tarea(s) sin terminar`}>⛔ {task.blockedByOpenCount}</span>}
         {task.priority !== 'NORMAL' && <PrioridadPill p={task.priority} />}
         <Puntos n={task.estimate} />

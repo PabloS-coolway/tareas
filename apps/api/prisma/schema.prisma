@@ -171,6 +171,7 @@ enum NotificationType {
   PASSWORD_RESET
   FOLLOW
   RULE
+  SLA
 }
 
 /// Sprint de trabajo. Ámbito: de un **proyecto** (`projectId`: sólo sus tareas), de un **equipo**
@@ -214,12 +215,23 @@ model Project {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  /// Formulario público de alta (/f/<intakeToken>): p. ej. las sucursales abren incidencias sin cuenta.
+  intakeToken      String?  @unique @map("intake_token")
+  intakeActive     Boolean  @default(false) @map("intake_active")
+  intakeSucursales String[] @default([]) @map("intake_sucursales")
+  /// Quién activó el formulario: consta como creador de las tareas que entran por él.
+  intakeOwnerId    Int?     @map("intake_owner_id")
+  /// Plazo de respuesta en horas por prioridad (SlaHoursDto); null = sin plazos.
+  slaHours         Json?    @map("sla_hours")
+  /// A quién avisar (además de responsable y seguidores) cuando una tarea se sale de plazo.
+  slaNotifyIds     Int[]    @default([]) @map("sla_notify_ids")
+
   statuses ProjectStatus[]
   tasks    Task[]
   sprints  Sprint[]
+  rules    AutomationRule[]
 
   @@index([teamId])
-  rules       AutomationRule[]
 
   @@map("project")
 }
@@ -276,6 +288,8 @@ model Task {
   /// Posición dentro de su columna del tablero.
   order       Float     @default(0)
   closedAt    DateTime? @map("closed_at")
+  /// Cuándo se avisó de que se salió del plazo de respuesta (para avisar una sola vez).
+  slaNotifiedAt DateTime? @map("sla_notified_at")
   clickupId   String?   @unique @map("clickup_id")
   clickupUrl  String?   @map("clickup_url")
   createdAt   DateTime  @default(now()) @map("created_at")

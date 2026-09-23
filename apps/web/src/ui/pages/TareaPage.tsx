@@ -23,7 +23,7 @@ import {
 } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
-import { Avatar, Etiquetas, TipoPill, fmtFechaHora, hace } from '../components/tareas-ui';
+import { Avatar, Etiquetas, PlazoPill, TipoPill, fmtFechaHora, hace } from '../components/tareas-ui';
 import { NuevaTareaModal } from '../components/NuevaTareaModal';
 import { Skeleton } from '../components/Skeleton';
 import { Markdown } from '../components/Markdown';
@@ -228,6 +228,7 @@ export function TareaPage() {
         <span>/</span>
         <span className="task-key big">{task.key}</span>
         <TipoPill t={task.type} />
+        <PlazoPill task={task} />
         {saving && <Spinner as="span" size="sm" animation="border" />}
         {task.clickupUrl && (
           <a href={task.clickupUrl} target="_blank" rel="noreferrer" className="ms-auto small">ver en ClickUp <BoxArrowUpRight /></a>

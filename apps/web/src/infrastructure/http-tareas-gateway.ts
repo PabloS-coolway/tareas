@@ -33,6 +33,8 @@ import type {
   UpdateTaskDto,
   BulkUpdateTasksDto,
   RuleDto,
+  IntakeConfigDto,
+  UpdateIntakeDto,
   UpsertRuleDto,
   BulkUpdateResultDto,
   UpsertStatusDto,
@@ -236,6 +238,14 @@ export class HttpTareasGateway {
   }
   async borrarPlantilla(id: number): Promise<void> {
     return ok(await apiFetch(`/templates/${id}`, { method: 'DELETE' }), 'No se pudo borrar la plantilla.');
+  }
+
+  // --- formulario público y plazos ---
+  async formulario(projectId: number): Promise<IntakeConfigDto> {
+    return ok(await apiFetch(`/projects/${projectId}/intake`), 'No se pudo cargar el formulario.');
+  }
+  async guardarFormulario(projectId: number, dto: UpdateIntakeDto): Promise<IntakeConfigDto> {
+    return ok(await apiFetch(`/projects/${projectId}/intake`, json('PUT', dto)), 'No se pudo guardar.');
   }
 
   // --- reglas automáticas ---

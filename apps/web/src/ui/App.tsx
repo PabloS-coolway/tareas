@@ -14,6 +14,8 @@ import { MisTareasPage } from './pages/MisTareasPage';
 import { EquipoPage } from './pages/EquipoPage';
 import { CalendarioPage } from './pages/CalendarioPage';
 import { ReglasPage } from './pages/ReglasPage';
+import { FormulariosPage } from './pages/FormulariosPage';
+import { FormularioPublicoPage } from './pages/FormularioPublicoPage';
 import { TodasTareasPage } from './pages/TodasTareasPage';
 import { SprintsPage } from './pages/SprintsPage';
 import { SprintPage } from './pages/SprintPage';
@@ -35,6 +37,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/olvide" element={<OlvidePage />} />
           <Route path="/restablecer" element={<RestablecerPage />} />
+          <Route path="/f/:token" element={<FormularioPublicoPage />} />
           <Route element={<RequireAuth />}>
             <Route element={<AppShell />}>
               <Route index element={<Navigate to="/inicio" replace />} />
@@ -46,6 +49,9 @@ export function App() {
               <Route path="/tareas" element={<TodasTareasPage />} />
               <Route path="/calendario" element={<CalendarioPage />} />
               <Route path="/reglas" element={<ReglasPage />} />
+              <Route element={<RequireFeature feature="proyectos.gestionar" />}>
+                <Route path="/formularios" element={<FormulariosPage />} />
+              </Route>
               <Route path="/sprints" element={<SprintsPage />} />
               <Route path="/sprints/:id" element={<SprintPage />} />
               <Route path="/backlog" element={<BacklogPage />} />

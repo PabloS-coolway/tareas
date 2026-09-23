@@ -1,3 +1,4 @@
+import { limpiarPlazos } from '../domain/plazos';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProjectDto, ProjectDto, ProjectStatusDto, UpdateProjectDto, UpsertStatusDto } from '@yorga/contracts';
 import { Prisma } from '@prisma/client';
@@ -152,7 +153,7 @@ export function statusToDto(s: { id: number; key: string; name: string; color: s
 }
 
 function toDto(
-  p: { id: number; key: string; name: string; description: string; color: string; archived: boolean; createdAt: Date; statuses: Parameters<typeof statusToDto>[0][]; team: { id: number; key: string; name: string } | null },
+  p: { id: number; key: string; name: string; description: string; color: string; archived: boolean; createdAt: Date; statuses: Parameters<typeof statusToDto>[0][]; team: { id: number; key: string; name: string } | null; slaHours?: unknown },
   openCount: number,
   mineCount: number,
   mineDoingCount = 0,
@@ -175,6 +176,7 @@ function toDto(
     mineTotalCount,
     mineDoingCount,
     doneCount,
+    sla: limpiarPlazos(p.slaHours),
     createdAt: p.createdAt.toISOString(),
   };
 }

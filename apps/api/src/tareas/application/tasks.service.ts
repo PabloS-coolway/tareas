@@ -25,6 +25,7 @@ import { claveTarea, parsearClaveTarea } from '../domain/clave';
 import { ordenPara, renumerar } from '../domain/orden';
 import { interesados, limpiarSeguidores } from '../domain/interesados';
 import { aplica, cambiosDeRegla, type EventoTarea, type Regla } from '../domain/reglas';
+import { horasDePlazo, limiteDePlazo, limpiarPlazos } from '../domain/plazos';
 import { AccessService } from './access.service';
 import { ActivityInput, ActivityService } from './activity.service';
 import { NotificationsService } from './notifications.service';
@@ -37,7 +38,7 @@ const includeTask = {
   status: true,
   assignee: userRef,
   reporter: userRef,
-  project: { select: { key: true } },
+  project: { select: { key: true, slaHours: true } },
   parent: { select: { id: true, number: true, title: true, project: { select: { key: true } } } },
   sprint: { select: { id: true, name: true } },
   followers: { select: { user: userRef }, orderBy: { createdAt: 'asc' } },
@@ -804,6 +805,10 @@ export class TasksService {
       tags: r.tags,
       estimate: r.estimate,
       recurrence: r.recurrence,
+      slaDue: (() => {
+        const h = horasDePlazo(limpiarPlazos(r.project.slaHours), r.priority);
+        return h === null ? null : limiteDePlazo(r.createdAt, h).toISOString();
+      })(),
       blockedByOpenCount: bloqueos.get(r.id) ?? 0,
       order: r.order,
       closedAt: r.closedAt?.toISOString() ?? null,
