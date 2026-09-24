@@ -384,3 +384,8 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .dev-fila:hover { background: color-mix(in srgb, var(--brand) 8%, transparent); color: inherit; }
 .dev-estado { font-size: 0.65rem; flex-shrink: 0; }
 .dev-crear { background: color-mix(in srgb, var(--brand) 5%, transparent); border-radius: 8px; padding: 10px; }
+.dev-ayuda { font-size: 0.8rem; margin-bottom: 6px; }
+.dev-ayuda summary { cursor: pointer; font-weight: 600; color: var(--brand); margin-bottom: 4px; }
+.dev-ayuda ol { padding-left: 18px; margin-bottom: 6px; }
+.dev-ayuda li { margin-bottom: 6px; }
+.dev-cmd { display: block; margin-top: 3px; padding: 4px 6px; border-radius: 5px; background: color-mix(in srgb, var(--muted) 12%, transparent); color: inherit; font-size: 0.74rem; white-space: pre-wrap; word-break: break-all; user-select: all; }

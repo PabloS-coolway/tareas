@@ -59,9 +59,26 @@ export function Desarrollo({ taskId, taskKey }: { taskId: number; taskKey: strin
           </div>
         )}
 
-        {vacio ? (
-          <div className="small text-secondary">Nada en GitHub todavía. Menciona <span className="task-key">{taskKey}</span> en un commit o en una PR, o crea la rama con el botón.</div>
-        ) : (
+        <details className="dev-ayuda" open={vacio}>
+          <summary>¿Cómo lo conecto? <span className="text-secondary">(para desarrolladores)</span></summary>
+          <p>Pon la clave <span className="task-key">{taskKey}</span> en cualquiera de estos sitios y, al subirlo a GitHub, aparece aquí solo. Funciona en todos los repos de PabloS-coolway.</p>
+          <ol>
+            <li>
+              <b>En el nombre de la rama</b> (lo más cómodo: todos sus commits quedan enlazados):
+              <code className="dev-cmd">git checkout -b {d.suggestedBranch || `feat/${taskKey}-descripcion`}</code>
+            </li>
+            <li>
+              <b>En el mensaje del commit</b> (además deja un comentario en la tarea con el enlace):
+              <code className="dev-cmd">git commit -m "{taskKey}: lo que has hecho"</code>
+            </li>
+            <li>
+              <b>En el título o la descripción de la pull request</b>: sale como «Abierta» y pasa a «Mergeada» al integrarla.
+            </li>
+          </ol>
+          <p className="mb-0">En el commit y en la PR la clave va tal cual, en mayúsculas (<span className="task-key">{taskKey}</span>); en el nombre de la rama da igual. Nada se cierra solo: la tarea se mueve a mano.</p>
+        </details>
+
+        {vacio ? null : (
           <>
             {d.pullRequests.length > 0 && (
               <div className="dev-seccion">
