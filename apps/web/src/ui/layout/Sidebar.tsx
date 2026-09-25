@@ -36,6 +36,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
   const { proyectos } = useProyectos();
   const [cambiarPass, setCambiarPass] = useState(false);
   const [sinLeer, setSinLeer] = useState(0);
+  const [sinLeerProyecto, setSinLeerProyecto] = useState<Record<string, number>>({});
   const { pathname } = useLocation();
   const { key: claveRuta } = useParams();
   const [soloMios, setSoloMios] = useState(() => {
@@ -48,7 +49,14 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
   };
 
   useEffect(() => {
-    const refrescar = () => tareasGateway.avisosSinLeer().then(setSinLeer).catch(() => undefined);
+    const refrescar = () =>
+      tareasGateway
+        .avisosSinLeer()
+        .then((r) => {
+          setSinLeer(r.unread);
+          setSinLeerProyecto(r.porProyecto);
+        })
+        .catch(() => undefined);
     void refrescar();
     const t = setInterval(refrescar, 60_000);
     window.addEventListener(EVENTO_AVISOS, refrescar);
@@ -80,7 +88,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
     { to: '/integraciones', label: 'Integraciones', icon: <Diagram3 />, feature: 'usuarios.gestionar' },
   ];
   const visibles = (items: NavItem[]) => items.filter((n) => !n.feature || hasFeature(n.feature));
-  const listados = proyectosDelMenu(proyectos, soloMios, claveRuta);
+  const listados = proyectosDelMenu(proyectos, soloMios, claveRuta, sinLeerProyecto);
   const ocultos = proyectos.length - listados.length;
   // Proyectos agrupados por equipo (si sólo hay uno, sin título). Los sin equipo van al final.
   const grupos = (() => {
@@ -133,7 +141,9 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
                 <NavLink key={p.id} to={`/p/${p.key}`} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={p.name}>
                   <span className="nav-ico"><span className="nav-proj-dot" style={{ background: p.color }} /></span>
                   <span className="nav-label text-truncate">{p.name}</span>
-                  {p.mineDoingCount > 0 && <span className="badge bg-light text-dark rounded-pill ms-auto" title={`${p.mineDoingCount} tuyas en curso`}>{p.mineDoingCount}</span>}
+                  {(sinLeerProyecto[p.key] ?? 0) > 0 && (
+                    <span className="badge bg-danger rounded-pill ms-auto" title={`${sinLeerProyecto[p.key]} aviso(s) sin leer en ${p.name}`}>{sinLeerProyecto[p.key]}</span>
+                  )}
                 </NavLink>
               ))}
             </div>

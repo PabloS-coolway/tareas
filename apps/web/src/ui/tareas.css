@@ -389,3 +389,9 @@ button.tag:hover { background: color-mix(in srgb, var(--brand) 20%, transparent)
 .dev-ayuda ol { padding-left: 18px; margin-bottom: 6px; }
 .dev-ayuda li { margin-bottom: 6px; }
 .dev-cmd { display: block; margin-top: 3px; padding: 4px 6px; border-radius: 5px; background: color-mix(in srgb, var(--muted) 12%, transparent); color: inherit; font-size: 0.74rem; white-space: pre-wrap; word-break: break-all; user-select: all; }
+
+/* Novedades de un proyecto (avisos sin leer al abrirlo) */
+.novedades { border-left: 3px solid #d92d20; }
+.novedades-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.novedades-lista { max-height: 260px; overflow-y: auto; }
+.novedades .aviso { grid-template-columns: 24px auto minmax(0, 1fr) auto; }
