@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estaBloqueada, ordenarSubtareas, resumirSubtareas } from './subtareas';
+import { estaBloqueada, ordenarSubtareas, resumirSubtareas } from '../src/domain/subtareas';
 
 const t = (id: string, key: string, category: string, blockedByOpenCount = 0) => ({ id, status: { key, category }, blockedByOpenCount });
 
