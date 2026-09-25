@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Form, ProgressBar, Spinner } from 'react-bootstrap';
-import { CheckCircleFill, ChevronDown, ChevronRight, Circle, Plus } from 'react-bootstrap-icons';
+import { CheckCircleFill, ChevronDown, ChevronRight, Circle, DashCircleFill, Plus } from 'react-bootstrap-icons';
 import type { ProjectDto, TaskDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
+import { estaBloqueada, ordenarSubtareas, resumirSubtareas } from '../../domain/subtareas';
 import { Avatar, PrioridadPill, Vence } from './tareas-ui';
 
 interface Props {
@@ -18,16 +19,19 @@ interface Props {
 
 /** Subtareas como árbol: se despliegan las que tienen hijas, se marcan hechas con un clic y se añaden en línea. */
 export function SubtareasArbol({ parent, project, items, puedeEditar, onChanged, onError }: Props) {
-  const hechas = items.filter((s) => s.status.category === 'DONE').length;
-  const pct = items.length ? Math.round((hechas / items.length) * 100) : 0;
+  const { total, hechas, bloqueadas } = resumirSubtareas(items);
+  const pct = (n: number) => (total ? (n / total) * 100 : 0);
   return (
     <div className="subtree">
-      {items.length > 0 && (
-        <ProgressBar now={pct} variant={pct === 100 ? 'success' : undefined} className="sprint-progress mb-2" title={`${hechas} de ${items.length} hechas`} />
+      {total > 0 && (
+        <ProgressBar className="sprint-progress mb-2" title={`${hechas} de ${total} hechas${bloqueadas ? ` · ${bloqueadas} bloqueada${bloqueadas === 1 ? '' : 's'}` : ''}`}>
+          <ProgressBar now={pct(hechas)} variant={hechas === total ? 'success' : undefined} key="hechas" />
+          {bloqueadas > 0 && <ProgressBar now={pct(bloqueadas)} variant="danger" key="bloqueadas" />}
+        </ProgressBar>
       )}
       {items.length === 0 && <div className="text-secondary small mb-2">Ninguna todavía.</div>}
       <ul className="subtree-list">
-        {items.map((s) => <Nodo key={s.id} task={s} project={project} nivel={0} puedeEditar={puedeEditar} onChanged={onChanged} onError={onError} />)}
+        {ordenarSubtareas(items).map((s) => <Nodo key={s.id} task={s} project={project} nivel={0} puedeEditar={puedeEditar} onChanged={onChanged} onError={onError} />)}
       </ul>
       {puedeEditar && <AltaRapida parent={parent} project={project} nivel={0} onCreated={onChanged} onError={onError} />}
     </div>
@@ -40,6 +44,7 @@ function Nodo({ task, project, nivel, puedeEditar, onChanged, onError }: { task:
   const [busy, setBusy] = useState(false);
   const [alta, setAlta] = useState(false);
   const done = task.status.category === 'DONE';
+  const bloqueada = estaBloqueada(task);
   const tieneHijas = task.subtaskCount > 0;
 
   async function cargar(force = false) {
@@ -77,18 +82,23 @@ function Nodo({ task, project, nivel, puedeEditar, onChanged, onError }: { task:
   }
 
   return (
-    <li className={`subtree-node ${done ? 'done' : ''}`}>
+    <li className={`subtree-node ${done ? 'done' : ''} ${bloqueada ? 'bloqueada' : ''}`}>
       <div className="subtree-row" style={{ paddingLeft: nivel * 22 }}>
         <button type="button" className={`subtree-caret ${tieneHijas || alta ? '' : 'invisible'}`} onClick={toggleAbrir} aria-label={abierto ? 'Plegar' : 'Desplegar'}>
           {abierto ? <ChevronDown /> : <ChevronRight />}
         </button>
         <button type="button" className="subtree-check" onClick={toggleHecha} disabled={!puedeEditar || busy} title={done ? 'Reabrir' : 'Marcar hecha'}>
-          {busy ? <Spinner size="sm" animation="border" /> : done ? <CheckCircleFill className="text-success" /> : <Circle />}
+          {busy ? <Spinner size="sm" animation="border" /> : done ? <CheckCircleFill className="text-success" /> : bloqueada ? <DashCircleFill className="text-danger" /> : <Circle />}
         </button>
         <Link to={`/t/${task.key}`} className="subtree-title">
           <span className="task-key">{task.key}</span>
           <span className="title">{task.title}</span>
         </Link>
+        {bloqueada && (
+          <span className="pill blocked" title={task.blockedByOpenCount > 0 ? `Esperando a ${task.blockedByOpenCount} tarea(s) sin terminar` : `Estado: ${task.status.name}`}>
+            ⛔ Bloqueada
+          </span>
+        )}
         {task.priority !== 'NORMAL' && <span className="hide-sm"><PrioridadPill p={task.priority} /></span>}
         {tieneHijas && <span className="small text-secondary text-nowrap hide-sm">{task.doneSubtaskCount}/{task.subtaskCount}</span>}
         <span className="small hide-sm"><Vence date={task.dueDate} done={done} /></span>
@@ -104,7 +114,7 @@ function Nodo({ task, project, nivel, puedeEditar, onChanged, onError }: { task:
           {hijas === null ? (
             <li className="small text-secondary" style={{ paddingLeft: (nivel + 1) * 22 + 8 }}><Spinner size="sm" animation="border" /> cargando…</li>
           ) : (
-            hijas.map((h) => <Nodo key={h.id} task={h} project={project} nivel={nivel + 1} puedeEditar={puedeEditar} onChanged={() => { void cargar(true); onChanged(); }} onError={onError} />)
+            ordenarSubtareas(hijas).map((h) => <Nodo key={h.id} task={h} project={project} nivel={nivel + 1} puedeEditar={puedeEditar} onChanged={() => { void cargar(true); onChanged(); }} onError={onError} />)
           )}
           {alta && (
             <AltaRapida
