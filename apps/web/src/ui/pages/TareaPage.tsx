@@ -28,6 +28,7 @@ import { NuevaTareaModal } from '../components/NuevaTareaModal';
 import { Skeleton } from '../components/Skeleton';
 import { Markdown } from '../components/Markdown';
 import { SubtareasArbol } from '../components/SubtareasArbol';
+import { resumirSubtareas } from '../../domain/subtareas';
 import { ActividadTexto } from '../components/ActividadTexto';
 import { Dependencias } from '../components/Dependencias';
 import { ComentarioInput } from '../components/ComentarioInput';
@@ -46,6 +47,7 @@ export function TareaPage() {
   const [task, setTask] = useState<TaskDto | null>(null);
   const [project, setProject] = useState<ProjectDto | null>(null);
   const [subtareas, setSubtareas] = useState<TaskDto[]>([]);
+  const resumen = resumirSubtareas(subtareas);
   const [comentarios, setComentarios] = useState<CommentDto[]>([]);
   const [adjuntos, setAdjuntos] = useState<AttachmentDto[]>([]);
   const [actividad, setActividad] = useState<ActivityDto[]>([]);
@@ -277,7 +279,12 @@ export function TareaPage() {
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <Card.Title className="mb-0">
                   {task.type === 'EPIC' ? 'Tareas de la épica' : 'Subtareas'}
-                  {subtareas.length > 0 && <span className="text-secondary fw-normal small ms-2">{subtareas.filter((s) => s.status.category === 'DONE').length}/{subtareas.length} hechas</span>}
+                  {resumen.total > 0 && (
+                    <span className="text-secondary fw-normal small ms-2">
+                      {resumen.hechas}/{resumen.total} hechas
+                      {resumen.bloqueadas > 0 && <span className="text-danger fw-semibold"> · {resumen.bloqueadas} bloqueada{resumen.bloqueadas === 1 ? '' : 's'}</span>}
+                    </span>
+                  )}
                 </Card.Title>
                 {puedeEditar && <Button size="sm" variant="outline-secondary" onClick={() => setNuevaSub(true)}><Plus /> Añadir</Button>}
               </div>
