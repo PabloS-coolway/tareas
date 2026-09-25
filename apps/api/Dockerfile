@@ -32,6 +32,6 @@ ENV NODE_ENV=production
 # App Platform inyecta el puerto en $PORT; la API ya lee process.env.PORT (por defecto 3000).
 EXPOSE 3000
 
-# `migrate deploy` es idempotente: seguro en cada arranque (1 instancia).
-# tsc emite con la raíz del monorepo como rootDir (contracts entra por `paths`), de ahí la ruta de dist.
-CMD ["sh", "-c", "npm run db:migrate && node apps/api/dist/apps/api/src/interface/http/main.js"]
+# Migra (idempotente, 1 instancia) y arranca. Si la BD no tiene conexiones libres —el contenedor viejo las
+# ocupa durante el despliegue— arranca igual y reintenta la migración en segundo plano: ver el script.
+CMD ["sh", "apps/api/scripts/arrancar.sh"]
