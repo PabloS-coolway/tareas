@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from '../infrastructure/db/prisma.service';
+import { AuthModule } from '../auth/auth.module';
 import { ActivityService } from './application/activity.service';
 import { AccessService } from './application/access.service';
 import { TeamsService } from './application/teams.service';
@@ -30,7 +30,9 @@ import { CommentsController, TasksController } from './interface/http/tasks.cont
 /** Proyectos, tareas, comentarios, adjuntos y actividad. */
 @Module({
   controllers: [ProjectsController, TeamsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController, RulesController, IntakeController, PublicFormController, GithubController, DevelopmentController],
-  providers: [PrismaService, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, RulesService, IntakeService, GithubService, CommentsService, AttachmentsService, storageProvider],
+  // PrismaService llega de AuthModule: uno solo para toda la API (cada instancia abre su propio pool de conexiones).
+  imports: [AuthModule],
+  providers: [AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, RulesService, IntakeService, GithubService, CommentsService, AttachmentsService, storageProvider],
   exports: [AccessService, TeamsService, ProjectsService, SprintsService, TasksService, NotificationsService, TemplatesService, CommentsService, AttachmentsService, ActivityService],
 })
 export class TareasModule {}
