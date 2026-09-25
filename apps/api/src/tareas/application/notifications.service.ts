@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { NotificationType, Prisma } from '@prisma/client';
 import { NotificationsPageDto } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
+import { sinLeerPorProyecto } from '../domain/avisos';
 
 /** Avisos en la app. Nunca se avisa a quien hace la acción. */
 @Injectable()
@@ -14,10 +15,11 @@ export class NotificationsService {
     await (tx ?? this.prisma).notification.createMany({ data: destinatarios.map((userId) => ({ userId, type, text, taskId: opts.taskId ?? null, actorId: opts.actorId ?? null })) });
   }
 
-  async listMine(userId: number, limit = 50): Promise<NotificationsPageDto> {
+  /** Mis avisos, los últimos primero. Con `proyecto` (clave), solo los de tareas de ese proyecto; con `soloSinLeer`, solo los pendientes. */
+  async listMine(userId: number, limit = 50, filtro: { proyecto?: string; soloSinLeer?: boolean } = {}): Promise<NotificationsPageDto> {
     const [rows, unread] = await Promise.all([
       this.prisma.notification.findMany({
-        where: { userId },
+        where: { userId, ...(filtro.proyecto ? { task: { project: { key: filtro.proyecto } } } : {}), ...(filtro.soloSinLeer ? { readAt: null } : {}) },
         orderBy: { createdAt: 'desc' },
         take: Math.min(Math.max(limit, 1), 200),
         include: { task: { select: { number: true, title: true, project: { select: { key: true } } } } },
@@ -46,12 +48,24 @@ export class NotificationsService {
     return this.prisma.notification.count({ where: { userId, readAt: null } });
   }
 
+  /** Sin leer por clave de proyecto: el número de cada proyecto en el menú. */
+  async unreadPorProyecto(userId: number): Promise<Record<string, number>> {
+    const rows = await this.prisma.notification.findMany({ where: { userId, readAt: null, taskId: { not: null } }, select: { task: { select: { project: { select: { key: true } } } } } });
+    return sinLeerPorProyecto(rows.map((r) => r.task?.project.key));
+  }
+
   async remove(userId: number, id?: number): Promise<void> {
     await this.prisma.notification.deleteMany({ where: { userId, ...(id ? { id } : {}) } });
   }
 
   async markRead(userId: number, id?: number): Promise<void> {
     await this.prisma.notification.updateMany({ where: { userId, readAt: null, ...(id ? { id } : {}) }, data: { readAt: new Date() } });
+  }
+
+  /** Marca leídos exactamente estos (los que se han enseñado), no «todos los del proyecto»: uno que llegue mientras tanto sigue sin leer. */
+  async markReadIds(userId: number, ids: number[]): Promise<void> {
+    if (!ids.length) return;
+    await this.prisma.notification.updateMany({ where: { userId, readAt: null, id: { in: ids } }, data: { readAt: new Date() } });
   }
 
   /** Personas mencionadas con @Nombre o @email en un texto (nombres sin acentos y sin distinguir mayúsculas). */

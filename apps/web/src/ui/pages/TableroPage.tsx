@@ -5,6 +5,7 @@ import { Download, Kanban, ListUl, Plus } from 'react-bootstrap-icons';
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
 import { PRIORITIES, PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS, type Priority, type ProjectDto, type SprintDto, type TagCountDto, type TaskDto, type TaskType, type UserRefDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
+import { NovedadesProyecto } from '../components/NovedadesProyecto';
 import { useAuth } from '../auth/AuthContext';
 import { Avatar, EstadoPill, Etiquetas, PrioridadPill, Puntos, TaskCard, TipoPill, Vence } from '../components/tareas-ui';
 import { NuevaTareaModal } from '../components/NuevaTareaModal';
@@ -213,6 +214,7 @@ export function TableroPage() {
           )}
         </div>
       </header>
+      <NovedadesProyecto proyecto={key} />
 
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>⚠ {error}</Alert>}
 

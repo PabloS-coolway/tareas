@@ -197,12 +197,21 @@ export class HttpTareasGateway {
   }
 
   // --- avisos ---
-  async avisos(limit = 50): Promise<NotificationsPageDto> {
-    return ok(await apiFetch(`/notifications?limit=${limit}`), 'No se pudieron cargar los avisos.');
+  async avisos(limit = 50, filtro: { proyecto?: string; soloSinLeer?: boolean } = {}): Promise<NotificationsPageDto> {
+    const q = new URLSearchParams({ limit: String(limit) });
+    if (filtro.proyecto) q.set('proyecto', filtro.proyecto);
+    if (filtro.soloSinLeer) q.set('sinLeer', '1');
+    return ok(await apiFetch(`/notifications?${q}`), 'No se pudieron cargar los avisos.');
   }
-  async avisosSinLeer(): Promise<number> {
-    const r = await ok<{ unread: number }>(await apiFetch('/notifications/unread'), 'No se pudieron cargar los avisos.');
-    return r.unread;
+  /** Sin leer en total y por clave de proyecto. */
+  async avisosSinLeer(): Promise<{ unread: number; porProyecto: Record<string, number> }> {
+    const r = await ok<{ unread: number; porProyecto?: Record<string, number> }>(await apiFetch('/notifications/unread'), 'No se pudieron cargar los avisos.');
+    return { unread: r.unread, porProyecto: r.porProyecto ?? {} };
+  }
+  /** Marca leídos justo estos avisos. */
+  async marcarAvisosVistos(ids: number[]): Promise<void> {
+    if (!ids.length) return;
+    return ok(await apiFetch('/notifications/read', json('POST', { ids })), 'No se pudo marcar como leído.');
   }
   async borrarAvisos(id?: number): Promise<void> {
     return ok(await apiFetch(id ? `/notifications/${id}` : '/notifications', { method: 'DELETE' }), 'No se pudieron borrar los avisos.');

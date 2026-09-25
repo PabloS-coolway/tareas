@@ -29,4 +29,9 @@ describe('proyectos del menú', () => {
     const sinNada = todos.map((p) => ({ ...p, mineTotalCount: 0 }));
     expect(proyectosDelMenu(sinNada, true).map((p) => p.key)).toEqual(['COOL', 'ATC', 'ERP', 'SAAS']);
   });
+
+  it('sale un proyecto sin tareas mías si tengo avisos sin leer en él (si no, el número rojo no se vería)', () => {
+    const r = proyectosDelMenu([proyecto('A', 2), proyecto('B', 0), proyecto('C', 0)], true, undefined, { B: 3 });
+    expect(r.map((x) => x.key)).toEqual(['A', 'B']);
+  });
 });

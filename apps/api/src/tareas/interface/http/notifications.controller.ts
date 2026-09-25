@@ -1,8 +1,10 @@
-import { Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { NotificationsPageDto } from '@yorga/contracts';
 import { JwtPayload } from '../../../auth/application/auth.service';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
 import { NotificationsService } from '../../application/notifications.service';
+import { limpiarIdsAvisos } from '../../domain/avisos';
+import { normalizarClaveProyecto } from '../../domain/clave';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -10,20 +12,26 @@ export class NotificationsController {
 
   @Get()
   @RequireFeature('tareas.ver')
-  list(@CurrentUser() me: JwtPayload, @Query('limit') limit?: string): Promise<NotificationsPageDto> {
-    return this.notifications.listMine(me.sub, limit && /^\d+$/.test(limit) ? Number(limit) : 50);
+  list(@CurrentUser() me: JwtPayload, @Query('limit') limit?: string, @Query('proyecto') proyecto?: string, @Query('sinLeer') sinLeer?: string): Promise<NotificationsPageDto> {
+    return this.notifications.listMine(me.sub, limit && /^\d+$/.test(limit) ? Number(limit) : 50, {
+      proyecto: proyecto ? normalizarClaveProyecto(proyecto) : undefined,
+      soloSinLeer: sinLeer === '1' || sinLeer === 'true',
+    });
   }
 
   @Get('unread')
   @RequireFeature('tareas.ver')
-  async unread(@CurrentUser() me: JwtPayload): Promise<{ unread: number }> {
-    return { unread: await this.notifications.unreadCount(me.sub) };
+  async unread(@CurrentUser() me: JwtPayload): Promise<{ unread: number; porProyecto: Record<string, number> }> {
+    const [unread, porProyecto] = await Promise.all([this.notifications.unreadCount(me.sub), this.notifications.unreadPorProyecto(me.sub)]);
+    return { unread, porProyecto };
   }
 
+  /** Sin cuerpo: todos leídos. Con `{ ids }`: solo esos (los que se acaban de enseñar). */
   @Post('read')
   @HttpCode(204)
   @RequireFeature('tareas.ver')
-  readAll(@CurrentUser() me: JwtPayload): Promise<void> {
+  readAll(@CurrentUser() me: JwtPayload, @Body() body?: { ids?: unknown }): Promise<void> {
+    if (body && body.ids !== undefined) return this.notifications.markReadIds(me.sub, limpiarIdsAvisos(body.ids));
     return this.notifications.markRead(me.sub);
   }
 
