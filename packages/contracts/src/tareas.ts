@@ -679,6 +679,8 @@ export interface IntakeConfigDto {
   token: string | null;
   /** Opciones del desplegable «sucursal» (p. ej. «Sucursal 12 · Palermo»). */
   sucursales: string[];
+  /** Plantilla del título de las tareas que entran: {sucursal}, {asunto}, {nombre}, {urgencia}. */
+  titleTemplate: string;
   sla: SlaHoursDto | null;
   /** Además del responsable y los seguidores, a quién avisar cuando una tarea se sale de plazo. */
   slaNotifyUserIds: number[];
@@ -687,6 +689,8 @@ export interface IntakeConfigDto {
 export interface UpdateIntakeDto {
   active?: boolean;
   sucursales?: string[];
+  /** Vacía = la de por defecto («Sucursal {sucursal} - {asunto}»). */
+  titleTemplate?: string;
   sla?: SlaHoursDto | null;
   slaNotifyUserIds?: number[];
   /** true = generar un enlace nuevo (el anterior deja de funcionar). */
