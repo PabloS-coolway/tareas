@@ -13,6 +13,7 @@ export function FormulariosPage() {
   const [projectId, setProjectId] = useState<number | null>(null);
   const [cfg, setCfg] = useState<IntakeConfigDto | null>(null);
   const [sucursales, setSucursales] = useState('');
+  const [plantilla, setPlantilla] = useState('');
   const [equipo, setEquipo] = useState<UserRefDto[]>([]);
   const [aviso, setAviso] = useState('');
   const [error, setError] = useState('');
@@ -26,7 +27,7 @@ export function FormulariosPage() {
   useEffect(() => {
     if (projectId === null) return;
     setCfg(null);
-    tareasGateway.formulario(projectId).then((c) => { setCfg(c); setSucursales(c.sucursales.join('\n')); }).catch((e) => setError((e as Error).message));
+    tareasGateway.formulario(projectId).then((c) => { setCfg(c); setSucursales(c.sucursales.join('\n')); setPlantilla(c.titleTemplate); }).catch((e) => setError((e as Error).message));
   }, [projectId]);
 
   async function guardar(cambio: Parameters<typeof tareasGateway.guardarFormulario>[1], ok = 'Guardado.') {
@@ -35,6 +36,7 @@ export function FormulariosPage() {
       const c = await tareasGateway.guardarFormulario(projectId, cambio);
       setCfg(c);
       setSucursales(c.sucursales.join('\n'));
+      setPlantilla(c.titleTemplate);
       setAviso(ok);
     } catch (e) {
       setError((e as Error).message);
@@ -65,7 +67,7 @@ export function FormulariosPage() {
                 <h2 className="h6 mb-0">Formulario público {cfg.active ? <Badge bg="success">activo</Badge> : <Badge bg="secondary">apagado</Badge>}</h2>
                 <Form.Check type="switch" id="fm-active" label={cfg.active ? 'Activo' : 'Activar'} checked={cfg.active} onChange={(e) => void guardar({ active: e.target.checked }, e.target.checked ? 'Formulario activado: las tareas que entren constan como creadas por ti.' : 'Formulario apagado: el enlace deja de funcionar.')} />
               </div>
-              <p className="small text-secondary">Lo que entra por él se crea como <b>incidencia</b> en este proyecto, con el título «Sucursal (número) - (incidencia)» y la etiqueta «formulario». Las reglas automáticas del proyecto se aplican igual.</p>
+              <p className="small text-secondary">Lo que entra por él se crea como <b>incidencia</b> en este proyecto, con el título de abajo y la etiqueta «formulario». Las reglas automáticas del proyecto se aplican igual.</p>
               {cfg.token && (
                 <InputGroup size="sm" className="mb-3">
                   <Form.Control readOnly value={enlace} aria-label="Enlace del formulario" disabled={!cfg.active} />
@@ -73,6 +75,14 @@ export function FormulariosPage() {
                   <Button variant="outline-secondary" onClick={() => confirm('¿Generar un enlace nuevo? El actual dejará de funcionar.') && void guardar({ regenerate: true }, 'Enlace nuevo generado: pásalo a las sucursales.')} title="Enlace nuevo (si el actual se ha filtrado)"><ArrowRepeat /></Button>
                 </InputGroup>
               )}
+              <Form.Group controlId="fm-titulo" className="mb-3">
+                <Form.Label className="small fw-semibold">Título de la tarea</Form.Label>
+                <InputGroup size="sm">
+                  <Form.Control value={plantilla} onChange={(e) => setPlantilla(e.target.value)} placeholder="Sucursal {sucursal} - {asunto}" maxLength={120} />
+                  <Button variant="outline-secondary" onClick={() => void guardar({ titleTemplate: plantilla }, 'Título guardado: se usa en las incidencias nuevas.')}>Guardar</Button>
+                </InputGroup>
+                <Form.Text>Huecos: <code>{'{sucursal}'}</code> <code>{'{asunto}'}</code> <code>{'{nombre}'}</code> <code>{'{urgencia}'}</code>. Vacío = «Sucursal {'{sucursal}'} - {'{asunto}'}».</Form.Text>
+              </Form.Group>
               <Form.Group controlId="fm-sucursales">
                 <Form.Label className="small fw-semibold">Sucursales (una por línea)</Form.Label>
                 <Form.Control as="textarea" rows={6} value={sucursales} onChange={(e) => setSucursales(e.target.value)} placeholder={'Sucursal 9\nSucursal 12 · Palermo\n…'} />

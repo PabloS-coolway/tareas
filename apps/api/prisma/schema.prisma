@@ -219,6 +219,8 @@ model Project {
   intakeToken      String?  @unique @map("intake_token")
   intakeActive     Boolean  @default(false) @map("intake_active")
   intakeSucursales String[] @default([]) @map("intake_sucursales")
+  /// Plantilla del título de lo que entra: {sucursal}, {asunto}, {nombre}, {urgencia}; null = la de por defecto.
+  intakeTitle      String?  @map("intake_title")
   /// Quién activó el formulario: consta como creador de las tareas que entran por él.
   intakeOwnerId    Int?     @map("intake_owner_id")
   /// Plazo de respuesta en horas por prioridad (SlaHoursDto); null = sin plazos.

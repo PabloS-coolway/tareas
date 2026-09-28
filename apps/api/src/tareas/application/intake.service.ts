@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { PRIORITY_LABELS, type IntakeConfigDto, type PublicFormDto, type PublicFormResultDto, type PublicFormSubmitDto, type UpdateIntakeDto } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea } from '../domain/clave';
-import { tituloIncidencia } from '../domain/incidencia';
+import { limpiarPlantilla, PLANTILLA_TITULO, tituloIncidencia } from '../domain/incidencia';
 import { interesados, limpiarSeguidores } from '../domain/interesados';
 import { fueraDePlazo, horasDePlazo, limpiarPlazos } from '../domain/plazos';
 import { ActivityService } from './activity.service';
@@ -43,7 +43,7 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
   async config(projectId: number): Promise<IntakeConfigDto> {
     const p = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!p) throw new NotFoundException('Proyecto no encontrado.');
-    return { projectId: p.id, active: p.intakeActive, token: p.intakeToken, sucursales: p.intakeSucursales, sla: limpiarPlazos(p.slaHours), slaNotifyUserIds: p.slaNotifyIds };
+    return { projectId: p.id, active: p.intakeActive, token: p.intakeToken, sucursales: p.intakeSucursales, titleTemplate: p.intakeTitle ?? PLANTILLA_TITULO, sla: limpiarPlazos(p.slaHours), slaNotifyUserIds: p.slaNotifyIds };
   }
 
   async update(projectId: number, dto: UpdateIntakeDto, actorId: number): Promise<IntakeConfigDto> {
@@ -51,6 +51,14 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
     if (!p) throw new NotFoundException('Proyecto no encontrado.');
     const data: Record<string, unknown> = {};
     if (dto.sucursales !== undefined) data.intakeSucursales = [...new Set(dto.sucursales.map((s) => s.trim()).filter(Boolean))].slice(0, 300);
+    if (dto.titleTemplate !== undefined) {
+      try {
+        const t = limpiarPlantilla(dto.titleTemplate);
+        data.intakeTitle = t === PLANTILLA_TITULO ? null : t;
+      } catch (e) {
+        throw new BadRequestException((e as Error).message);
+      }
+    }
     if (dto.sla !== undefined) data.slaHours = limpiarPlazos(dto.sla) ?? null;
     if (dto.slaNotifyUserIds !== undefined) {
       const ids = limpiarSeguidores(dto.slaNotifyUserIds);
@@ -97,7 +105,7 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
     const t = await this.tasks.create(
       {
         projectId: p.id,
-        title: tituloIncidencia(sucursal, asunto),
+        title: tituloIncidencia(p.intakeTitle ?? PLANTILLA_TITULO, { sucursal, asunto, nombre, urgencia: PRIORITY_LABELS[prioridad] }),
         description: `**Sucursal:** ${sucursal}  \n**Quién lo envía:** ${nombre}  \n**Urgencia:** ${PRIORITY_LABELS[prioridad]}\n\n${descripcion || '_(sin más detalle)_'}\n\n_Entró por el formulario público._`,
         type: 'INCIDENT',
         priority: prioridad,
