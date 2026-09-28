@@ -65,7 +65,7 @@ export function FormulariosPage() {
                 <h2 className="h6 mb-0">Formulario público {cfg.active ? <Badge bg="success">activo</Badge> : <Badge bg="secondary">apagado</Badge>}</h2>
                 <Form.Check type="switch" id="fm-active" label={cfg.active ? 'Activo' : 'Activar'} checked={cfg.active} onChange={(e) => void guardar({ active: e.target.checked }, e.target.checked ? 'Formulario activado: las tareas que entren constan como creadas por ti.' : 'Formulario apagado: el enlace deja de funcionar.')} />
               </div>
-              <p className="small text-secondary">Lo que entra por él se crea como <b>incidencia</b> en este proyecto, con la sucursal en el título y la etiqueta «formulario». Las reglas automáticas del proyecto se aplican igual.</p>
+              <p className="small text-secondary">Lo que entra por él se crea como <b>incidencia</b> en este proyecto, con el título «Sucursal (número) - (incidencia)» y la etiqueta «formulario». Las reglas automáticas del proyecto se aplican igual.</p>
               {cfg.token && (
                 <InputGroup size="sm" className="mb-3">
                   <Form.Control readOnly value={enlace} aria-label="Enlace del formulario" disabled={!cfg.active} />

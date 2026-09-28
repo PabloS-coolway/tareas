@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { PRIORITY_LABELS, type IntakeConfigDto, type PublicFormDto, type PublicFormResultDto, type PublicFormSubmitDto, type UpdateIntakeDto } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea } from '../domain/clave';
+import { tituloIncidencia } from '../domain/incidencia';
 import { interesados, limpiarSeguidores } from '../domain/interesados';
 import { fueraDePlazo, horasDePlazo, limpiarPlazos } from '../domain/plazos';
 import { ActivityService } from './activity.service';
@@ -96,7 +97,7 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
     const t = await this.tasks.create(
       {
         projectId: p.id,
-        title: `[${sucursal}] ${asunto}`,
+        title: tituloIncidencia(sucursal, asunto),
         description: `**Sucursal:** ${sucursal}  \n**Quién lo envía:** ${nombre}  \n**Urgencia:** ${PRIORITY_LABELS[prioridad]}\n\n${descripcion || '_(sin más detalle)_'}\n\n_Entró por el formulario público._`,
         type: 'INCIDENT',
         priority: prioridad,
