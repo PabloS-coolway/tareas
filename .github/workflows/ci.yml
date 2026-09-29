@@ -1,0 +1,37 @@
+# Comprobaciones de cada PR contra main: lo mismo que se pide antes de abrir una PR
+# (typecheck + tests + build). El ruleset «main protegida» exige este check en verde para mergear,
+# porque main se despliega sola en DigitalOcean.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: typecheck + tests + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Misma versión que la imagen de la API (apps/api/Dockerfile: node:22).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # El cliente de Prisma se genera a partir del schema; sin él la API no compila.
+      - run: npm run db:generate
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
