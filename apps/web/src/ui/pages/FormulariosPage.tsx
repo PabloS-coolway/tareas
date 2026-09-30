@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Form, InputGroup } from 'react-bootstrap';
 import { ArrowRepeat, Clipboard, Stopwatch } from 'react-bootstrap-icons';
-import { PRIORITIES, PRIORITY_LABELS, type IntakeConfigDto, type SlaHoursDto, type UserRefDto } from '@yorga/contracts';
+import { PRIORITIES, PRIORITY_LABELS, type IntakeConfigDto, type IntakeKind, type SlaHoursDto, type UserRefDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useProyectos } from '../proyectos/ProyectosContext';
 
@@ -50,7 +50,7 @@ export function FormulariosPage() {
     <div className="page">
       <header className="page-head mb-4">
         <h1 className="h4 mb-1">Formularios y plazos</h1>
-        <p className="text-secondary mb-0">Un enlace para que las sucursales abran incidencias sin cuenta, y el tiempo máximo hasta que alguien las empiece.</p>
+        <p className="text-secondary mb-0">Un enlace para abrir incidencias sin cuenta —sucursales, o usuarios de una aplicación como el SaaS—, con capturas, y el tiempo máximo hasta que alguien las empiece.</p>
       </header>
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>⚠ {error}</Alert>}
       {aviso && <Alert variant="success" dismissible onClose={() => setAviso('')} className="py-2">{aviso}</Alert>}
@@ -78,17 +78,36 @@ export function FormulariosPage() {
               <Form.Group controlId="fm-titulo" className="mb-3">
                 <Form.Label className="small fw-semibold">Título de la tarea</Form.Label>
                 <InputGroup size="sm">
-                  <Form.Control value={plantilla} onChange={(e) => setPlantilla(e.target.value)} placeholder="Sucursal {sucursal} - {asunto}" maxLength={120} />
+                  <Form.Control value={plantilla} onChange={(e) => setPlantilla(e.target.value)} placeholder={cfg.kind === 'aplicacion' ? '{sucursal} - {asunto}' : 'Sucursal {sucursal} - {asunto}'} maxLength={120} />
                   <Button variant="outline-secondary" onClick={() => void guardar({ titleTemplate: plantilla }, 'Título guardado: se usa en las incidencias nuevas.')}>Guardar</Button>
                 </InputGroup>
                 <Form.Text>Huecos: <code>{'{sucursal}'}</code> <code>{'{asunto}'}</code> <code>{'{nombre}'}</code> <code>{'{urgencia}'}</code>. Vacío = «Sucursal {'{sucursal}'} - {'{asunto}'}».</Form.Text>
               </Form.Group>
+              <div className="row g-2 mb-3">
+                <Form.Group className="col-sm-6" controlId="fm-kind">
+                  <Form.Label className="small fw-semibold">Para qué es</Form.Label>
+                  <Form.Select value={cfg.kind} onChange={(e) => void guardar({ kind: e.target.value as IntakeKind }, 'Tipo guardado: el formulario usa sus textos.')}>
+                    <option value="sucursal">Incidencias de sucursales (tiendas)</option>
+                    <option value="aplicacion">Fallos de una aplicación (p. ej. el SaaS)</option>
+                  </Form.Select>
+                </Form.Group>
+                <Form.Group className="col-sm-6" controlId="fm-label">
+                  <Form.Label className="small fw-semibold">Nombre del desplegable</Form.Label>
+                  <Form.Control
+                    defaultValue={cfg.label ?? ''}
+                    key={`${cfg.kind}-${cfg.label ?? ''}`}
+                    placeholder={cfg.kind === 'aplicacion' ? 'Instancia' : 'Sucursal'}
+                    maxLength={40}
+                    onBlur={(e) => e.target.value.trim() !== (cfg.label ?? '') && void guardar({ label: e.target.value }, 'Nombre del desplegable guardado.')}
+                  />
+                </Form.Group>
+              </div>
               <Form.Group controlId="fm-sucursales">
-                <Form.Label className="small fw-semibold">Sucursales (una por línea)</Form.Label>
+                <Form.Label className="small fw-semibold">Opciones del desplegable (una por línea)</Form.Label>
                 <Form.Control as="textarea" rows={6} value={sucursales} onChange={(e) => setSucursales(e.target.value)} placeholder={'Sucursal 9\nSucursal 12 · Palermo\n…'} />
                 <Form.Text>Si la dejas vacía, la sucursal se escribe a mano.</Form.Text>
               </Form.Group>
-              <Button size="sm" className="btn-brand mt-2" onClick={() => void guardar({ sucursales: sucursales.split('\n') })}>Guardar sucursales</Button>
+              <Button size="sm" className="btn-brand mt-2" onClick={() => void guardar({ sucursales: sucursales.split('\n') })}>Guardar opciones</Button>
             </Card.Body>
           </Card>
 

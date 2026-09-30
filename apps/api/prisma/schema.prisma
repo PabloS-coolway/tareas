@@ -219,6 +219,10 @@ model Project {
   intakeToken      String?  @unique @map("intake_token")
   intakeActive     Boolean  @default(false) @map("intake_active")
   intakeSucursales String[] @default([]) @map("intake_sucursales")
+  /// `sucursal` (incidencias de tienda) | `aplicacion` (fallos de una app, p. ej. el SaaS): cambia los textos.
+  intakeKind       String   @default("sucursal") @map("intake_kind")
+  /// Etiqueta del desplegable («Instancia», «Marca»…); null = la del tipo.
+  intakeLabel      String?  @map("intake_label")
   /// Plantilla del título de lo que entra: {sucursal}, {asunto}, {nombre}, {urgencia}; null = la de por defecto.
   intakeTitle      String?  @map("intake_title")
   /// Quién activó el formulario: consta como creador de las tareas que entran por él.

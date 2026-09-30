@@ -20,3 +20,35 @@ describe('título de la incidencia del formulario', () => {
     expect(() => limpiarPlantilla('Sucursal {sucursal}')).toThrow('{asunto}');
   });
 });
+
+import { etiquetaFormulario, MAX_IMAGEN_BYTES, problemaConImagenes, TEXTOS_FORMULARIO, tipoFormulario } from '../src/tareas/domain/incidencia';
+
+describe('tipos de formulario', () => {
+  it('sucursal por defecto; aplicación con sus propios textos', () => {
+    expect(tipoFormulario(undefined)).toBe('sucursal');
+    expect(tipoFormulario('inventado')).toBe('sucursal');
+    expect(tipoFormulario('aplicacion')).toBe('aplicacion');
+    expect(TEXTOS_FORMULARIO.aplicacion.urgencias.URGENT).not.toContain('vender');
+  });
+  it('la etiqueta propia manda; vacía, la del tipo', () => {
+    expect(etiquetaFormulario('aplicacion', null)).toBe('Instancia');
+    expect(etiquetaFormulario('aplicacion', '  Marca  ')).toBe('Marca');
+    expect(etiquetaFormulario('sucursal', '')).toBe('Sucursal');
+  });
+  it('en aplicación el título por defecto no dice «Sucursal»', () => {
+    expect(tituloIncidencia(TEXTOS_FORMULARIO.aplicacion.titulo, { ...datos, sucursal: 'Coolway EU', asunto: 'No carga Meta' })).toBe('Coolway EU - No carga Meta');
+  });
+});
+
+describe('imágenes del formulario', () => {
+  const png = { originalname: 'captura.png', mimetype: 'image/png', size: 200_000 };
+  it('capturas normales valen', () => {
+    expect(problemaConImagenes([])).toBeNull();
+    expect(problemaConImagenes([png, { ...png, mimetype: 'image/jpeg' }])).toBeNull();
+  });
+  it('más de 5, no imágenes o demasiado grandes: se dice cuál', () => {
+    expect(problemaConImagenes(Array(6).fill(png))).toContain('5');
+    expect(problemaConImagenes([{ ...png, originalname: 'virus.exe', mimetype: 'application/octet-stream' }])).toContain('virus.exe');
+    expect(problemaConImagenes([{ ...png, size: MAX_IMAGEN_BYTES + 1 }])).toContain('10 MB');
+  });
+});
