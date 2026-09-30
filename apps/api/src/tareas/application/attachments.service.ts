@@ -24,6 +24,11 @@ export class AttachmentsService {
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
   ) {}
 
+  /** `false` si este entorno no puede guardar ficheros (sin SPACES_* ni disco). */
+  habilitados(): boolean {
+    return this.storage.kind !== 'off';
+  }
+
   async list(taskId: number): Promise<AttachmentDto[]> {
     const rows = await this.prisma.attachment.findMany({ where: { taskId }, orderBy: { createdAt: 'asc' }, include: { uploader } });
     return rows.map(toDto);

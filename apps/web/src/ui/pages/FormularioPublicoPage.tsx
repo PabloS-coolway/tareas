@@ -1,18 +1,26 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type ClipboardEvent, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { Alert, Button, Card, Form, Spinner } from 'react-bootstrap';
-import { CheckCircleFill, KanbanFill } from 'react-bootstrap-icons';
+import { CheckCircleFill, ImageFill, KanbanFill, XCircleFill } from 'react-bootstrap-icons';
 import type { PublicFormDto, PublicFormResultDto, PublicFormSubmitDto } from '@yorga/contracts';
 
 const MEMORIA = 'tareas.formulario.';
 
-/** Formulario público (sin cuenta) para abrir una incidencia: lo usan las sucursales con el enlace secreto. */
+const TIPOS_IMAGEN = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+
+/**
+ * Formulario público (sin cuenta) para abrir una incidencia con el enlace secreto: lo usan las
+ * sucursales y los usuarios de las aplicaciones (el SaaS). Los textos dependen del tipo del proyecto.
+ * Se pueden adjuntar capturas, también pegándolas con Ctrl+V.
+ */
 export function FormularioPublicoPage() {
   const { token = '' } = useParams();
   const [form, setForm] = useState<PublicFormDto | null>(null);
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [hecho, setHecho] = useState<string | null>(null);
+  const [imagenes, setImagenes] = useState<File[]>([]);
+  const [avisoImagen, setAvisoImagen] = useState('');
   // Sucursal y nombre se recuerdan en este navegador: la próxima vez ya vienen puestos.
   const recordado = (() => {
     try {
@@ -29,12 +37,38 @@ export function FormularioPublicoPage() {
       .catch(() => setError('No hay conexión. Prueba de nuevo en un momento.'));
   }, [token]);
 
+  /** Añade imágenes (del selector o pegadas), con las mismas reglas que la API para avisar antes de enviar. */
+  function anadir(ficheros: File[]) {
+    if (!form) return;
+    setAvisoImagen('');
+    const validas = ficheros.filter((f) => TIPOS_IMAGEN.includes(f.type));
+    if (validas.length < ficheros.length) setAvisoImagen('Solo imágenes: PNG, JPG, WebP o GIF.');
+    const grandes = validas.filter((f) => f.size > form.imagenes.maxMb * 1024 * 1024);
+    if (grandes.length) setAvisoImagen(`«${grandes[0].name}» pesa más de ${form.imagenes.maxMb} MB.`);
+    const nuevas = [...imagenes, ...validas.filter((f) => !grandes.includes(f))];
+    if (nuevas.length > form.imagenes.max) setAvisoImagen(`Como mucho ${form.imagenes.max} imágenes.`);
+    setImagenes(nuevas.slice(0, form.imagenes.max));
+  }
+
+  function alPegar(e: ClipboardEvent) {
+    if (!form?.imagenes.admite) return;
+    const pegadas = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+    if (!pegadas.length) return;
+    e.preventDefault();
+    // Una captura pegada llega como «image.png»: se le pone un nombre que diga algo.
+    anadir(pegadas.map((f, i) => new File([f], `captura-${new Date().toISOString().slice(11, 19).replace(/:/g, '')}${i ? `-${i}` : ''}.png`, { type: f.type })));
+  }
+
   async function enviar(e: FormEvent) {
     e.preventDefault();
     setEnviando(true);
     setError('');
     try {
-      const r = await fetch(`/api/public/forms/${encodeURIComponent(token)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) });
+      // Multipart siempre: los campos y, si hay, las imágenes en `imagenes`.
+      const datos = new FormData();
+      Object.entries(f).forEach(([k, v]) => datos.append(k, String(v ?? '')));
+      imagenes.forEach((img) => datos.append('imagenes', img, img.name));
+      const r = await fetch(`/api/public/forms/${encodeURIComponent(token)}`, { method: 'POST', body: datos });
       const body = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error((body as { message?: string }).message ?? 'No se pudo enviar.');
       try {
@@ -61,7 +95,7 @@ export function FormularioPublicoPage() {
               <h1 className="h4">Recibido</h1>
               <p className="mb-1">Tu incidencia es la <b className="task-key fs-5">{hecho}</b>.</p>
               <p className="text-secondary">Guárdate el número por si tienes que preguntar por ella.</p>
-              <Button variant="outline-secondary" onClick={() => { setHecho(null); setF({ ...f, asunto: '', descripcion: '', urgencia: 'NORMAL' }); }}>Enviar otra</Button>
+              <Button variant="outline-secondary" onClick={() => { setHecho(null); setImagenes([]); setF({ ...f, asunto: '', descripcion: '', urgencia: 'NORMAL' }); }}>Enviar otra</Button>
             </div>
           ) : (
             <>
@@ -71,16 +105,16 @@ export function FormularioPublicoPage() {
               {!form && !error ? (
                 <div className="text-center py-4"><Spinner animation="border" /></div>
               ) : form ? (
-                <Form onSubmit={(e) => void enviar(e)}>
+                <Form onSubmit={(e) => void enviar(e)} onPaste={alPegar}>
                   <Form.Group className="mb-3" controlId="fp-sucursal">
-                    <Form.Label>Sucursal</Form.Label>
+                    <Form.Label>{form.label}</Form.Label>
                     {form.sucursales.length ? (
                       <Form.Select value={f.sucursal} onChange={(e) => setF({ ...f, sucursal: e.target.value })} required>
-                        <option value="">Elige tu sucursal…</option>
+                        <option value="">Elige…</option>
                         {form.sucursales.map((s) => <option key={s} value={s}>{s}</option>)}
                       </Form.Select>
                     ) : (
-                      <Form.Control value={f.sucursal} onChange={(e) => setF({ ...f, sucursal: e.target.value })} placeholder="Número o nombre de la sucursal" required />
+                      <Form.Control value={f.sucursal} onChange={(e) => setF({ ...f, sucursal: e.target.value })} placeholder={form.kind === 'sucursal' ? 'Número o nombre de la sucursal' : ''} required />
                     )}
                   </Form.Group>
                   <Form.Group className="mb-3" controlId="fp-nombre">
@@ -89,16 +123,46 @@ export function FormularioPublicoPage() {
                   </Form.Group>
                   <Form.Group className="mb-3" controlId="fp-asunto">
                     <Form.Label>¿Qué pasa?</Form.Label>
-                    <Form.Control value={f.asunto} onChange={(e) => setF({ ...f, asunto: e.target.value })} placeholder="p. ej. No funciona el datáfono" maxLength={140} required />
+                    <Form.Control value={f.asunto} onChange={(e) => setF({ ...f, asunto: e.target.value })} placeholder={form.textos.ejemploAsunto} maxLength={140} required />
                   </Form.Group>
                   <Form.Group className="mb-3" controlId="fp-desc">
                     <Form.Label>Más detalle <span className="text-secondary">(opcional)</span></Form.Label>
-                    <Form.Control as="textarea" rows={4} value={f.descripcion} onChange={(e) => setF({ ...f, descripcion: e.target.value })} placeholder="Desde cuándo, qué has probado, número de ticket…" />
+                    <Form.Control as="textarea" rows={4} value={f.descripcion} onChange={(e) => setF({ ...f, descripcion: e.target.value })} placeholder={form.textos.ejemploDetalle} />
                   </Form.Group>
+                  {form.imagenes.admite && (
+                    <Form.Group className="mb-3" controlId="fp-imagenes">
+                      <Form.Label>Capturas o fotos <span className="text-secondary">(opcional, hasta {form.imagenes.max})</span></Form.Label>
+                      <Form.Control
+                        type="file"
+                        accept={TIPOS_IMAGEN.join(',')}
+                        multiple
+                        disabled={imagenes.length >= form.imagenes.max}
+                        onChange={(e) => {
+                          anadir(Array.from((e.target as HTMLInputElement).files ?? []));
+                          (e.target as HTMLInputElement).value = '';
+                        }}
+                      />
+                      <Form.Text>También puedes pegar una captura con Ctrl+V en cualquier parte del formulario.</Form.Text>
+                      {avisoImagen && <div className="text-danger small mt-1">{avisoImagen}</div>}
+                      {imagenes.length > 0 && (
+                        <div className="d-flex flex-wrap gap-2 mt-2">
+                          {imagenes.map((img, i) => (
+                            <div key={`${img.name}-${i}`} className="position-relative border rounded p-1 text-center" style={{ width: 96 }}>
+                              <img src={URL.createObjectURL(img)} alt={img.name} style={{ width: 86, height: 64, objectFit: 'cover' }} className="rounded" />
+                              <div className="small text-truncate" title={img.name}><ImageFill className="me-1" />{img.name}</div>
+                              <button type="button" className="btn btn-link p-0 position-absolute top-0 end-0 text-danger" aria-label={`Quitar ${img.name}`} onClick={() => setImagenes(imagenes.filter((_, j) => j !== i))}>
+                                <XCircleFill />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Form.Group>
+                  )}
                   <Form.Group className="mb-4">
                     <Form.Label>Urgencia</Form.Label>
                     <div className="d-flex flex-wrap gap-3">
-                      {([['NORMAL', 'Normal'], ['HIGH', 'Alta: afecta a la venta'], ['URGENT', 'Urgente: no podemos vender']] as const).map(([v, l]) => (
+                      {(['NORMAL', 'HIGH', 'URGENT'] as const).map((v) => [v, form.textos.urgencias[v]] as const).map(([v, l]) => (
                         <Form.Check key={v} type="radio" id={`fp-u-${v}`} name="urgencia" label={l} checked={f.urgencia === v} onChange={() => setF({ ...f, urgencia: v })} />
                       ))}
                     </div>

@@ -3,10 +3,20 @@ import { randomBytes } from 'node:crypto';
 import { PRIORITY_LABELS, type IntakeConfigDto, type PublicFormDto, type PublicFormResultDto, type PublicFormSubmitDto, type UpdateIntakeDto } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea } from '../domain/clave';
-import { limpiarPlantilla, PLANTILLA_TITULO, tituloIncidencia } from '../domain/incidencia';
+import {
+  etiquetaFormulario,
+  limpiarPlantilla,
+  MAX_IMAGEN_BYTES,
+  MAX_IMAGENES,
+  problemaConImagenes,
+  TEXTOS_FORMULARIO,
+  tipoFormulario,
+  tituloIncidencia,
+} from '../domain/incidencia';
 import { interesados, limpiarSeguidores } from '../domain/interesados';
 import { fueraDePlazo, horasDePlazo, limpiarPlazos } from '../domain/plazos';
 import { ActivityService } from './activity.service';
+import { AttachmentsService, FicheroSubido } from './attachments.service';
 import { NotificationsService } from './notifications.service';
 import { TasksService } from './tasks.service';
 
@@ -28,6 +38,7 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
     private readonly tasks: TasksService,
     private readonly activity: ActivityService,
     private readonly notifications: NotificationsService,
+    private readonly attachments: AttachmentsService,
   ) {}
 
   onModuleInit(): void {
@@ -43,18 +54,33 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
   async config(projectId: number): Promise<IntakeConfigDto> {
     const p = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!p) throw new NotFoundException('Proyecto no encontrado.');
-    return { projectId: p.id, active: p.intakeActive, token: p.intakeToken, sucursales: p.intakeSucursales, titleTemplate: p.intakeTitle ?? PLANTILLA_TITULO, sla: limpiarPlazos(p.slaHours), slaNotifyUserIds: p.slaNotifyIds };
+    const kind = tipoFormulario(p.intakeKind);
+    return {
+      projectId: p.id,
+      active: p.intakeActive,
+      token: p.intakeToken,
+      sucursales: p.intakeSucursales,
+      kind,
+      label: p.intakeLabel,
+      titleTemplate: p.intakeTitle ?? TEXTOS_FORMULARIO[kind].titulo,
+      sla: limpiarPlazos(p.slaHours),
+      slaNotifyUserIds: p.slaNotifyIds,
+    };
   }
 
   async update(projectId: number, dto: UpdateIntakeDto, actorId: number): Promise<IntakeConfigDto> {
     const p = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!p) throw new NotFoundException('Proyecto no encontrado.');
     const data: Record<string, unknown> = {};
+    if (dto.kind !== undefined) data.intakeKind = tipoFormulario(dto.kind);
+    if (dto.label !== undefined) data.intakeLabel = (dto.label ?? '').trim().slice(0, 40) || null;
     if (dto.sucursales !== undefined) data.intakeSucursales = [...new Set(dto.sucursales.map((s) => s.trim()).filter(Boolean))].slice(0, 300);
     if (dto.titleTemplate !== undefined) {
       try {
-        const t = limpiarPlantilla(dto.titleTemplate);
-        data.intakeTitle = t === PLANTILLA_TITULO ? null : t;
+        // Vacía o igual a la del tipo = «la de por defecto» (null): si luego cambia el tipo, cambia con él.
+        const porDefecto = TEXTOS_FORMULARIO[tipoFormulario(dto.kind ?? p.intakeKind)].titulo;
+        const t = (dto.titleTemplate ?? '').trim() ? limpiarPlantilla(dto.titleTemplate) : porDefecto;
+        data.intakeTitle = t === porDefecto ? null : t;
       } catch (e) {
         throw new BadRequestException((e as Error).message);
       }
@@ -85,10 +111,19 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
 
   async form(token: string): Promise<PublicFormDto> {
     const p = await this.porToken(token);
-    return { projectName: p.name, sucursales: p.intakeSucursales };
+    const kind = tipoFormulario(p.intakeKind);
+    const { ejemploAsunto, ejemploDetalle, urgencias } = TEXTOS_FORMULARIO[kind];
+    return {
+      projectName: p.name,
+      sucursales: p.intakeSucursales,
+      kind,
+      label: etiquetaFormulario(kind, p.intakeLabel),
+      textos: { ejemploAsunto, ejemploDetalle, urgencias },
+      imagenes: { admite: this.attachments.habilitados(), max: MAX_IMAGENES, maxMb: MAX_IMAGEN_BYTES / 1024 / 1024 },
+    };
   }
 
-  async submit(token: string, dto: PublicFormSubmitDto, ip: string): Promise<PublicFormResultDto> {
+  async submit(token: string, dto: PublicFormSubmitDto, ip: string, imagenes: FicheroSubido[] = []): Promise<PublicFormResultDto> {
     const p = await this.porToken(token);
     if (dto.web) throw new BadRequestException('No se pudo enviar.'); // campo trampa: sólo lo rellenan los bots
     this.limitar(`${ip}|${p.id}`);
@@ -96,8 +131,14 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
     const nombre = (dto.nombre ?? '').trim().slice(0, 80);
     const asunto = (dto.asunto ?? '').trim().slice(0, 140);
     const descripcion = (dto.descripcion ?? '').trim().slice(0, 5000);
-    if (!sucursal || !nombre || !asunto) throw new BadRequestException('Indica la sucursal, tu nombre y qué pasa.');
-    if (p.intakeSucursales.length && !p.intakeSucursales.includes(sucursal)) throw new BadRequestException('Elige tu sucursal de la lista.');
+    const kind = tipoFormulario(p.intakeKind);
+    const etiqueta = etiquetaFormulario(kind, p.intakeLabel);
+    if (!sucursal || !nombre || !asunto) throw new BadRequestException(`Indica ${etiqueta.toLowerCase()}, tu nombre y qué pasa.`);
+    if (p.intakeSucursales.length && !p.intakeSucursales.includes(sucursal)) throw new BadRequestException(`Elige ${etiqueta.toLowerCase()} de la lista.`);
+    // Las imágenes se comprueban ANTES de crear nada: mejor «quita esta imagen» que una incidencia a medias.
+    if (imagenes.length && !this.attachments.habilitados()) throw new BadRequestException('Aquí no se pueden adjuntar imágenes: envíala sin ellas.');
+    const problema = problemaConImagenes(imagenes);
+    if (problema) throw new BadRequestException(problema);
     const prioridad = (['NORMAL', 'HIGH', 'URGENT'] as const).includes(dto.urgencia) ? dto.urgencia : 'NORMAL';
     const dueno = p.intakeOwnerId ? await this.prisma.user.findFirst({ where: { id: p.intakeOwnerId, active: true } }) : null;
     if (!dueno) throw new BadRequestException('El formulario no está bien configurado: avisa a sistemas.');
@@ -105,8 +146,8 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
     const t = await this.tasks.create(
       {
         projectId: p.id,
-        title: tituloIncidencia(p.intakeTitle ?? PLANTILLA_TITULO, { sucursal, asunto, nombre, urgencia: PRIORITY_LABELS[prioridad] }),
-        description: `**Sucursal:** ${sucursal}  \n**Quién lo envía:** ${nombre}  \n**Urgencia:** ${PRIORITY_LABELS[prioridad]}\n\n${descripcion || '_(sin más detalle)_'}\n\n_Entró por el formulario público._`,
+        title: tituloIncidencia(p.intakeTitle ?? TEXTOS_FORMULARIO[kind].titulo, { sucursal, asunto, nombre, urgencia: PRIORITY_LABELS[prioridad] }),
+        description: `**${etiqueta}:** ${sucursal}  \n**Quién lo envía:** ${nombre}  \n**Urgencia:** ${PRIORITY_LABELS[prioridad]}\n\n${descripcion || '_(sin más detalle)_'}\n\n_Entró por el formulario público${imagenes.length ? ` con ${imagenes.length} ${imagenes.length === 1 ? 'imagen' : 'imágenes'} (en adjuntos)` : ''}._`,
         type: 'INCIDENT',
         priority: prioridad,
         tags: ['formulario', sucursal.toLowerCase().replace(/[^a-z0-9áéíóúñü]+/gi, '-').replace(/^-|-$/g, '').slice(0, 40)],
@@ -114,6 +155,11 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
       dueno.id,
     );
     await this.activity.record({ taskId: t.id, actorId: null, action: 'intake', after: `${nombre} · ${sucursal}` });
+    for (const img of imagenes) {
+      // Constan como subidas por el dueño del formulario, igual que la tarea. Si una falla, la
+      // incidencia ya está creada y vale igual: se deja en el log, no se le devuelve error al usuario.
+      await this.attachments.add(t.id, img, dueno.id).catch((e) => this.log.warn(`Imagen del formulario sin guardar en ${t.key}: ${(e as Error).message}`));
+    }
     return { key: t.key };
   }
 

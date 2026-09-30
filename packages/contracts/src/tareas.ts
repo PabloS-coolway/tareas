@@ -679,6 +679,10 @@ export interface IntakeConfigDto {
   token: string | null;
   /** Opciones del desplegable «sucursal» (p. ej. «Sucursal 12 · Palermo»). */
   sucursales: string[];
+  /** `sucursal` (incidencias de tienda) o `aplicacion` (fallos de una app): cambia los textos del formulario. */
+  kind: IntakeKind;
+  /** Etiqueta del desplegable; null = la del tipo («Sucursal» / «Instancia»). */
+  label: string | null;
   /** Plantilla del título de las tareas que entran: {sucursal}, {asunto}, {nombre}, {urgencia}. */
   titleTemplate: string;
   sla: SlaHoursDto | null;
@@ -686,9 +690,14 @@ export interface IntakeConfigDto {
   slaNotifyUserIds: number[];
 }
 
+export type IntakeKind = 'sucursal' | 'aplicacion';
+
 export interface UpdateIntakeDto {
   active?: boolean;
   sucursales?: string[];
+  kind?: IntakeKind;
+  /** Vacía = la del tipo. */
+  label?: string | null;
   /** Vacía = la de por defecto («Sucursal {sucursal} - {asunto}»). */
   titleTemplate?: string;
   sla?: SlaHoursDto | null;
@@ -701,6 +710,17 @@ export interface UpdateIntakeDto {
 export interface PublicFormDto {
   projectName: string;
   sucursales: string[];
+  kind: IntakeKind;
+  /** Etiqueta del desplegable («Sucursal», «Instancia»…). */
+  label: string;
+  /** Textos de ejemplo y de urgencia, según el tipo. */
+  textos: {
+    ejemploAsunto: string;
+    ejemploDetalle: string;
+    urgencias: Record<'NORMAL' | 'HIGH' | 'URGENT', string>;
+  };
+  /** ¿Se pueden adjuntar imágenes? (no, si el entorno no tiene almacenamiento de ficheros). */
+  imagenes: { admite: boolean; max: number; maxMb: number };
 }
 
 export interface PublicFormSubmitDto {
