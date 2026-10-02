@@ -1,17 +1,24 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from '../../application/auth.service';
 import { API_TOKEN_PREFIX, ApiTokenService } from '../../application/api-token.service';
+import { USER_REPOSITORY, UserRepository } from '../../application/ports';
+import { sesionAlDia } from '../../domain/sesion';
 import { IS_PUBLIC } from './decorators';
 
-/** Guard global: exige un JWT válido o un token de API (`tk_…`), salvo en rutas marcadas @Public. */
+/**
+ * Guard global: exige un JWT válido o un token de API (`tk_…`), salvo en rutas marcadas @Public.
+ * Con JWT, el usuario se vuelve a leer de la base (TAREAS-20): el rol que vale es el de ahora y un
+ * usuario desactivado se queda fuera, sin esperar a que caduque la sesión.
+ */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwt: JwtService,
     private readonly apiTokens: ApiTokenService,
+    @Inject(USER_REPOSITORY) private readonly users: UserRepository,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -39,11 +46,15 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
+    let payload: JwtPayload;
     try {
-      req.user = await this.jwt.verifyAsync<JwtPayload>(token);
-      return true;
+      payload = await this.jwt.verifyAsync<JwtPayload>(token);
     } catch {
       throw new UnauthorizedException('Token inválido o caducado.');
     }
+    const sesion = sesionAlDia(payload, await this.users.findById(payload.sub));
+    if (!sesion) throw new UnauthorizedException('Tu usuario ya no tiene acceso. Vuelve a entrar.');
+    req.user = sesion;
+    return true;
   }
 }
