@@ -20,13 +20,15 @@ COPY . .
 # Instala dependencias (las de desarrollo hacen falta para compilar y para el CLI de prisma en runtime).
 RUN npm ci
 
-# Genera el cliente Prisma (contra el schema versionado) y compila contracts + API.
+# Genera el cliente Prisma (contra el schema versionado) y compila contracts, correo + API.
 RUN npm run db:generate \
   && npm run build -w @yorga/contracts \
+  && npm run build -w @modulos/correo \
   && npm run build -w @yorga/tareas-mcp \
   && npm run build -w @yorga/tareas-api \
   # En runtime `@yorga/contracts` se resuelve por node_modules → que apunte al JS compilado (sólo en la imagen).
-  && npm pkg set main=dist/index.js types=dist/index.d.ts -w @yorga/contracts
+  && npm pkg set main=dist/index.js types=dist/index.d.ts -w @yorga/contracts \
+  && npm pkg set main=dist/index.js types=dist/index.d.ts -w @modulos/correo
 
 ENV NODE_ENV=production
 # App Platform inyecta el puerto en $PORT; la API ya lee process.env.PORT (por defecto 3000).

@@ -14,13 +14,13 @@
 
 ## 3. Datos y API en Tareas
 
-- [ ] 3.1 Migración Prisma: `mail_config`, `mail_message` y `notification.email_queued_at`. Verificación: `npm run db:generate` y `npm run typecheck`; la migración solo añade.
-- [ ] 3.2 Adaptadores Prisma de los puertos y transporte por defecto desde `SMTP_URL`/`MAIL_FROM` cuando no hay configuración en el panel. Verificación: test del selector de transporte (sin config + env → SMTP; con config → la del panel; nada → «sin correo»).
-- [ ] 3.3 Endpoints `/admin/correo` (GET, PUT, POST `/prueba`, GET `/registro`) con `usuarios.gestionar`, DTOs en `@yorga/contracts`; sin `MAIL_ENCRYPTION_KEY` el PUT con credencial responde con un error claro. Verificación: test del controlador/servicio y comprobación de que un miembro recibe 403.
-- [ ] 3.4 Trabajador en proceso (cada 30 s, apagado en tests): avisos `ASSIGNED`/`MENTION`/`SLA` → cola (persona activa, con email, que ve el proyecto, posteriores a `notificationsSince`), procesado de la cola y purga diaria de >90 días; apagar el interruptor descarta los pendientes de avisos. Verificación: tests de la función que decide qué avisos se encolan (tipo, fecha, persona inactiva, sin permiso de proyecto).
-- [ ] 3.5 Contenido de los correos de aviso: asunto con clave y título, texto del aviso, botón a `<URL pública>/t/<CLAVE>`, nombre y pie de la app. Verificación: test de la composición del correo.
-- [ ] 3.6 «He olvidado mi contraseña» por el motor nuevo (encolar + procesado inmediato; sin correo, aviso a admins) y borrar `mailer.ts`. Verificación: tests del flujo con y sin correo configurado.
-- [ ] 3.7 `MAIL_ENCRYPTION_KEY` en `apps/api/.env.example` y en `.do/app.yaml` (SECRET, sin valor); Dockerfile compila `correo` y cambia su `main` a `dist`. Verificación: `docker build` o, si no hay Docker, revisión del Dockerfile + `npm run build -w correo`.
+- [x] 3.1 Migración Prisma: `mail_config`, `mail_message` y `notification.email_queued_at`. Verificación: `npm run db:generate` y `npm run typecheck`; la migración solo añade.
+- [x] 3.2 Adaptadores Prisma de los puertos y transporte por defecto desde `SMTP_URL`/`MAIL_FROM` cuando no hay configuración en el panel. Verificación: test del selector de transporte (sin config + env → SMTP; con config → la del panel; nada → «sin correo»).
+- [x] 3.3 Endpoints `/admin/correo` (GET, PUT, POST `/prueba`, GET `/registro`) con `usuarios.gestionar`, DTOs en `@yorga/contracts`; sin `MAIL_ENCRYPTION_KEY` el PUT con credencial responde con un error claro. Verificación: test del controlador/servicio y comprobación de que un miembro recibe 403.
+- [x] 3.4 Trabajador en proceso (cada 30 s, apagado en tests): avisos `ASSIGNED`/`MENTION`/`SLA` → cola (persona activa, con email, que ve el proyecto, posteriores a `notificationsSince`), procesado de la cola y purga diaria de >90 días; apagar el interruptor descarta los pendientes de avisos. Verificación: tests de la función que decide qué avisos se encolan (tipo, fecha, persona inactiva, sin permiso de proyecto).
+- [x] 3.5 Contenido de los correos de aviso: asunto con clave y título, texto del aviso, botón a `<URL pública>/t/<CLAVE>`, nombre y pie de la app. Verificación: test de la composición del correo.
+- [x] 3.6 «He olvidado mi contraseña» por el motor nuevo (encolar + procesado inmediato; sin correo, aviso a admins) y borrar `mailer.ts`. Verificación: tests del flujo con y sin correo configurado.
+- [x] 3.7 `MAIL_ENCRYPTION_KEY` en `apps/api/.env.example` y en `.do/app.yaml` (SECRET, sin valor); Dockerfile compila `correo` y cambia su `main` a `dist`. Verificación: `docker build` o, si no hay Docker, revisión del Dockerfile + `npm run build -w correo`.
 
 ## 4. Pantalla de admin
 

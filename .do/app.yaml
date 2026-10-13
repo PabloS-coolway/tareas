@@ -9,7 +9,8 @@
 #   doctl apps create --spec .do/app.yaml          # primera vez
 #   doctl apps update <APP_ID> --spec .do/app.yaml  # cambios posteriores
 #
-# Secretos (se ponen en el panel o con doctl, nunca aquí): JWT_SECRET, ADMIN_PASSWORD, SPACES_KEY, SPACES_SECRET.
+# Secretos (se ponen en el panel o con doctl, nunca aquí): JWT_SECRET, ADMIN_PASSWORD, SPACES_KEY, SPACES_SECRET,
+# MAIL_ENCRYPTION_KEY.
 
 name: tareas-yorga
 region: fra
@@ -69,6 +70,15 @@ services:
       - key: SPACES_SECRET
         scope: RUN_TIME
         type: SECRET
+      # Correo (pantalla de admin «Correo»): clave maestra para cifrar la clave del proveedor (32 bytes en base64,
+      # `openssl rand -base64 32`). Si cambia, hay que volver a pegar la clave del proveedor en el panel.
+      - key: MAIL_ENCRYPTION_KEY
+        scope: RUN_TIME
+        type: SECRET
+      # URL pública: enlaces de «He olvidado mi contraseña» y marca por defecto de los correos.
+      - key: APP_URL
+        value: https://tareas-yorga-ewv2n.ondigitalocean.app
+        scope: RUN_TIME
 
 static_sites:
   - name: web

@@ -26,8 +26,8 @@ export class AuthController {
 
   @Public()
   @Get('forgot/info')
-  forgotInfo(): { email: boolean } {
-    return { email: this.auth.correoDisponible() };
+  async forgotInfo(): Promise<{ email: boolean }> {
+    return { email: await this.auth.correoDisponible() };
   }
 
   @Public()
