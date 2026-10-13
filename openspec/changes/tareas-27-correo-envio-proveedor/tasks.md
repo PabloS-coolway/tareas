@@ -6,11 +6,11 @@
 
 ## 2. Paquete portable `packages/correo`
 
-- [ ] 2.1 Crear el paquete (`package.json` con nombre `correo`, `tsconfig`, scripts build/typecheck/test con vitest; dependencia `nodemailer`) y añadir su `path` en `apps/api/tsconfig.json`. Verificación: `npm run typecheck` en verde con el paquete vacío.
-- [ ] 2.2 Dominio: tipos, validación de la configuración (proveedor, credencial, remitente, URL), `enmascarar`, cifrado AES-256-GCM, cálculo de reintentos y plantilla HTML base con escapado. Verificación: tests unitarios (cifrar/descifrar ida y vuelta, clave maestra incorrecta falla, enmascarado, validación, reintentos, escapado de `<script>`).
-- [ ] 2.3 Puertos (`AlmacenConfigCorreo`, `ColaCorreo`, `Transporte`) y transportes Brevo (por `fetch`) y SMTP (nodemailer). Verificación: tests con `fetch` simulado que comprueban URL, cabecera `api-key` y cuerpo de Brevo, y que un error HTTP se convierte en error legible.
-- [ ] 2.4 `ServicioCorreo` (configurar conservando la credencial si llega vacía, leer para el panel, probar, encolar, procesar la cola con reintentos, purgar). Verificación: tests con almacén y cola en memoria (envío correcto, fallo con reintento, agotar intentos → FAILED, credencial nunca devuelta).
-- [ ] 2.5 Comprobar que el paquete no contiene nada de Yorga/Coolway ni depende de Prisma/NestJS. Verificación: `grep -riE "yorga|coolway|prisma|@nestjs" packages/correo/src` sin resultados.
+- [x] 2.1 Crear el paquete (`package.json` con nombre `correo`, `tsconfig`, scripts build/typecheck/test con vitest; dependencia `nodemailer`) y añadir su `path` en `apps/api/tsconfig.json`. Verificación: `npm run typecheck` en verde con el paquete vacío.
+- [x] 2.2 Dominio: tipos, validación de la configuración (proveedor, credencial, remitente, URL), `enmascarar`, cifrado AES-256-GCM, cálculo de reintentos y plantilla HTML base con escapado. Verificación: tests unitarios (cifrar/descifrar ida y vuelta, clave maestra incorrecta falla, enmascarado, validación, reintentos, escapado de `<script>`).
+- [x] 2.3 Puertos (`AlmacenConfigCorreo`, `ColaCorreo`, `Transporte`) y transportes Brevo (por `fetch`) y SMTP (nodemailer). Verificación: tests con `fetch` simulado que comprueban URL, cabecera `api-key` y cuerpo de Brevo, y que un error HTTP se convierte en error legible.
+- [x] 2.4 `ServicioCorreo` (configurar conservando la credencial si llega vacía, leer para el panel, probar, encolar, procesar la cola con reintentos, purgar). Verificación: tests con almacén y cola en memoria (envío correcto, fallo con reintento, agotar intentos → FAILED, credencial nunca devuelta).
+- [x] 2.5 Comprobar que el paquete no contiene nada de Yorga/Coolway ni depende de Prisma/NestJS. Verificación: `grep -riE "yorga|coolway|prisma|@nestjs" packages/correo/src` sin resultados.
 
 ## 3. Datos y API en Tareas
 

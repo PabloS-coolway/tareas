@@ -14,7 +14,8 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@yorga/contracts": ["../../packages/contracts/src/index.ts"]
+      "@yorga/contracts": ["../../packages/contracts/src/index.ts"],
+      "@modulos/correo": ["../../packages/correo/src/index.ts"]
     },
     "strict": true,
     "skipLibCheck": true,

@@ -6,6 +6,7 @@ module.exports = {
   testMatch: ['**/*.spec.ts'],
   moduleNameMapper: {
     '^@yorga/contracts$': '<rootDir>/../../packages/contracts/src/index.ts',
+    '^@modulos/correo$': '<rootDir>/../../packages/correo/src/index.ts',
   },
   // La cobertura se mide sobre la LÓGICA de dominio de tareas (orden del tablero, claves), no sobre el
   // pegamento de framework ni los adapters de BD. El dominio de auth viene probado de `automatizaciones`.
