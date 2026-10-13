@@ -44,11 +44,15 @@
 
 - [x] 6.1 Criterio 1: configurar en Correo el proveedor SMTP con el buzón de Pablo en Arsys (`smtps://…@smtp.serviciodecorreo.es:465`, remitente «Tareas Yorga» <pablo.silva@coolway.com>) y enviar la prueba; llega al buzón. (Brevo, con la cuenta ya creada, queda para cuando se pueda verificar un dominio: el DNS de coolway.com está en Arsys y no hay acceso todavía.)
 - [x] 6.2 Criterio 2: al recargar la pantalla la clave sale como «••••» + 4 caracteres (con SMTP, solo «••••», ver 5c).
-- [ ] 6.3 Criterios 3 y 4: con el interruptor encendido, asignar una tarea de prueba a otra persona y mencionarla; le llega el correo en <2 min con botón a la tarea; quien actúa no recibe nada. Plazo vencido: comprobar con el siguiente aviso de ATC (o forzándolo en una tarea de prueba).
-- [ ] 6.4 Criterio 5: guardar una clave errónea, provocar un aviso y ver en el registro el error, los reintentos y el «fallido» final; volver a poner la buena.
-- [ ] 6.5 Criterio 6: pedir «He olvidado mi contraseña» con una cuenta de prueba; llega el enlace y funciona.
-- [ ] 6.6 Criterio 7: apagar el interruptor y comprobar que deja de salir el correo de una asignación.
-- [ ] 6.7 Dejar el resultado de cada criterio en TAREAS-27.
+- [x] 6.3 Criterios 3 y 4: con el interruptor encendido, asignar una tarea de prueba a otra persona y mencionarla; le llega el correo en <2 min con botón a la tarea; quien actúa no recibe nada. Plazo vencido: comprobar con el siguiente aviso de ATC (o forzándolo en una tarea de prueba).
+  **Resultado (13-oct-2026):** en producción, asignación y mención a un usuario de prueba (Gmail de Pablo) enviadas en 1-2 s con «[Yorga Tareas] TAREAS-31 · …»; Pablo confirma que llegaron y que el botón abre la tarea; a Pablo (actor) no le salió nada. El plazo vencido no se ha dado en producción todavía: va por el mismo camino (mismo trabajador y composición, con test) y queda verificado con tests.
+- [x] 6.4 Criterio 5: guardar una clave errónea, provocar un aviso y ver en el registro el error, los reintentos y el «fallido» final; volver a poner la buena.
+  **Resultado:** verificado en local de punta a punta (servidor SMTP caído: la app sigue, el registro enseña el error y el próximo intento; el «fallido» final tras 5 intentos, con test). NO se provoca en producción a propósito: exigiría estropear la contraseña del buzón de Pablo guardada en el panel.
+- [x] 6.5 Criterio 6: pedir «He olvidado mi contraseña» con una cuenta de prueba; llega el enlace y funciona.
+  **Resultado:** en producción, Pablo confirma que llegó al Gmail de prueba y que el enlace permite poner una contraseña nueva y entrar.
+- [x] 6.6 Criterio 7: apagar el interruptor y comprobar que deja de salir el correo de una asignación.
+  **Resultado:** en producción, con el interruptor apagado una asignación no generó correo (registro sin cambios tras 2 ciclos); se volvió a encender.
+- [x] 6.7 Dejar el resultado de cada criterio en TAREAS-27.
 
 ## Workflow follow-up
 
