@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, Form, Spinner } from 'react-bootstrap';
-import { BoxArrowUpRight, Check2, Files, JournalText, Link45deg, Paperclip, Plus, Share, Trash } from 'react-bootstrap-icons';
+import { ArrowLeft, BoxArrowUpRight, Check2, ChevronDown, Files, JournalText, Link45deg, Paperclip, Plus, Share, Trash } from 'react-bootstrap-icons';
 import {
   PRIORITIES,
   PRIORITY_LABELS,
@@ -28,6 +28,8 @@ import { NuevaTareaModal } from '../components/NuevaTareaModal';
 import { Skeleton } from '../components/Skeleton';
 import { Markdown } from '../components/Markdown';
 import { SubtareasArbol } from '../components/SubtareasArbol';
+import { abrirPaleta } from '../components/Paleta';
+import { useVolver } from '../layout/useVolver';
 import { resumirSubtareas } from '../../domain/subtareas';
 import { ActividadTexto } from '../components/ActividadTexto';
 import { Dependencias } from '../components/Dependencias';
@@ -58,6 +60,7 @@ export function TareaPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [enlaceCopiado, setEnlaceCopiado] = useState(false);
+  const volver = useVolver();
   const [saving, setSaving] = useState(false);
 
   const [title, setTitle] = useState('');
@@ -241,6 +244,7 @@ export function TareaPage() {
   return (
     <div className="page page-full">
       <div className="small text-secondary mb-2 d-flex align-items-center gap-2 flex-wrap">
+        <button type="button" className="tarea-volver" onClick={volver} title="Volver atrás" aria-label="Volver atrás"><ArrowLeft /></button>
         <Link to={`/p/${task.projectKey}`} className="text-decoration-none">{project.name}</Link>
         {task.parentKey && (
           <>
@@ -249,7 +253,9 @@ export function TareaPage() {
           </>
         )}
         <span>/</span>
-        <span className="task-key big">{task.key}</span>
+        <button type="button" className="task-key big tarea-saltar" onClick={() => abrirPaleta(task.key)} title="Ir a otra tarea: cambia la clave o busca">
+          {task.key} <ChevronDown />
+        </button>
         <TipoPill t={task.type} />
         <PlazoPill task={task} />
         {saving && <Spinner as="span" size="sm" animation="border" />}

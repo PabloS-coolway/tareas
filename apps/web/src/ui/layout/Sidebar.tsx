@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useParams } from 'react-router-dom';
-import { ArrowLeft, BoxArrowRight, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock, Collection, Eye, EyeSlash, Calendar3, Lightning, Stopwatch } from 'react-bootstrap-icons';
+import { BoxArrowRight, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock, Collection, Eye, EyeSlash, Calendar3, Lightning, Stopwatch } from 'react-bootstrap-icons';
 import { useEffect, useState, type ReactNode } from 'react';
 import { tareasGateway } from '../composition';
 import type { Feature } from '@yorga/contracts';
@@ -10,7 +10,6 @@ import { useAuth } from '../auth/AuthContext';
 import { CambiarPasswordModal } from '../auth/CambiarPasswordModal';
 import { useProyectos } from '../proyectos/ProyectosContext';
 import { proyectosDelMenu } from './menu-proyectos';
-import { useVolver } from './useVolver';
 
 interface NavItem {
   to: string;
@@ -39,7 +38,6 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
   const [sinLeer, setSinLeer] = useState(0);
   const [sinLeerProyecto, setSinLeerProyecto] = useState<Record<string, number>>({});
   const { pathname } = useLocation();
-  const volver = useVolver();
   const { key: claveRuta } = useParams();
   const [soloMios, setSoloMios] = useState(() => {
     const guardado = localStorage.getItem(CLAVE_SOLO_MIOS);
@@ -119,13 +117,6 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
       </div>
 
       <nav className="sidebar-nav">
-        {/* Sólo en la app instalada (en el navegador ya está su botón de atrás) y fuera de Inicio. */}
-        {pathname !== '/inicio' && (
-          <button type="button" className="nav-item nav-volver" onClick={volver} title="Volver atrás">
-            <span className="nav-ico"><ArrowLeft /></span>
-            <span className="nav-label">Volver</span>
-          </button>
-        )}
         <button type="button" className="nav-item nav-search" onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))} title="Buscar (Ctrl+K)">
           <span className="nav-ico"><Search /></span>
           <span className="nav-label">Buscar o ir a…</span>
