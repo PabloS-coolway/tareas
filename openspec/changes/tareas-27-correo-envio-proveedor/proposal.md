@@ -20,7 +20,7 @@ llevar tal cual a Atalaya (la versión marca blanca).
   - interruptor **«Enviar avisos por correo»**;
   - botón **«Enviar correo de prueba»**;
   - **registro** de los últimos correos: a quién, asunto, estado (pendiente, enviado, fallido) y el error si lo hubo.
-- La clave del proveedor se guarda **cifrada**; después de guardarla solo se ven sus últimos 4 caracteres.
+- La clave del proveedor se guarda **cifrada**; después de guardarla solo se ven sus últimos 4 caracteres (de una URL SMTP, ninguno: lleva la contraseña del buzón).
 - Los correos salen de una **cola**: se envían en segundo plano, con reintentos si el proveedor falla, sin bloquear
   ni romper lo que hace la persona en la app.
 - Con el interruptor activado, llegan por correo **tres avisos**: te asignan una tarea, te mencionan en un
@@ -46,7 +46,7 @@ llevar tal cual a Atalaya (la versión marca blanca).
 
 1. Un admin entra en **Correo**, elige Brevo (o SMTP), pega la clave y el remitente,
    pulsa «Enviar correo de prueba» y el correo le llega a su buzón.
-2. Al volver a la pantalla, la clave no se ve entera: solo «••••» y sus últimos 4 caracteres.
+2. Al volver a la pantalla, la clave no se ve entera: solo «••••» y sus últimos 4 caracteres (con SMTP, solo «••••»).
 3. Con «Enviar avisos por correo» activado, cuando alguien asigna COOL-203 a Catalina, a ella le llega en menos de
    2 minutos un correo con el título de la tarea y un botón que la abre. Igual cuando la mencionan en un comentario
    y cuando vence el plazo de respuesta de una incidencia de ATC de la que es responsable.

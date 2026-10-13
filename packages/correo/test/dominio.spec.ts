@@ -48,9 +48,10 @@ describe('validación de la configuración', () => {
 });
 
 describe('enmascarado', () => {
-  it('solo los 4 últimos; en SMTP, de la contraseña', () => {
+  it('de una clave de API, los 4 últimos; de una URL SMTP, ninguno (lleva la contraseña del buzón)', () => {
     expect(enmascarar(finalDeCredencial('brevo', base.credencial!))).toBe('••••ABCD');
-    expect(finalDeCredencial('smtp', 'smtps://u:miclave99@smtp.acme.test:465')).toBe('ve99');
+    expect(finalDeCredencial('smtp', 'smtps://u:miclave99@smtp.acme.test:465')).toBe('');
+    expect(enmascarar(finalDeCredencial('smtp', 'smtps://u:miclave99@smtp.acme.test:465'))).toBe('••••');
     expect(enmascarar(null)).toBeNull();
   });
 });
