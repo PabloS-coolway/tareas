@@ -12,7 +12,7 @@ export interface CorreoConfigDto {
   credencial: string | null;
   remitente: { nombre: string; email: string } | null;
   responderA: string | null;
-  marca: { nombre: string; url: string; pie: string } | null;
+  marca: { nombre: string; url: string; pie: string; prefijoAsunto?: string } | null;
   avisosActivos: boolean;
   avisosDesde: string | null;
   actualizadoEn: string | null;
@@ -27,7 +27,7 @@ export interface GuardarCorreoConfigDto {
   credencial?: string | null;
   remitente: { nombre: string; email: string };
   responderA?: string | null;
-  marca: { nombre: string; url: string; pie: string };
+  marca: { nombre: string; url: string; pie: string; prefijoAsunto?: string };
   avisosActivos: boolean;
 }
 

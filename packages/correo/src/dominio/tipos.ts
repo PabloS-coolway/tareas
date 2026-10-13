@@ -26,6 +26,8 @@ export interface Marca {
   url: string;
   /** Texto del pie (una o dos líneas). */
   pie: string;
+  /** Etiqueta opcional delante del asunto («[Tareas]»), para filtrar los correos con una regla del buzón. */
+  prefijoAsunto?: string;
 }
 
 /** Configuración tal como se guarda: la credencial va cifrada. */

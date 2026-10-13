@@ -110,6 +110,26 @@ describe('configuración', () => {
   });
 });
 
+describe('etiqueta en el asunto', () => {
+  it('se pone delante del asunto al encolar y en la prueba; vacía, el asunto queda igual', async () => {
+    const enviados: string[] = [];
+    const t: Transporte = { enviar: async (m) => (enviados.push(m.asunto), { idProveedor: null }) };
+    const { s, cola } = montar(t);
+    await s.configurar('default', { ...cambio, marca: { ...cambio.marca, prefijoAsunto: ' [Tareas] ' } }, null);
+    await s.encolar('default', msg);
+    await s.probar('default', 'ana@acme.test');
+    expect(cola.filas[0].asunto).toBe('[Tareas] WEB-12 · Hola');
+    expect(enviados[0]).toBe('[Tareas] Correo de prueba · Tareas Acme');
+    await s.configurar('default', { ...cambio, credencial: '', marca: { ...cambio.marca, prefijoAsunto: '' } }, null);
+    await s.encolar('default', msg);
+    expect(cola.filas[1].asunto).toBe('WEB-12 · Hola');
+  });
+  it('máximo 30 caracteres', async () => {
+    const { s } = montar();
+    await expect(s.configurar('default', { ...cambio, marca: { ...cambio.marca, prefijoAsunto: 'x'.repeat(31) } }, null)).rejects.toThrow('etiqueta');
+  });
+});
+
 describe('cola', () => {
   it('envía los pendientes', async () => {
     const { s, cola } = montar();

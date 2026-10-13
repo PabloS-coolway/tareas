@@ -14,7 +14,7 @@ import {
   RegistroCorreo,
   ResultadoPrueba,
 } from './dominio/tipos';
-import { enmascarar, esEmail, finalDeCredencial, validarCambio } from './dominio/validacion';
+import { conEtiqueta, enmascarar, esEmail, finalDeCredencial, validarCambio } from './dominio/validacion';
 import { AlmacenConfigCorreo, ColaCorreo, DatosEnvio, Transporte } from './puertos';
 import { crearTransporte } from './transportes';
 
@@ -149,15 +149,17 @@ export class ServicioCorreo {
       boton: { texto: `Abrir ${marca.nombre}`, url: marca.url },
     });
     try {
-      await envio.transporte.enviar({ para: para.trim(), asunto: `Correo de prueba · ${marca.nombre}`, html, texto, tipo: 'prueba' }, envio.datos);
+      await envio.transporte.enviar({ para: para.trim(), asunto: conEtiqueta(marca, `Correo de prueba · ${marca.nombre}`), html, texto, tipo: 'prueba' }, envio.datos);
       return { ok: true, error: null };
     } catch (e) {
       return { ok: false, error: (e as Error).message };
     }
   }
 
-  encolar(propietario: Propietario, mensaje: MensajeCorreo): Promise<IdMensaje> {
-    return this.o.cola.encolar(propietario, mensaje, this.reloj());
+  /** Encola un correo; el asunto lleva la etiqueta de la marca del propietario (si tiene). */
+  async encolar(propietario: Propietario, mensaje: MensajeCorreo): Promise<IdMensaje> {
+    const marca = await this.marca(propietario);
+    return this.o.cola.encolar(propietario, { ...mensaje, asunto: conEtiqueta(marca, mensaje.asunto) }, this.reloj());
   }
 
   /**

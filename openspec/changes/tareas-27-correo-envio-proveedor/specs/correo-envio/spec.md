@@ -24,6 +24,19 @@ permiso SHALL poder ver ni cambiar esta configuración.
 - **WHEN** el admin intenta guardar Brevo sin clave o con un remitente que no es una dirección válida
 - **THEN** el sistema no guarda nada y explica qué falta
 
+### Requirement: Etiqueta en el asunto
+El sistema SHALL permitir configurar una etiqueta opcional (máximo 30 caracteres) que se pone delante del asunto de
+todos los correos que envía la app (avisos, contraseña y prueba), para que quien los recibe pueda filtrarlos o
+redirigirlos con una regla de su correo. Sin etiqueta, el asunto queda tal cual.
+
+#### Scenario: Pablo filtra los correos de Tareas
+- **WHEN** el admin pone la etiqueta «[Tareas]» y después asignan COOL-203 a Catalina
+- **THEN** el correo llega con el asunto «[Tareas] COOL-203 · Badges de descuento en cards y PDP»
+
+#### Scenario: Sin etiqueta
+- **WHEN** la etiqueta está vacía
+- **THEN** el asunto es «COOL-203 · Badges de descuento en cards y PDP»
+
 ### Requirement: La credencial nunca se vuelve a mostrar
 El sistema SHALL guardar la credencial del proveedor cifrada y MUST NOT devolverla entera por ninguna vía después
 de guardarla: solo SHALL mostrar que existe y sus últimos 4 caracteres. Para cambiar otros datos SHALL NOT hacer

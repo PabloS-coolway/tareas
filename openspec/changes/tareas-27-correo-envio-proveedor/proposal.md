@@ -14,7 +14,9 @@ llevar tal cual a Atalaya (la versión marca blanca).
 - Nueva pantalla de admin **Correo** (en el menú de administración, junto a Integraciones):
   - proveedor: **Brevo** (por su API) o **SMTP** (un buzón del propio dominio u otro servidor);
   - clave del proveedor (o URL del servidor SMTP), remitente (nombre y dirección) y dirección de respuesta opcional;
-  - datos de la marca para las plantillas: nombre de la app, URL pública y pie del correo;
+  - datos de la marca para las plantillas: nombre de la app, URL pública, pie del correo y una **etiqueta opcional
+    delante del asunto** (p. ej. «[Tareas]») para filtrar los correos con una regla del buzón (añadida el 13-oct-2026
+    a petición de Pablo, al probar en producción);
   - interruptor **«Enviar avisos por correo»**;
   - botón **«Enviar correo de prueba»**;
   - **registro** de los últimos correos: a quién, asunto, estado (pendiente, enviado, fallido) y el error si lo hubo.
