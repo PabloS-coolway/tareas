@@ -22,7 +22,7 @@ import {
 } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { claveTarea, parsearClaveTarea } from '../domain/clave';
-import { ordenPara, renumerar } from '../domain/orden';
+import { ordenDeHermanasValido, ordenPara, renumerar } from '../domain/orden';
 import { interesados, limpiarSeguidores } from '../domain/interesados';
 import { aplica, cambiosDeRegla, type EventoTarea, type Regla } from '../domain/reglas';
 import { horasDePlazo, limiteDePlazo, limpiarPlazos } from '../domain/plazos';
@@ -161,8 +161,19 @@ export class TasksService {
   }
 
   async subtasks(parentId: number): Promise<TaskDto[]> {
-    const rows = await this.prisma.task.findMany({ where: { parentId }, include: includeTask, orderBy: [{ status: { order: 'asc' } }, { order: 'asc' }] });
+    // Primero el orden puesto a mano; las que no lo tienen (nunca se ordenaron) detrás, por estado.
+    const rows = await this.prisma.task.findMany({ where: { parentId }, include: includeTask, orderBy: [{ subOrder: { sort: 'asc', nulls: 'last' } }, { status: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }] });
     return this.toDtos(rows);
+  }
+
+  /** Orden a mano de las subtareas de un padre: llegan todas, en el orden nuevo. */
+  async reorderSubtasks(parentId: number, ids: number[]): Promise<TaskDto[]> {
+    const actuales = await this.prisma.task.findMany({ where: { parentId }, select: { id: true } });
+    if (!Array.isArray(ids) || !ordenDeHermanasValido(actuales.map((t) => t.id), ids.map(Number))) {
+      throw new BadRequestException('La lista de subtareas ha cambiado mientras ordenabas. Recarga y vuelve a probar.');
+    }
+    await this.prisma.$transaction(renumerar(ids.map(Number)).map((r) => this.prisma.task.update({ where: { id: r.id }, data: { subOrder: r.order } })));
+    return this.subtasks(parentId);
   }
 
   /** Resumen para la pantalla de inicio (sólo proyectos visibles para quien pregunta). */
@@ -231,6 +242,8 @@ export class TasksService {
       // El número se reserva en la MISMA transacción: dos altas a la vez no pueden compartir COOL-<n>.
       const p = await tx.project.update({ where: { id: project.id }, data: { nextNumber: { increment: 1 } }, select: { nextNumber: true } });
       const last = await tx.task.aggregate({ where: { statusId: status.id }, _max: { order: true } });
+      // Si sus hermanas ya se ordenaron a mano, la nueva va la última.
+      const hermanas = dto.parentId ? await tx.task.aggregate({ where: { parentId: dto.parentId }, _max: { subOrder: true } }) : null;
       const t = await tx.task.create({
         data: {
           projectId: project.id,
@@ -250,6 +263,7 @@ export class TasksService {
           estimate: limpiarEstimacion(dto.estimate),
           recurrence: dto.recurrence && RECURRENCES.includes(dto.recurrence) ? dto.recurrence : 'NONE',
           order: (last._max.order ?? -1) + 1,
+          subOrder: hermanas?._max.subOrder != null ? hermanas._max.subOrder + 1 : null,
           closedAt: status.category === 'DONE' ? new Date() : null,
         },
       });
@@ -314,6 +328,7 @@ export class TasksService {
     if (dto.parentId !== undefined && dto.parentId !== cur.parentId) {
       if (dto.parentId) await this.ensureParent(dto.parentId, cur.projectId, id);
       data.parentId = dto.parentId ?? null;
+      data.subOrder = null; // con otras hermanas: sin orden a mano, se pone detrás
       const antes = cur.parent ? claveTarea(cur.parent.project.key, cur.parent.number) : null;
       const despues = dto.parentId ? await this.claveDe(dto.parentId) : null;
       log('parent', antes, despues);
@@ -811,6 +826,7 @@ export class TasksService {
       })(),
       blockedByOpenCount: bloqueos.get(r.id) ?? 0,
       order: r.order,
+      subOrder: r.subOrder,
       closedAt: r.closedAt?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),

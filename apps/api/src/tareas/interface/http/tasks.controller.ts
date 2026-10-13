@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
-import { ActivityDto, ActivityFeedItemDto, BulkUpdateResultDto, BulkUpdateTasksDto, CommentDto, CreateTaskDto, DependenciesDto, KpisDto, MoveTaskDto, Priority, ResumenDto, TagCountDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Put, Query } from '@nestjs/common';
+import { ActivityDto, ActivityFeedItemDto, BulkUpdateResultDto, BulkUpdateTasksDto, CommentDto, CreateTaskDto, DependenciesDto, KpisDto, MoveTaskDto, Priority, ReorderSubtasksDto, ResumenDto, TagCountDto, TaskDto, TaskFilter, TaskPageDto, TaskType, UpdateTaskDto } from '@yorga/contracts';
 import { JwtPayload } from '../../../auth/application/auth.service';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
 import { ActivityService } from '../../application/activity.service';
@@ -84,6 +84,12 @@ export class TasksController {
   @RequireFeature('tareas.ver')
   subtasks(@Param('id', ParseIntPipe) id: number): Promise<TaskDto[]> {
     return this.tasks.subtasks(id);
+  }
+
+  @Put(':id/subtasks/order')
+  @RequireFeature('tareas.editar')
+  reorderSubtasks(@Param('id', ParseIntPipe) id: number, @Body() body: ReorderSubtasksDto): Promise<TaskDto[]> {
+    return this.tasks.reorderSubtasks(id, body?.ids ?? []);
   }
 
   @Post()

@@ -316,7 +316,7 @@ export function TareaPage() {
                 </Card.Title>
                 {puedeEditar && <Button size="sm" variant="outline-secondary" onClick={() => setNuevaSub(true)}><Plus /> Añadir</Button>}
               </div>
-              <SubtareasArbol parent={task} project={project} items={subtareas} puedeEditar={puedeEditar} onChanged={() => void load()} onError={setError} />
+              <SubtareasArbol parent={task} project={project} items={subtareas} equipo={equipo} puedeEditar={puedeEditar} onChanged={() => void load()} onError={setError} />
             </Card.Body>
           </Card>
 

@@ -236,6 +236,8 @@ export interface TaskDto {
   /** Cuántas tareas que la bloquean siguen sin terminar (0 = libre). */
   blockedByOpenCount: number;
   order: number;
+  /** Posición entre sus hermanas puesta a mano (null = sin ordenar a mano). */
+  subOrder: number | null;
   closedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -311,6 +313,11 @@ export interface BulkUpdateResultDto {
 export interface MoveTaskDto {
   statusId: number;
   index: number;
+}
+
+/** PUT /tasks/:id/subtasks/order — las subtareas del padre, todas, en el orden nuevo. */
+export interface ReorderSubtasksDto {
+  ids: number[];
 }
 
 export interface TaskFilter {

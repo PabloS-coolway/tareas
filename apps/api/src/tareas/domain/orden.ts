@@ -24,6 +24,15 @@ export function ordenPara(orders: number[], index: number): { order: number; ren
   return { order: (prev + next) / 2, renumerar: next - prev < HUECO_MINIMO };
 }
 
+/**
+ * Un orden nuevo de las subtareas de un padre vale si trae exactamente las que tiene, sin repetir ninguna.
+ * Si no, la lista que se veía estaba desfasada (alguien añadió o movió una): mejor recargar que perder una.
+ */
+export function ordenDeHermanasValido(actuales: number[], pedidos: number[]): boolean {
+  const set = new Set(pedidos);
+  return set.size === pedidos.length && pedidos.length === actuales.length && actuales.every((id) => set.has(id));
+}
+
 /** Renumeración limpia: 0, 1, 2… en el orden dado. */
 export function renumerar(ids: number[]): { id: number; order: number }[] {
   return ids.map((id, order) => ({ id, order }));

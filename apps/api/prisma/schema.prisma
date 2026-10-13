@@ -293,6 +293,8 @@ model Task {
   recurrence  Recurrence @default(NONE)
   /// Posición dentro de su columna del tablero.
   order       Float     @default(0)
+  /// Posición entre sus hermanas (mismo padre), puesta a mano arrastrando; null = sin ordenar a mano.
+  subOrder    Float?    @map("sub_order")
   closedAt    DateTime? @map("closed_at")
   /// Cuándo se avisó de que se salió del plazo de respuesta (para avisar una sola vez).
   slaNotifiedAt DateTime? @map("sla_notified_at")
