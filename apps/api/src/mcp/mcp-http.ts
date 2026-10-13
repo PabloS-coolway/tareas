@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname, join } from 'node:path';
 import { ApiTokenService } from '../auth/application/api-token.service';
 import { cabeceraWwwAuthenticate, leerToken, mensajeToken, MotivoToken } from './token-mcp';
+import { METODOS_MCP, metodoAdmitido, OPCIONES_TRANSPORTE } from './transporte-mcp';
 
 type Req = IncomingMessage & { body?: unknown; params?: Record<string, string>; headers: IncomingMessage['headers'] };
 type Res = ServerResponse;
@@ -22,14 +23,16 @@ type Res = ServerResponse;
 const importar = new Function('m', 'return import(m)') as (m: string) => Promise<Record<string, unknown>>;
 type ApiFn = <T>(path: string, init?: RequestInit) => Promise<T>;
 interface Servidor { connect(t: unknown): Promise<void>; close(): Promise<void> }
+/** Sin sesión y respondiendo JSON: el SSE con longitud fija lo rompe el proxy de DigitalOcean por HTTP/1.1. */
+interface OpcionesTransporte { sessionIdGenerator: undefined; enableJsonResponse: boolean }
 interface Transporte { handleRequest(req: IncomingMessage, res: ServerResponse, body?: unknown): Promise<void>; close(): Promise<void> }
 
 type Hook = (e: { tool: string; args: unknown; ok: boolean; ms: number; error?: string }) => void;
 
-async function cargar(): Promise<{ crearServidor: (api: ApiFn, hook?: Hook) => Servidor; Transport: new (o: { sessionIdGenerator: undefined }) => Transporte }> {
+async function cargar(): Promise<{ crearServidor: (api: ApiFn, hook?: Hook) => Servidor; Transport: new (o: OpcionesTransporte) => Transporte }> {
   const raizMcp = dirname(require.resolve('@yorga/tareas-mcp/package.json'));
   const [h, t] = await Promise.all([importar(join(raizMcp, 'dist', 'herramientas.js')), importar('@modelcontextprotocol/sdk/server/streamableHttp.js')]);
-  return { crearServidor: h.crearServidor as (api: ApiFn, hook?: Hook) => Servidor, Transport: t.StreamableHTTPServerTransport as new (o: { sessionIdGenerator: undefined }) => Transporte };
+  return { crearServidor: h.crearServidor as (api: ApiFn, hook?: Hook) => Servidor, Transport: t.StreamableHTTPServerTransport as new (o: OpcionesTransporte) => Transporte };
 }
 
 export function crearManejadorMcp(apiTokens: ApiTokenService, port: number | string) {
@@ -62,6 +65,14 @@ export function crearManejadorMcp(apiTokens: ApiTokenService, port: number | str
       return;
     }
 
+    if (!metodoAdmitido(req.method)) {
+      res.statusCode = 405;
+      res.setHeader('Allow', METODOS_MCP.join(', '));
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32000, message: 'Este MCP no abre canal SSE: usa POST.' }, id: null }));
+      return;
+    }
+
     const api: ApiFn = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
       const r = await fetch(`${base}${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Via': 'mcp', ...(init.headers ?? {}) } });
       if (!r.ok) {
@@ -80,7 +91,7 @@ export function crearManejadorMcp(apiTokens: ApiTokenService, port: number | str
       modulos ??= cargar();
       const { crearServidor, Transport } = await modulos;
       const server = crearServidor(api, (e) => apiTokens.log({ tokenId: quien.tokenId, userId: quien.sub, source: 'mcp', action: e.tool, detail: resumirArgs(e.args, e.error), ok: e.ok, ms: e.ms }));
-      const transport = new Transport({ sessionIdGenerator: undefined });
+      const transport = new Transport(OPCIONES_TRANSPORTE);
       res.on('close', () => {
         void transport.close();
         void server.close();
