@@ -56,10 +56,12 @@ export function validarCambio(c: CambioConfigCorreo, hayCredencialGuardada: bool
     nombre: String(c.marca?.nombre ?? '').trim(),
     url: String(c.marca?.url ?? '').trim().replace(/\/+$/, ''),
     pie: String(c.marca?.pie ?? '').trim(),
+    prefijoAsunto: String(c.marca?.prefijoAsunto ?? '').trim(),
   };
   if (!marca.nombre) throw new ErrorCorreo('Pon el nombre de la app.');
   if (!esUrlWeb(marca.url)) throw new ErrorCorreo('La URL pública de la app no es válida (https://…).');
   if (marca.pie.length > 500) throw new ErrorCorreo('El pie es demasiado largo (máx. 500 caracteres).');
+  if ((marca.prefijoAsunto ?? '').length > 30) throw new ErrorCorreo('La etiqueta del asunto es demasiado larga (máx. 30 caracteres).');
   return { proveedor: c.proveedor, credencial: credencial || null, remitente, responderA, marca, avisosActivos: c.avisosActivos === true };
 }
 
@@ -79,4 +81,10 @@ export function finalDeCredencial(proveedor: Proveedor, credencial: string): str
     }
   }
   return base.slice(-4);
+}
+
+/** El asunto con la etiqueta de la marca delante (si la hay). */
+export function conEtiqueta(marca: Marca, asunto: string): string {
+  const e = marca.prefijoAsunto?.trim();
+  return e ? `${e} ${asunto}` : asunto;
 }

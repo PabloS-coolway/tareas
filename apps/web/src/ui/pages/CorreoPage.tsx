@@ -41,6 +41,7 @@ interface Formulario {
   marcaNombre: string;
   url: string;
   pie: string;
+  prefijo: string;
   avisosActivos: boolean;
 }
 
@@ -54,6 +55,7 @@ function desdeConfig(c: CorreoConfigDto): Formulario {
     marcaNombre: c.marca?.nombre ?? c.sugerencia.marcaNombre,
     url: c.marca?.url ?? c.sugerencia.url,
     pie: c.marca?.pie ?? '',
+    prefijo: c.marca?.prefijoAsunto ?? '',
     avisosActivos: c.avisosActivos,
   };
 }
@@ -100,7 +102,7 @@ export function CorreoPage() {
         credencial: f.credencial.trim() || null,
         remitente: { nombre: f.remitenteNombre, email: f.remitenteEmail },
         responderA: f.responderA || null,
-        marca: { nombre: f.marcaNombre, url: f.url, pie: f.pie },
+        marca: { nombre: f.marcaNombre, url: f.url, pie: f.pie, prefijoAsunto: f.prefijo },
         avisosActivos: f.avisosActivos,
       });
       setConfig(c);
@@ -208,9 +210,14 @@ export function CorreoPage() {
                 <Form.Control id="c-url" value={f.url} onChange={(e) => cambiar('url', e.target.value)} />
                 <Form.Text>Los botones de los correos abren esta dirección (p. ej. …/t/COOL-12).</Form.Text>
               </Col>
-              <Col xs={12}>
+              <Col md={8}>
                 <Form.Label htmlFor="c-pie">Pie <span className="text-secondary">(opcional)</span></Form.Label>
                 <Form.Control id="c-pie" value={f.pie} onChange={(e) => cambiar('pie', e.target.value)} placeholder="Grupo Yorga · Tareas" />
+              </Col>
+              <Col md={4}>
+                <Form.Label htmlFor="c-pre">Etiqueta del asunto <span className="text-secondary">(opcional)</span></Form.Label>
+                <Form.Control id="c-pre" value={f.prefijo} maxLength={30} onChange={(e) => cambiar('prefijo', e.target.value)} placeholder="[Tareas]" />
+                <Form.Text>Va delante del asunto de todos los correos, para filtrarlos con una regla de tu buzón.</Form.Text>
               </Col>
             </Row>
           </Card.Body>

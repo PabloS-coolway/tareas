@@ -532,6 +532,8 @@ model MailConfig {
   brandName            String    @map("brand_name")
   appUrl               String    @map("app_url")
   footer               String    @default("")
+  /// Etiqueta opcional delante del asunto («[Tareas]»), para filtrar con reglas del buzón.
+  subjectPrefix        String    @default("") @map("subject_prefix")
   /// Interruptor general de avisos por correo y desde cuándo (lo anterior no se envía).
   notificationsEnabled Boolean   @default(false) @map("notifications_enabled")
   notificationsSince   DateTime? @map("notifications_since")
