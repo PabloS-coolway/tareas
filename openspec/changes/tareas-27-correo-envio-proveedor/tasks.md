@@ -33,7 +33,7 @@
 
 ## 6. Verificación con el negocio (en producción, después del merge)
 
-- [ ] 6.1 Criterio 1: crear la cuenta de Brevo (gratuita), verificar el dominio del remitente, configurarla en Correo y enviar la prueba; llega al buzón.
+- [ ] 6.1 Criterio 1: configurar en Correo el proveedor SMTP con el buzón de Pablo en Arsys (`smtps://…@smtp.serviciodecorreo.es:465`, remitente «Tareas Yorga» <pablo.silva@coolway.com>) y enviar la prueba; llega al buzón. (Brevo, con la cuenta ya creada, queda para cuando se pueda verificar un dominio: el DNS de coolway.com está en Arsys y no hay acceso todavía.)
 - [ ] 6.2 Criterio 2: al recargar la pantalla la clave sale como «••••» + 4 caracteres.
 - [ ] 6.3 Criterios 3 y 4: con el interruptor encendido, asignar una tarea de prueba a otra persona y mencionarla; le llega el correo en <2 min con botón a la tarea; quien actúa no recibe nada. Plazo vencido: comprobar con el siguiente aviso de ATC (o forzándolo en una tarea de prueba).
 - [ ] 6.4 Criterio 5: guardar una clave errónea, provocar un aviso y ver en el registro el error, los reintentos y el «fallido» final; volver a poner la buena.

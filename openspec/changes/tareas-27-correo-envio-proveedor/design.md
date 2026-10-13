@@ -113,7 +113,11 @@ cambia su `main` a `dist`, igual que con contracts.
    `MAIL_ENCRYPTION_KEY` de tipo SECRET (`openssl rand -base64 32`). Nunca va al repo.
 2. Merge del PR → despliegue automático desde main; la migración (tablas `mail_config`, `mail_message` y columna
    `notification.email_queued_at`) se aplica al arrancar. Solo añade, no cambia nada existente.
-3. En producción el correo queda **sin configurar y con el interruptor apagado**: no sale nada hasta que un admin lo
+3. **Arranque decidido el 13-oct-2026:** SMTP con el buzón de Pablo en Arsys (el servidor de Arsys ya está en el SPF de
+   coolway.com, así que entrega bien y no hace falta tocar el DNS). Brevo (cuenta creada) se activa cuando quien gestiona
+   el DNS de coolway.com en Arsys añada los registros de un subdominio (p. ej. `tareas.coolway.com`), o se crea un buzón
+   `tareas@coolway.com`. El cambio es solo de configuración en la pantalla.
+4. En producción el correo queda **sin configurar y con el interruptor apagado**: no sale nada hasta que un admin lo
    configure, pruebe y encienda el interruptor.
-4. **Vuelta atrás rápida**: apagar el interruptor desde el panel (corta los avisos al momento). **Completa**: revertir
+5. **Vuelta atrás rápida**: apagar el interruptor desde el panel (corta los avisos al momento). **Completa**: revertir
    el PR; las tablas nuevas pueden quedarse (no molestan) o borrarse con una migración posterior.
