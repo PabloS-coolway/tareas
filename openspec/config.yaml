@@ -1,0 +1,67 @@
+# coolway-sdd: v2
+# Configuración de OpenSpec con la capa Coolway. La genera /sdd:iniciar y la pone al día /sdd:actualizar.
+# - Lo marcado «Coolway» es común a todos los repos: no lo edites aquí, cámbialo en PabloS-coolway/coolway-sdd.
+# - Lo marcado «Este repo» es de este proyecto: edítalo libremente (actualizar lo respeta).
+schema: spec-driven
+
+context: |
+  ## Coolway (común)
+  Grupo Yorga / Coolway: marca de calzado con tiendas Shopify por país (EU, US, CL, MX, AU, AE…), cada una con su
+  moneda, y herramientas internas propias. Los cambios los pide el negocio (marketing, atención al cliente,
+  operaciones, dirección) y se gestionan en Tareas Yorga (https://tareas-yorga-ewv2n.ondigitalocean.app) con una
+  clave de tarea, p. ej. COOL-212.
+  - Idioma: todo en español (artefactos, código, comentarios, commits, PR). Mantén en inglés solo los
+    encabezados estructurales de OpenSpec y las palabras SHALL/MUST.
+  - Cada cambio nace de una tarea: el nombre del cambio empieza por su clave en minúsculas (cool-212-…) y la
+    rama, los commits y el PR llevan la clave (COOL-212) para que Tareas los enlace.
+  - Quien lee las propuestas no siempre es técnico: el porqué y los criterios de aceptación en lenguaje de
+    negocio, sin jerga; lo técnico va en design.md.
+  - main se despliega sola en muchos repos: nada llega a main sin PR revisado por Pablo.
+  - Shopify: los metafields se definen POR TIENDA (la misma función puede tener otra clave en cada una); una
+    moneda por tienda (no sumar importes de tiendas distintas); lo que se toca en el admin de una tienda no
+    pasa solo a las demás.
+
+  ## Este repo
+  Tareas Yorga: el gestor de tareas propio del grupo (sustituye a ClickUp). Proyectos con clave, tablero, épicas
+  y subtareas, sprints, equipos, avisos, reglas, formularios públicos, API con tokens y servidor MCP. Lo usa todo
+  el equipo (tecnología, marketing, atención al cliente, dirección), también como PWA en el móvil. Partes de él
+  se llevan a Atalaya (la versión marca blanca y multiempresa, en otro repo): lo que se diseñe como módulo
+  portable no lleva nada de Yorga/Coolway y se configura por «propietario».
+  - Stack: monorepo Turborepo. apps/api = NestJS hexagonal (domain/application/infrastructure/interface) +
+    Prisma + Postgres; apps/web = React + Vite + react-bootstrap; packages/contracts = DTOs compartidos
+    (nunca duplicados); packages/mcp = servidor MCP.
+  - Pruebas: `npm run typecheck && npm test && npm run build` (lo mismo que el CI en cada PR, con
+    `npm run db:generate` antes). Local: Postgres en Docker :5545 (`npm run setup`, `npm run dev`).
+  - Despliegue: DigitalOcean App Platform (`.do/app.yaml`), app tareas-yorga; main se despliega sola al
+    mergear; las migraciones de Prisma se aplican al arrancar la API. Una sola instancia de API.
+  - Secretos: variables de entorno de DigitalOcean (tipo SECRET) y `apps/api/.env` en local (ignorado).
+
+rules:
+  proposal:
+    - "Coolway: empieza con una línea «Tarea: <CLAVE> — <título>» con el enlace a la tarea en Tareas Yorga."
+    - "Coolway: incluye una sección «Criterios de aceptación» con 3–7 frases que el negocio pueda comprobar sin leer código (qué ve o qué pasa, en qué tienda o mercado)."
+    - "Coolway: incluye «Fuera de alcance» con lo que se ha decidido NO hacer."
+    - "Coolway: en Impact, nombra las tiendas, mercados o herramientas afectadas y quién lo notará (clientes, atención al cliente, marketing…)."
+  specs:
+    - "Coolway: los escenarios usan casos reales del negocio (tienda, mercado, moneda, método de pago, producto) en vez de ejemplos genéricos."
+  design:
+    - "Coolway: incluye «Despliegue y vuelta atrás»: cómo se pone en producción, en qué orden si hay varios repos o tiendas, y cómo se deshace si algo va mal."
+    - "Coolway: si hay datos o secretos, di dónde viven (variables de entorno en DigitalOcean, .env ignorado en local) y nunca los pongas en el repo."
+  tasks:
+    - "Cada escritura de una tarea deja rastro en TaskActivity; los permisos son features del catálogo cerrado de packages/contracts (no se crean sueltos)."
+    - "Coolway: la primera tarea es crear la rama con la clave (feat/<CLAVE>-<descripcion> o fix/<CLAVE>-<descripcion>)."
+    - "Coolway: cada tarea dice cómo se verifica (test, comando, comprobación en preview o en la tienda)."
+    - "Coolway: el último grupo es «Verificación con el negocio»: comprobar cada criterio de aceptación de la propuesta y dejar el resultado en la tarea de Tareas Yorga."
+    - "Coolway: si algún criterio solo se puede comprobar en producción (caso B), las tareas de despliegue y verificación van después de una tarea «Merge del PR» y lo dicen."
+
+operations:
+  apply:
+    guidance:
+      - "Coolway: trabaja en la rama con la clave de la tarea, nunca en main; commits pequeños con la clave en el mensaje."
+      - "Coolway: antes de cada commit, pasa las comprobaciones del repo (tests, typecheck, lint) y no sigas en rojo."
+      - "Coolway: no despliegues a producción ni toques el admin de una tienda en vivo sin OK explícito de Pablo."
+      - "Coolway: lo que se despliega sale siempre de main, nunca de una rama: si para verificar hay que desplegar (caso B), primero se mergea el PR."
+  archive:
+    guidance:
+      - "Coolway: archiva solo con todas las tareas hechas y los criterios de aceptación verificados. Caso A (se pueden verificar antes del merge: tests, preview, entorno de pruebas): archiva en la MISMA rama y PR, como último paso antes del merge. Caso B (solo se pueden verificar en producción): el PR se mergea con el cambio abierto, se despliega desde main y se archiva después en un PR corto."
+      - "Coolway: al archivar, resume en la tarea de Tareas Yorga qué especificaciones quedaron vivas; se mueve a completada cuando el PR se mergea."

@@ -11,6 +11,7 @@ equipo (Robert, Juanmi, Pablo Vázquez, Catalina, Gemma, David, Tomás) y Claude
 2. **Verificar de verdad, no asumir**: ejecutar (curl a la API, o el navegador) y enseñar el resultado real.
 3. Ante un bug: síntoma + causa raíz + **test de regresión** que se pone en rojo si se reintroduce.
 4. La lógica que puede romper el negocio vive en `domain/` con tests (orden del tablero, claves, permisos).
+5. Este repo trabaja con SDD de Coolway: cambios con `/sdd:nueva <CLAVE>`; especificaciones vivas en `openspec/specs/`.
 
 ## Reglas que no se negocian
 
