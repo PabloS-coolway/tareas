@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estaBloqueada, ordenarSubtareas, resumirSubtareas } from '../src/domain/subtareas';
+import { estaBloqueada, moverEnLista, ordenarSubtareas, resumirSubtareas } from '../src/domain/subtareas';
 
 const t = (id: string, key: string, category: string, blockedByOpenCount = 0) => ({ id, status: { key, category }, blockedByOpenCount });
 
@@ -26,5 +26,16 @@ describe('subtareas de una épica', () => {
   it('pone las bloqueadas primero y las hechas al final, sin desordenar el resto', () => {
     const items = [t('a', 'completado', 'DONE'), t('b', 'pendiente', 'TODO'), t('c', 'bloqueada', 'DOING'), t('d', 'en-curso', 'DOING'), t('e', 'pendiente', 'TODO', 1)];
     expect(ordenarSubtareas(items).map((x) => x.id)).toEqual(['c', 'e', 'b', 'd', 'a']);
+  });
+
+  it('si están ordenadas a mano, respeta ese orden aunque haya bloqueadas o hechas', () => {
+    const items = [{ ...t('a', 'completado', 'DONE'), subOrder: 0 }, { ...t('b', 'pendiente', 'TODO'), subOrder: 1 }, { ...t('c', 'bloqueada', 'DOING'), subOrder: null }];
+    expect(ordenarSubtareas(items).map((x) => x.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('mueve un elemento de una posición a otra', () => {
+    expect(moverEnLista(['a', 'b', 'c', 'd'], 0, 2)).toEqual(['b', 'c', 'a', 'd']);
+    expect(moverEnLista(['a', 'b', 'c', 'd'], 3, 0)).toEqual(['d', 'a', 'b', 'c']);
+    expect(moverEnLista(['a', 'b'], 1, 1)).toEqual(['a', 'b']);
   });
 });

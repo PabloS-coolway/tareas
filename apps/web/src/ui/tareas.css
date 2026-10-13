@@ -181,6 +181,13 @@
 .subtree-node.done > .subtree-row .subtree-title .title { text-decoration: line-through; color: var(--muted); }
 .subtree-add { color: var(--muted); opacity: 0; transition: opacity 0.15s; }
 .subtree-row:hover .subtree-add { opacity: 1; }
+.subtree-grip { color: var(--muted); display: inline-flex; align-items: center; cursor: grab; touch-action: none; padding: 2px 0; }
+.subtree-grip:hover { color: var(--brand); }
+.subtree-node.dragging { background: var(--bs-body-bg); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); border-radius: 6px; }
+.subtree-asignar { border: 0; background: none; padding: 0; display: inline-flex; border-radius: 50%; }
+.subtree-asignar::after { display: none; }
+.subtree-asignar:hover .avatar, .subtree-asignar:focus-visible .avatar { outline: 2px solid var(--brand); outline-offset: 1px; }
+.subtree-asignar-menu { max-height: 320px; overflow-y: auto; }
 .subtree-alta { display: flex; align-items: center; gap: 8px; padding: 6px 4px 2px 22px; }
 .subtree-alta .form-control { max-width: 460px; }
 

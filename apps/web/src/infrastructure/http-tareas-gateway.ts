@@ -132,6 +132,10 @@ export class HttpTareasGateway {
   async subtareas(id: number): Promise<TaskDto[]> {
     return ok(await apiFetch(`/tasks/${id}/subtasks`), 'No se pudieron cargar las subtareas.');
   }
+  /** Guarda el orden a mano de las subtareas de `id` (todas, en el orden nuevo). */
+  async ordenarSubtareas(id: number, ids: number[]): Promise<TaskDto[]> {
+    return ok(await apiFetch(`/tasks/${id}/subtasks/order`, json('PUT', { ids })), 'No se pudo guardar el orden.');
+  }
   async crearTarea(dto: CreateTaskDto): Promise<TaskDto> {
     const t = await ok<TaskDto>(await apiFetch('/tasks', json('POST', dto)), 'No se pudo crear la tarea.');
     avisarCambioTareas();

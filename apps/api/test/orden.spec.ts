@@ -1,4 +1,4 @@
-import { HUECO_MINIMO, ordenPara, renumerar } from '../src/tareas/domain/orden';
+import { HUECO_MINIMO, ordenDeHermanasValido, ordenPara, renumerar } from '../src/tareas/domain/orden';
 
 describe('ordenPara (posición en la columna del tablero)', () => {
   it('columna vacía → 0', () => {
@@ -27,5 +27,17 @@ describe('renumerar', () => {
       { id: 4, order: 1 },
       { id: 7, order: 2 },
     ]);
+  });
+});
+
+describe('ordenDeHermanasValido (orden a mano de las subtareas)', () => {
+  it('vale con las mismas, en otro orden', () => {
+    expect(ordenDeHermanasValido([1, 2, 3], [3, 1, 2])).toBe(true);
+  });
+  it('no vale si falta una, sobra una o se repite', () => {
+    expect(ordenDeHermanasValido([1, 2, 3], [1, 2])).toBe(false);
+    expect(ordenDeHermanasValido([1, 2], [1, 2, 3])).toBe(false);
+    expect(ordenDeHermanasValido([1, 2, 3], [1, 1, 2])).toBe(false);
+    expect(ordenDeHermanasValido([1, 2, 3], [1, 2, 4])).toBe(false);
   });
 });
