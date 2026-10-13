@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname, join } from 'node:path';
 import { ApiTokenService } from '../auth/application/api-token.service';
+import { cabeceraWwwAuthenticate, leerToken, mensajeToken, MotivoToken } from './token-mcp';
 
 type Req = IncomingMessage & { body?: unknown; params?: Record<string, string>; headers: IncomingMessage['headers'] };
 type Res = ServerResponse;
@@ -47,13 +48,17 @@ export function crearManejadorMcp(apiTokens: ApiTokenService, port: number | str
       return;
     }
 
-    const cab = String(req.headers.authorization ?? '');
-    const token = req.params?.token ?? (cab.toLowerCase().startsWith('bearer ') ? cab.slice(7).trim() : '');
+    const recibido = leerToken(req.headers.authorization, req.params?.token);
+    const token = recibido.token ?? '';
     const quien = token ? await apiTokens.resolve(token) : null;
     if (!quien) {
+      const motivo: MotivoToken = recibido.motivo ?? 'desconocido';
+      // Sin el token: solo el motivo y el cliente, para poder diagnosticar desde los logs de DigitalOcean.
+      console.warn(`[mcp] 401 motivo=${motivo} ${req.method} ${req.params?.token !== undefined ? '/api/mcp/t/…' : '/api/mcp'} ua="${String(req.headers['user-agent'] ?? '').slice(0, 80)}"`);
       res.statusCode = 401;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32001, message: 'Token de API no válido. Crea uno en «Tokens de API» y envíalo como Authorization: Bearer tk_…' }, id: null }));
+      res.setHeader('WWW-Authenticate', cabeceraWwwAuthenticate(motivo));
+      res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32001, message: mensajeToken(motivo), data: { motivo } }, id: null }));
       return;
     }
 

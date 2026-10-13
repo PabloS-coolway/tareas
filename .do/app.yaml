@@ -29,6 +29,9 @@ services:
     routes:
       - path: /api
         preserve_path_prefix: true
+      # Descubrimiento OAuth de los clientes MCP: lo contesta la API con 404 (si no, la web devuelve index.html).
+      - path: /.well-known
+        preserve_path_prefix: true
     health_check:
       http_path: /api/health
     envs:

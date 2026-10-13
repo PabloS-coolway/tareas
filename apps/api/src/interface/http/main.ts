@@ -28,6 +28,11 @@ async function bootstrap(): Promise<void> {
   const express = app.getHttpAdapter().getInstance();
   express.all('/api/mcp', mcp);
   express.all('/api/mcp/t/:token', mcp);
+  // No hay OAuth: los clientes MCP que lo buscan tras un 401 tienen que recibir un 404 claro, no la web (index.html
+  // con 200), o se quedan esperando hasta el timeout. DigitalOcean enruta /.well-known a la API (.do/app.yaml).
+  express.all(/^\/\.well-known\//, (_req: unknown, res: { status(c: number): { json(b: unknown): void } }) => {
+    res.status(404).json({ error: 'not_found', message: 'Tareas Yorga no usa OAuth: el MCP se autentica con un token de API (Authorization: Bearer tk_… o /api/mcp/t/tk_…).' });
+  });
 
   await app.listen(port);
   console.log(`API tareas escuchando en http://localhost:${port}/api`);
