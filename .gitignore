@@ -43,6 +43,8 @@ coverage/
 !.claude/skills/requerimiento-correo-tarea/
 !.claude/skills/bug-tarea/
 !.claude/skills/requerimiento-tarea/
+# Las de OpenSpec (SDD) también viajan: las usan /sdd:nueva, /sdd:aplicar y /sdd:cerrar.
+!.claude/skills/openspec-*/
 uploads/
 
 # PII de RRHH (DNIs de empleados) — no versionar (REQ-012)

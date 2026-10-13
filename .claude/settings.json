@@ -1,0 +1,6 @@
+{
+  "extraKnownMarketplaces": {
+    "coolway": { "source": { "source": "github", "repo": "PabloS-coolway/coolway-sdd" } }
+  },
+  "enabledPlugins": { "sdd@coolway": true }
+}
