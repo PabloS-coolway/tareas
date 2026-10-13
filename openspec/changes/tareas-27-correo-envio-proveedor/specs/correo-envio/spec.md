@@ -39,12 +39,17 @@ redirigirlos con una regla de su correo. Sin etiqueta, el asunto queda tal cual.
 
 ### Requirement: La credencial nunca se vuelve a mostrar
 El sistema SHALL guardar la credencial del proveedor cifrada y MUST NOT devolverla entera por ninguna vía después
-de guardarla: solo SHALL mostrar que existe y sus últimos 4 caracteres. Para cambiar otros datos SHALL NOT hacer
+de guardarla: solo SHALL mostrar que existe y, si es una clave de API, sus últimos 4 caracteres. De una URL SMTP
+MUST NOT mostrar ningún carácter, porque lleva la contraseña de un buzón. Para cambiar otros datos SHALL NOT hacer
 falta volver a escribirla.
 
 #### Scenario: Volver a la pantalla
 - **WHEN** el admin vuelve a abrir la pantalla de correo tras guardar la clave de Brevo
 - **THEN** ve «••••» seguido de los últimos 4 caracteres de la clave, y nunca la clave entera
+
+#### Scenario: Buzón por SMTP
+- **WHEN** el admin vuelve a la pantalla tras guardar la URL SMTP con la contraseña del buzón de Pablo
+- **THEN** ve solo «••••», sin ningún carácter de la contraseña
 
 #### Scenario: Cambiar solo el remitente
 - **WHEN** el admin cambia el nombre del remitente sin tocar el campo de la clave y guarda

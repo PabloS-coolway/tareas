@@ -65,22 +65,17 @@ export function validarCambio(c: CambioConfigCorreo, hayCredencialGuardada: bool
   return { proveedor: c.proveedor, credencial: credencial || null, remitente, responderA, marca, avisosActivos: c.avisosActivos === true };
 }
 
-/** «••••abcd»: lo único que se enseña de una credencial guardada. */
+/** «••••abcd» (o «••••» si no se guarda ningún carácter): lo único que se enseña de una credencial guardada. */
 export function enmascarar(final: string | null): string | null {
-  return final ? `••••${final}` : null;
+  return final === null ? null : `••••${final}`;
 }
 
-/** Los últimos 4 caracteres (de la contraseña si es una URL SMTP, para no enseñar el servidor ni el usuario). */
+/**
+ * Lo que se guarda para enseñarla enmascarada: los 4 últimos caracteres de una clave de API. De una URL SMTP,
+ * nada: lleva la contraseña de un buzón y hasta 4 caracteres de ella son demasiados.
+ */
 export function finalDeCredencial(proveedor: Proveedor, credencial: string): string {
-  let base = credencial.trim();
-  if (proveedor === 'smtp') {
-    try {
-      base = decodeURIComponent(new URL(base).password) || base;
-    } catch {
-      /* se queda la cadena entera */
-    }
-  }
-  return base.slice(-4);
+  return proveedor === 'smtp' ? '' : credencial.trim().slice(-4);
 }
 
 /** El asunto con la etiqueta de la marca delante (si la hay). */
