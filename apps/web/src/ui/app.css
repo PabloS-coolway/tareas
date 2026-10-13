@@ -410,6 +410,11 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .page-head p { font-size: 1.02rem; }
 
 .topbar-movil { display: none; }
+/* Volver: sólo en la app instalada de escritorio (en el móvil va en la barra superior). */
+.nav-volver { display: none; }
+@media (display-mode: standalone) and (min-width: 769px) {
+  .nav-volver { display: flex; }
+}
 .menu-velo { display: none; }
 
 /* Móvil: barra superior con menú; el sidebar es un panel que entra desde la izquierda. */

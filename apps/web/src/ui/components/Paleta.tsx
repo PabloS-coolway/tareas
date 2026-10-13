@@ -6,10 +6,11 @@ import type { SprintDto, TaskDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { useProyectos } from '../proyectos/ProyectosContext';
 import { EstadoPill } from './tareas-ui';
+import { destinoDirecto } from '../../domain/ir-a';
 
 interface Entrada {
   id: string;
-  grupo: 'Ir a' | 'Proyectos' | 'Sprints' | 'Tareas';
+  grupo: 'Abrir' | 'Ir a' | 'Proyectos' | 'Sprints' | 'Tareas';
   texto: string;
   detalle?: string;
   to: string;
@@ -30,7 +31,10 @@ const PAGINAS: Entrada[] = [
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-/** Paleta de búsqueda (Ctrl+K / Cmd+K): tareas por texto o clave, proyectos, sprints y páginas. */
+/**
+ * Paleta de búsqueda (Ctrl+K / Cmd+K): tareas por texto o clave, proyectos, sprints y páginas. Una clave o un
+ * enlace pegado salen los primeros para ir directo (en la PWA no hay barra de direcciones).
+ */
 export function Paleta() {
   const navigate = useNavigate();
   const { proyectos } = useProyectos();
@@ -82,7 +86,9 @@ export function Paleta() {
     const ss: Entrada[] = sprints.filter((s) => coincide(s.name)).map((s) => ({ id: `sp-${s.id}`, grupo: 'Sprints', texto: s.name, detalle: `${s.done}/${s.total}`, to: `/sprints/${s.id}` }));
     const pg = PAGINAS.filter((p) => coincide(p.texto));
     const ts: Entrada[] = tareas.map((t) => ({ id: `t-${t.id}`, grupo: 'Tareas', texto: t.title, detalle: t.key, to: `/t/${t.key}`, task: t }));
-    return [...ts, ...ps.slice(0, 5), ...ss.slice(0, 5), ...pg];
+    const d = destinoDirecto(q, window.location.origin);
+    const directo: Entrada[] = d ? [{ id: 'directo', grupo: 'Abrir', texto: d.etiqueta, to: d.to }] : [];
+    return [...directo, ...ts, ...ps.slice(0, 5), ...ss.slice(0, 5), ...pg];
   }, [q, proyectos, sprints, tareas]);
 
   useEffect(() => setSel(0), [entradas.length, q]);
@@ -110,7 +116,7 @@ export function Paleta() {
     <Modal show={abierta} onHide={() => setAbierta(false)} onEntered={() => inputRef.current?.focus()} dialogClassName="paleta" backdropClassName="paleta-backdrop">
       <div className="paleta-input">
         <Search className="text-secondary" />
-        <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKeyDown} placeholder="Buscar tarea, clave (COOL-12), proyecto, sprint o página…" aria-label="Buscar" />
+        <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKeyDown} placeholder="Buscar, o escribir una clave (COOL-12) o pegar un enlace para ir directo…" aria-label="Buscar" />
         <kbd>esc</kbd>
       </div>
       <div className="paleta-list">
