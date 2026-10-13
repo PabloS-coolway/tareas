@@ -24,8 +24,8 @@
 
 ## 4. Pantalla de admin
 
-- [ ] 4.1 Página **Correo** en el menú de administración: proveedor, credencial (con «••••1234» si existe), remitente, respuesta, marca, interruptor de avisos, «Enviar correo de prueba» y registro con estado y error. Verificación: `npm run build` y revisión en el navegador en local.
-- [ ] 4.2 Comprobaciones completas del repo. Verificación: `npm run typecheck && npm test && npm run build` en verde.
+- [x] 4.1 Página **Correo** en el menú de administración: proveedor, credencial (con «••••1234» si existe), remitente, respuesta, marca, interruptor de avisos, «Enviar correo de prueba» y registro con estado y error. Verificación: `npm run build` y revisión en el navegador en local.
+- [x] 4.2 Comprobaciones completas del repo. Verificación: `npm run typecheck && npm test && npm run build` en verde.
 
 ## 5. Merge del PR (caso B)
 
