@@ -29,6 +29,13 @@ const PAGINAS: Entrada[] = [
   { id: 'p-actividad', grupo: 'Ir a', texto: 'Actividad', to: '/actividad' },
 ];
 
+const EVENTO_ABRIR = 'paleta:abrir';
+
+/** Abre el buscador con `texto` ya escrito y seleccionado (se cambia tecleando encima). */
+export function abrirPaleta(texto = ''): void {
+  window.dispatchEvent(new CustomEvent<string>(EVENTO_ABRIR, { detail: texto }));
+}
+
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /**
@@ -44,6 +51,7 @@ export function Paleta() {
   const [sprints, setSprints] = useState<SprintDto[]>([]);
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inicial = useRef('');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -53,13 +61,22 @@ export function Paleta() {
       }
       if (e.key === 'Escape') setAbierta(false);
     };
+    const onAbrir = (e: Event) => {
+      inicial.current = (e as CustomEvent<string>).detail ?? '';
+      setAbierta(true);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener(EVENTO_ABRIR, onAbrir);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener(EVENTO_ABRIR, onAbrir);
+    };
   }, []);
 
   useEffect(() => {
     if (!abierta) return;
-    setQ('');
+    setQ(inicial.current);
+    inicial.current = '';
     setTareas([]);
     setSel(0);
     tareasGateway.sprints().then(setSprints).catch(() => setSprints([]));
@@ -113,7 +130,7 @@ export function Paleta() {
 
   let grupoPrevio = '';
   return (
-    <Modal show={abierta} onHide={() => setAbierta(false)} onEntered={() => inputRef.current?.focus()} dialogClassName="paleta" backdropClassName="paleta-backdrop">
+    <Modal show={abierta} onHide={() => setAbierta(false)} onEntered={() => inputRef.current?.select()} dialogClassName="paleta" backdropClassName="paleta-backdrop">
       <div className="paleta-input">
         <Search className="text-secondary" />
         <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKeyDown} placeholder="Buscar, o escribir una clave (COOL-12) o pegar un enlace para ir directo…" aria-label="Buscar" />
