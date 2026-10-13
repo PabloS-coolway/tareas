@@ -29,6 +29,7 @@
     "@nestjs/platform-express": "^10.4.0",
     "@prisma/client": "^5.18.0",
     "@yorga/contracts": "*",
+    "@modulos/correo": "*",
     "@yorga/tareas-mcp": "*",
     "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.5",

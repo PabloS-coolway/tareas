@@ -1,7 +1,8 @@
 import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
-import { correoConfigurado, enviarCorreo } from '../infrastructure/mailer';
+import { ServicioCorreo, componer } from '@modulos/correo';
+import { PROPIETARIO_CORREO } from '../../correo/correo.providers';
 import { JwtService } from '@nestjs/jwt';
 import { Feature, LoginResponse, UserDto } from '@yorga/contracts';
 import { User } from '../domain/user';
@@ -24,6 +25,7 @@ export class AuthService {
     @Inject(ROLE_REPOSITORY) private readonly roles: RoleRepository,
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService,
+    private readonly correo: ServicioCorreo,
   ) {}
 
   /** Valida credenciales y emite un token. Mensaje genérico: no revela si el email existe. */
@@ -46,17 +48,20 @@ export class AuthService {
     const user = await this.users.findByEmail(String(email ?? '').trim().toLowerCase());
     if (!user || !user.active) return;
     const admins = (await this.users.list()).filter((u) => u.active && u.role === 'admin' && u.id !== user.id);
-    if (correoConfigurado()) {
+    if (await this.correo.disponible(PROPIETARIO_CORREO)) {
       const token = randomBytes(32).toString('base64url');
       await this.prisma.passwordReset.create({ data: { userId: user.id, tokenHash: sha256(token), expiresAt: new Date(Date.now() + 60 * 60_000) } });
       const link = `${baseUrl.replace(/\/$/, '')}/restablecer?token=${token}`;
-      const enviado = await enviarCorreo(
-        user.email,
-        'Restablecer tu contraseña · Tareas Yorga',
-        `Hola ${user.name},\n\nPara poner una contraseña nueva entra aquí (caduca en 1 hora):\n${link}\n\nSi no lo has pedido tú, ignora este correo.`,
-        `<p>Hola ${user.name},</p><p>Para poner una contraseña nueva entra aquí (caduca en 1 hora):</p><p><a href="${link}">${link}</a></p><p>Si no lo has pedido tú, ignora este correo.</p>`,
-      ).catch(() => false);
-      if (enviado) return;
+      const marca = await this.correo.marca(PROPIETARIO_CORREO);
+      const { html, texto } = componer(marca, {
+        titulo: 'Restablecer tu contraseña',
+        parrafos: [`Hola ${user.name},`, 'Para poner una contraseña nueva pulsa el botón. El enlace caduca en 1 hora y solo sirve una vez.', 'Si no lo has pedido tú, ignora este correo.'],
+        boton: { texto: 'Poner contraseña nueva', url: link },
+      });
+      await this.correo.encolar(PROPIETARIO_CORREO, { para: user.email, asunto: `Restablecer tu contraseña · ${marca.nombre}`, html, texto, tipo: 'contrasena' });
+      // Sin esperar al trabajador: que salga ya. Si falla, queda en la cola con sus reintentos y en el registro.
+      void this.correo.procesarCola().catch(() => undefined);
+      return;
     }
     // Sin correo: aviso a los administradores.
     if (admins.length) {
@@ -79,8 +84,8 @@ export class AuthService {
   }
 
   /** ¿Hay correo saliente configurado? (la pantalla de "olvidé" adapta el mensaje). */
-  correoDisponible(): boolean {
-    return correoConfigurado();
+  correoDisponible(): Promise<boolean> {
+    return this.correo.disponible(PROPIETARIO_CORREO);
   }
 
   /** Devuelve el usuario del payload (para GET /auth/me), verificando que siga activo. */

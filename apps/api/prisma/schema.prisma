@@ -41,18 +41,18 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  apiTokens     ApiToken[]
-  tasksAssigned Task[]         @relation("assignee")
-  tasksReported Task[]         @relation("reporter")
-  tasksFollowed TaskFollower[]
-  rulesCreated  AutomationRule[]
-  comments      TaskComment[]
-  attachments   Attachment[]
-  activities    TaskActivity[]
-  notifications Notification[]    @relation("notified")
-  savedViews    SavedView[]
+  apiTokens      ApiToken[]
+  tasksAssigned  Task[]           @relation("assignee")
+  tasksReported  Task[]           @relation("reporter")
+  tasksFollowed  TaskFollower[]
+  rulesCreated   AutomationRule[]
+  comments       TaskComment[]
+  attachments    Attachment[]
+  activities     TaskActivity[]
+  notifications  Notification[]   @relation("notified")
+  savedViews     SavedView[]
   passwordResets PasswordReset[]
-  teams         TeamMember[]
+  teams          TeamMember[]
 
   @@map("app_user")
 }
@@ -238,7 +238,6 @@ model Project {
   rules    AutomationRule[]
 
   @@index([teamId])
-
   @@map("project")
 }
 
@@ -262,46 +261,46 @@ model ProjectStatus {
 }
 
 model Task {
-  id          Int       @id @default(autoincrement())
-  projectId   Int       @map("project_id")
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id            Int           @id @default(autoincrement())
+  projectId     Int           @map("project_id")
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   /// Número dentro del proyecto: COOL-<number>.
-  number      Int
-  title       String
-  description String    @default("")
-  type        TaskType  @default(TASK)
-  statusId    Int       @map("status_id")
-  status      ProjectStatus @relation(fields: [statusId], references: [id])
-  priority    Priority  @default(NORMAL)
-  assigneeId  Int?      @map("assignee_id")
-  assignee    User?     @relation("assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  reporterId  Int       @map("reporter_id")
-  reporter    User      @relation("reporter", fields: [reporterId], references: [id])
+  number        Int
+  title         String
+  description   String        @default("")
+  type          TaskType      @default(TASK)
+  statusId      Int           @map("status_id")
+  status        ProjectStatus @relation(fields: [statusId], references: [id])
+  priority      Priority      @default(NORMAL)
+  assigneeId    Int?          @map("assignee_id")
+  assignee      User?         @relation("assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  reporterId    Int           @map("reporter_id")
+  reporter      User          @relation("reporter", fields: [reporterId], references: [id])
   /// Padre: una épica (agrupa) o una tarea (entonces esto es una subtarea).
-  parentId    Int?      @map("parent_id")
-  parent      Task?     @relation("subtasks", fields: [parentId], references: [id], onDelete: SetNull)
-  subtasks    Task[]    @relation("subtasks")
+  parentId      Int?          @map("parent_id")
+  parent        Task?         @relation("subtasks", fields: [parentId], references: [id], onDelete: SetNull)
+  subtasks      Task[]        @relation("subtasks")
   /// Sprint al que está planificada (o ninguno = backlog).
-  sprintId    Int?      @map("sprint_id")
-  sprint      Sprint?   @relation(fields: [sprintId], references: [id], onDelete: SetNull)
-  dueDate     DateTime? @map("due_date") @db.Date
-  startDate   DateTime? @map("start_date") @db.Date
-  tags        String[]
+  sprintId      Int?          @map("sprint_id")
+  sprint        Sprint?       @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  dueDate       DateTime?     @map("due_date") @db.Date
+  startDate     DateTime?     @map("start_date") @db.Date
+  tags          String[]
   /// Estimación en puntos (story points); null = sin estimar.
-  estimate    Int?
+  estimate      Int?
   /// Repetición: al terminarla se crea la siguiente ocurrencia con la fecha desplazada.
-  recurrence  Recurrence @default(NONE)
+  recurrence    Recurrence    @default(NONE)
   /// Posición dentro de su columna del tablero.
-  order       Float     @default(0)
+  order         Float         @default(0)
   /// Posición entre sus hermanas (mismo padre), puesta a mano arrastrando; null = sin ordenar a mano.
-  subOrder    Float?    @map("sub_order")
-  closedAt    DateTime? @map("closed_at")
+  subOrder      Float?        @map("sub_order")
+  closedAt      DateTime?     @map("closed_at")
   /// Cuándo se avisó de que se salió del plazo de respuesta (para avisar una sola vez).
-  slaNotifiedAt DateTime? @map("sla_notified_at")
-  clickupId   String?   @unique @map("clickup_id")
-  clickupUrl  String?   @map("clickup_url")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  slaNotifiedAt DateTime?     @map("sla_notified_at")
+  clickupId     String?       @unique @map("clickup_id")
+  clickupUrl    String?       @map("clickup_url")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
   comments      TaskComment[]
   attachments   Attachment[]
@@ -402,18 +401,21 @@ model TaskDependency {
 
 /// Aviso en la app para una persona (mención, asignación, comentario, cambio de estado…).
 model Notification {
-  id        Int              @id @default(autoincrement())
-  userId    Int              @map("user_id")
-  user      User             @relation("notified", fields: [userId], references: [id], onDelete: Cascade)
-  type      NotificationType
-  taskId    Int?             @map("task_id")
-  task      Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  actorId   Int?             @map("actor_id")
-  text      String
-  readAt    DateTime?        @map("read_at")
-  createdAt DateTime         @default(now()) @map("created_at")
+  id            Int              @id @default(autoincrement())
+  userId        Int              @map("user_id")
+  user          User             @relation("notified", fields: [userId], references: [id], onDelete: Cascade)
+  type          NotificationType
+  taskId        Int?             @map("task_id")
+  task          Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actorId       Int?             @map("actor_id")
+  text          String
+  readAt        DateTime?        @map("read_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  /// Cuándo se pasó a la cola de correo (null = aún no, o no es de los que van por correo).
+  emailQueuedAt DateTime?        @map("email_queued_at")
 
   @@index([userId, readAt, createdAt])
+  @@index([emailQueuedAt, createdAt])
   @@map("notification")
 }
 
@@ -469,22 +471,22 @@ model PasswordReset {
 
 /// Regla automática de un proyecto: cuando pasa X (y se cumplen las condiciones) → acciones.
 model AutomationRule {
-  id          Int      @id @default(autoincrement())
-  projectId   Int      @map("project_id")
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id          Int       @id @default(autoincrement())
+  projectId   Int       @map("project_id")
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name        String
-  active      Boolean  @default(true)
+  active      Boolean   @default(true)
   /// CREATED | STATUS (ver RULE_TRIGGERS en contracts).
   trigger     String
   /// RuleConditionsDto / RuleActionsDto (catálogo cerrado, validado en el servicio).
-  conditions  Json     @default("{}")
-  actions     Json     @default("{}")
-  createdById Int?     @map("created_by_id")
-  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  runs        Int      @default(0)
+  conditions  Json      @default("{}")
+  actions     Json      @default("{}")
+  createdById Int?      @map("created_by_id")
+  createdBy   User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  runs        Int       @default(0)
   lastRunAt   DateTime? @map("last_run_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@index([projectId, active])
   @@map("automation_rule")
@@ -492,9 +494,9 @@ model AutomationRule {
 
 /// Commit o PR de GitHub que menciona una tarea (evita comentar dos veces lo mismo).
 model TaskGitRef {
-  id        Int      @id @default(autoincrement())
-  taskId    Int      @map("task_id")
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  id        Int       @id @default(autoincrement())
+  taskId    Int       @map("task_id")
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
   /// commit | branch | pr-opened | pr-merged
   kind      String
   /// «owner/repo@sha», «owner/repo#12» o «owner/repo:rama».
@@ -502,7 +504,7 @@ model TaskGitRef {
   url       String
   title     String
   /// owner/repo
-  repo      String   @default("")
+  repo      String    @default("")
   /// Rama del commit, o la rama de la PR / la propia rama.
   branch    String?
   author    String?
@@ -510,8 +512,56 @@ model TaskGitRef {
   number    Int?
   /// Cuándo ocurrió en GitHub (fecha del commit, de la PR…).
   at        DateTime?
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   @@unique([taskId, kind, ref])
   @@map("task_git_ref")
+}
+
+/// Configuración del correo saliente (módulo @modulos/correo), una por propietario; aquí siempre «default».
+model MailConfig {
+  owner                String    @id
+  /// `brevo` o `smtp`.
+  provider             String
+  /// Clave de API o URL SMTP, cifrada con MAIL_ENCRYPTION_KEY (AES-256-GCM). Nunca se devuelve.
+  secretEnc            String?   @map("secret_enc")
+  secretLast4          String?   @map("secret_last4")
+  fromName             String    @map("from_name")
+  fromEmail            String    @map("from_email")
+  replyTo              String?   @map("reply_to")
+  brandName            String    @map("brand_name")
+  appUrl               String    @map("app_url")
+  footer               String    @default("")
+  /// Interruptor general de avisos por correo y desde cuándo (lo anterior no se envía).
+  notificationsEnabled Boolean   @default(false) @map("notifications_enabled")
+  notificationsSince   DateTime? @map("notifications_since")
+  updatedAt            DateTime  @map("updated_at")
+  updatedBy            String?   @map("updated_by")
+
+  @@map("mail_config")
+}
+
+/// Cola de envío y registro de correos a la vez (se purga a los 90 días).
+model MailMessage {
+  id            Int       @id @default(autoincrement())
+  owner         String
+  to            String
+  subject       String
+  html          String
+  text          String
+  /// `aviso.asignada`, `aviso.mencion`, `aviso.plazo`, `contrasena`…
+  kind          String
+  /// `pendiente`, `enviado` o `fallido`.
+  status        String    @default("pendiente")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime? @map("next_attempt_at")
+  lastError     String?   @map("last_error")
+  providerId    String?   @map("provider_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  sentAt        DateTime? @map("sent_at")
+
+  @@index([status, nextAttemptAt])
+  @@index([owner, createdAt])
+  @@index([createdAt])
+  @@map("mail_message")
 }

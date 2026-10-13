@@ -18,6 +18,8 @@ import { AdminTokensController } from './interface/http/admin-tokens.controller'
 import { JwtAuthGuard } from './interface/http/jwt-auth.guard';
 import { FeatureGuard } from './interface/http/feature.guard';
 import { jwtOptions } from './auth.config';
+import { correoProviders } from '../correo/correo.providers';
+import { ServicioCorreo } from '@modulos/correo';
 
 /** Proveedores del hexágono de auth. */
 export const authProviders: Provider[] = [
@@ -36,9 +38,10 @@ export const authProviders: Provider[] = [
   controllers: [AuthController, UsersController, RolesController, TokensController, AdminTokensController],
   providers: [
     ...authProviders,
+    ...correoProviders,
     { provide: APP_GUARD, useClass: JwtAuthGuard }, // 1º: exige JWT o token de API
     { provide: APP_GUARD, useClass: FeatureGuard }, // 2º: comprueba la feature del rol
   ],
-  exports: [AuthService, USER_REPOSITORY, ROLE_REPOSITORY, PASSWORD_HASHER, JwtModule, PrismaService],
+  exports: [AuthService, USER_REPOSITORY, ROLE_REPOSITORY, PASSWORD_HASHER, JwtModule, PrismaService, ServicioCorreo],
 })
 export class AuthModule {}

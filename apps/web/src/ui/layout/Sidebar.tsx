@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useParams } from 'react-router-dom';
-import { BoxArrowRight, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock, Collection, Eye, EyeSlash, Calendar3, Lightning, Stopwatch } from 'react-bootstrap-icons';
+import { BoxArrowRight, Envelope, HouseDoorFill, Key, Activity, BarChartLine, Bell, Diagram3, Flag, JournalText, Layers, KanbanFill, ListCheck, ListUl, People, Search, PeopleFill, PersonCircle, Plugin, ShieldLock, Collection, Eye, EyeSlash, Calendar3, Lightning, Stopwatch } from 'react-bootstrap-icons';
 import { useEffect, useState, type ReactNode } from 'react';
 import { tareasGateway } from '../composition';
 import type { Feature } from '@yorga/contracts';
@@ -86,6 +86,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
     { to: '/formularios', label: 'Formularios y plazos', icon: <Stopwatch />, feature: 'proyectos.gestionar' },
     { to: '/tokens', label: 'Tokens de API', icon: <Plugin /> },
     { to: '/integraciones', label: 'Integraciones', icon: <Diagram3 />, feature: 'usuarios.gestionar' },
+    { to: '/correo', label: 'Correo', icon: <Envelope />, feature: 'usuarios.gestionar' },
   ];
   const visibles = (items: NavItem[]) => items.filter((n) => !n.feature || hasFeature(n.feature));
   const listados = proyectosDelMenu(proyectos, soloMios, claveRuta, sinLeerProyecto);
