@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Bell, KanbanFill, List, Search } from 'react-bootstrap-icons';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Bell, KanbanFill, List, Search } from 'react-bootstrap-icons';
 import { Sidebar } from './Sidebar';
 import { useTheme } from '../useTheme';
 import { ProyectosProvider } from '../proyectos/ProyectosContext';
@@ -14,6 +14,11 @@ export function AppShell() {
   const { theme, setTheme } = useTheme();
   const [menu, setMenu] = useState(false);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  // Instalada como PWA no hay botón de atrás del navegador. Si se entró directo (un enlace compartido),
+  // no hay a dónde volver dentro de la app: se va al inicio.
+  const volver = () => ((window.history.state?.idx ?? 0) > 0 ? navigate(-1) : navigate('/inicio'));
 
   // Al navegar, el panel del móvil se cierra solo.
   useEffect(() => setMenu(false), [pathname]);
@@ -22,6 +27,11 @@ export function AppShell() {
     <ProyectosProvider>
       <div className={`shell ${menu ? 'menu-abierto' : ''}`}>
         <header className="topbar-movil">
+          {pathname !== '/inicio' && (
+            <button type="button" className="topbar-btn" onClick={volver} aria-label="Volver atrás">
+              <ArrowLeft />
+            </button>
+          )}
           <button type="button" className="topbar-btn" onClick={() => setMenu((m) => !m)} aria-label="Menú" aria-expanded={menu}>
             <List />
           </button>

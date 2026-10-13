@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, Form, Spinner } from 'react-bootstrap';
-import { BoxArrowUpRight, Files, JournalText, Paperclip, Plus, Trash } from 'react-bootstrap-icons';
+import { BoxArrowUpRight, Check2, Files, JournalText, Link45deg, Paperclip, Plus, Share, Trash } from 'react-bootstrap-icons';
 import {
   PRIORITIES,
   PRIORITY_LABELS,
@@ -57,6 +57,7 @@ export function TareaPage() {
   const [etiquetasUsadas, setEtiquetasUsadas] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [enlaceCopiado, setEnlaceCopiado] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [title, setTitle] = useState('');
@@ -218,6 +219,25 @@ export function TareaPage() {
 
   const done = task.status.category === 'DONE';
 
+  // Instalada como PWA no hay barra de direcciones: el enlace se copia o se comparte desde aquí.
+  const enlaceTarea = `${window.location.origin}/t/${task.key}`;
+  const puedeCompartir = typeof navigator.share === 'function';
+
+  const copiarEnlace = () => {
+    navigator.clipboard.writeText(enlaceTarea).then(
+      () => {
+        setEnlaceCopiado(true);
+        setTimeout(() => setEnlaceCopiado(false), 1500);
+      },
+      () => window.prompt('Copia el enlace de la tarea:', enlaceTarea),
+    );
+  };
+
+  const compartirEnlace = () => {
+    // Si se cierra la hoja de compartir sin elegir nada, el navegador rechaza la promesa: no es un error.
+    navigator.share({ title: `${task.key} · ${task.title}`, url: enlaceTarea }).catch(() => undefined);
+  };
+
   return (
     <div className="page page-full">
       <div className="small text-secondary mb-2 d-flex align-items-center gap-2 flex-wrap">
@@ -233,9 +253,17 @@ export function TareaPage() {
         <TipoPill t={task.type} />
         <PlazoPill task={task} />
         {saving && <Spinner as="span" size="sm" animation="border" />}
-        {task.clickupUrl && (
-          <a href={task.clickupUrl} target="_blank" rel="noreferrer" className="ms-auto small">ver en ClickUp <BoxArrowUpRight /></a>
-        )}
+        <span className="ms-auto d-flex align-items-center gap-2">
+          {task.clickupUrl && (
+            <a href={task.clickupUrl} target="_blank" rel="noreferrer" className="small">ver en ClickUp <BoxArrowUpRight /></a>
+          )}
+          <Button size="sm" variant="outline-secondary" onClick={copiarEnlace} title="Copiar el enlace de la tarea">
+            {enlaceCopiado ? <><Check2 /> Copiado</> : <><Link45deg /> Copiar enlace</>}
+          </Button>
+          {puedeCompartir && (
+            <Button size="sm" variant="outline-secondary" onClick={compartirEnlace} title="Compartir la tarea"><Share /> Compartir</Button>
+          )}
+        </span>
       </div>
 
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>⚠ {error}</Alert>}
