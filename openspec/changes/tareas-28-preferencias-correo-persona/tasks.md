@@ -6,9 +6,9 @@
 
 ## 2. Módulo portable de preferencias (en `@modulos/correo`)
 
-- [ ] 2.1 `packages/correo/src/preferencias/`: catálogo, `PreferenciasCorreo`, `preferenciasPorDefecto`, `normalizarPreferencias`, `pasaPreferencias` (interruptor, tipo, ámbitos todos/solo/silenciar, nivel mínimo), `tocaResumen` (horario con zona, hora y días; uno por día local) y el puerto `AlmacenPreferencias`. Verificación: tests vitest de cada regla, incluidos sábado y domingo, 7:59 frente a 8:00, ya enviado hoy, el último domingo de octubre (cambio de hora) y otra zona horaria (p. ej. America/Santiago).
-- [ ] 2.2 `componer` admite `enlaces` y `notaPie` opcionales (con escapado), y `componerResumen`. Verificación: tests del paquete; lo existente sin esos campos sale igual.
-- [ ] 2.3 Nada de Tareas ni frameworks en el paquete. Verificación: `grep -riE "yorga|coolway|prisma|@nestjs|proyecto|prioridad" packages/correo/src` sin resultados.
+- [x] 2.1 `packages/correo/src/preferencias/`: catálogo, `PreferenciasCorreo`, `preferenciasPorDefecto`, `normalizarPreferencias`, `pasaPreferencias` (interruptor, tipo, ámbitos todos/solo/silenciar, nivel mínimo), `tocaResumen` (horario con zona, hora y días; uno por día local) y el puerto `AlmacenPreferencias`. Verificación: tests vitest de cada regla, incluidos sábado y domingo, 7:59 frente a 8:00, ya enviado hoy, el último domingo de octubre (cambio de hora) y otra zona horaria (p. ej. America/Santiago).
+- [x] 2.2 `componer` admite `enlaces` y `notaPie` opcionales (con escapado), y `componerResumen`. Verificación: tests del paquete; lo existente sin esos campos sale igual.
+- [x] 2.3 Nada de Tareas ni frameworks en el paquete. Verificación: `grep -riE "yorga|coolway|prisma|@nestjs|proyecto|prioridad" packages/correo/src` sin resultados.
 - [ ] 2.4 Tareas: catálogo de sus 8 tipos, escala de prioridades, traducción aviso → `{ tipo, ambitoId, nivel }`, `vaPorCorreo` a «cualquier aviso de tarea» y enlace «Cambia qué correos recibes» en los avisos. Verificación: tests jest.
 
 ## 3. Datos y API

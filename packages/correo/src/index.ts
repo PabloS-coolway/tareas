@@ -9,4 +9,5 @@ export { ESPERAS_MINUTOS, MAX_INTENTOS, siguienteIntento } from './dominio/reint
 export { conEtiqueta, enmascarar, errorDeCredencial, esEmail, finalDeCredencial, validarCambio } from './dominio/validacion';
 export type { AlmacenConfigCorreo, ColaCorreo, DatosEnvio, Transporte } from './puertos';
 export { crearTransporte, TransporteBrevo, TransporteSmtp, URL_BREVO } from './transportes';
+export * from './preferencias';
 export { PREFIJO_AVISOS, ServicioCorreo, type Envio, type OpcionesServicioCorreo, type ResultadoCola } from './servicio';
