@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, Card } from 'react-bootstrap';
-import { X } from 'react-bootstrap-icons';
+import { X, Envelope } from 'react-bootstrap-icons';
 import type { NotificationDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
 import { Avatar, hace } from '../components/tareas-ui';
@@ -55,7 +55,8 @@ export function AvisosPage() {
           <h1 className="h4 mb-1">Avisos</h1>
           <p className="text-secondary mb-0">Menciones, asignaciones, comentarios y cambios en tus tareas.</p>
         </div>
-        <div className="d-flex gap-2">
+        <div className="d-flex gap-2 flex-wrap">
+          <Link to="/perfil" className="btn btn-sm btn-outline-primary"><Envelope className="me-1" /> Preferencias de correo</Link>
           {sinLeer > 0 && <Button size="sm" variant="outline-secondary" onClick={marcarTodo}>Marcar todos como leídos ({sinLeer})</Button>}
           {!!items?.length && <Button size="sm" variant="outline-danger" onClick={borrarTodo}>Borrar todos</Button>}
         </div>

@@ -8,13 +8,26 @@ al momento o en un resumen diario, desde su página «Mi perfil».
 ## ADDED Requirements
 
 ### Requirement: Página «Mi perfil»
-El sistema SHALL ofrecer a cada persona con sesión una página «Mi perfil», a la que se llega pulsando su nombre en
-el menú, con sus datos (nombre, correo y rol, sin poder editarlos), el acceso a cambiar su contraseña y sus
-preferencias de correo.
+El sistema SHALL ofrecer a cada persona con sesión una página «Mi perfil» con sus datos (nombre, correo y rol, sin
+poder editarlos), el acceso a cambiar su contraseña y sus preferencias de correo. SHALL llegarse a ella desde el
+menú («Mi perfil» y su nombre), desde el icono de persona de la barra del móvil y desde la página de Avisos.
 
 #### Scenario: Catalina abre su perfil
 - **WHEN** Catalina pulsa su nombre abajo en el menú
 - **THEN** ve «Mi perfil» con su nombre, catalina@coolway.com, su rol y sus preferencias de correo
+
+#### Scenario: Desde Avisos
+- **WHEN** Robert está en Avisos y pulsa «Preferencias de correo»
+- **THEN** se abre «Mi perfil»
+
+### Requirement: Novedad en Inicio
+El sistema SHALL enseñar en Inicio un aviso de novedad que explica que cada persona puede elegir qué avisos le
+llegan por correo, con un botón a «Mi perfil». Al cerrarlo o al pulsar el botón, MUST NOT volver a salirle en ese
+navegador.
+
+#### Scenario: Catalina lo ve una vez
+- **WHEN** Catalina entra en Inicio por primera vez tras el cambio y cierra la novedad
+- **THEN** la próxima vez que entra en Inicio ya no la ve
 
 ### Requirement: Preferencias por defecto
 Quien no haya cambiado sus preferencias SHALL tener el correo activado, solo los tipos asignación, mención y plazo
