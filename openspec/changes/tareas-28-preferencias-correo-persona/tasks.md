@@ -9,11 +9,11 @@
 - [x] 2.1 `packages/correo/src/preferencias/`: catálogo, `PreferenciasCorreo`, `preferenciasPorDefecto`, `normalizarPreferencias`, `pasaPreferencias` (interruptor, tipo, ámbitos todos/solo/silenciar, nivel mínimo), `tocaResumen` (horario con zona, hora y días; uno por día local) y el puerto `AlmacenPreferencias`. Verificación: tests vitest de cada regla, incluidos sábado y domingo, 7:59 frente a 8:00, ya enviado hoy, el último domingo de octubre (cambio de hora) y otra zona horaria (p. ej. America/Santiago).
 - [x] 2.2 `componer` admite `enlaces` y `notaPie` opcionales (con escapado), y `componerResumen`. Verificación: tests del paquete; lo existente sin esos campos sale igual.
 - [x] 2.3 Nada de Tareas ni frameworks en el paquete. Verificación: `grep -riE "yorga|coolway|prisma|@nestjs|proyecto|prioridad" packages/correo/src` sin resultados.
-- [ ] 2.4 Tareas: catálogo de sus 8 tipos, escala de prioridades, traducción aviso → `{ tipo, ambitoId, nivel }`, `vaPorCorreo` a «cualquier aviso de tarea» y enlace «Cambia qué correos recibes» en los avisos. Verificación: tests jest.
+- [x] 2.4 Tareas: catálogo de sus 8 tipos, escala de prioridades, traducción aviso → `{ tipo, ambitoId, nivel }`, `vaPorCorreo` a «cualquier aviso de tarea» y enlace «Cambia qué correos recibes» en los avisos. Verificación: tests jest.
 
 ## 3. Datos y API
 
-- [ ] 3.1 Migración Prisma: tabla `email_pref`. Verificación: `npm run db:generate`, `npm run typecheck` y SQL idéntico al que genera Prisma.
+- [x] 3.1 Migración Prisma: tabla `email_pref`. Verificación: `npm run db:generate`, `npm run typecheck` y SQL idéntico al que genera Prisma.
 - [ ] 3.2 `GET/PUT /me/correo` (persona de la sesión, sin feature), DTOs en `@yorga/contracts`; PUT valida con `normalizar` (400 si algo no vale). Verificación: test de que la ruta no acepta id de usuario, y prueba con curl en local de que cada persona solo ve lo suyo.
 - [ ] 3.3 El trabajador aplica las preferencias al momento y prepara el resumen (`last_digest_at` como cerrojo diario), respetando el interruptor del admin. Verificación: prueba de punta a punta en local (Postgres embebido + buzón SMTP) con persona por defecto, sin menciones, solo un proyecto, prioridad mínima, resumen forzando la hora y el interruptor personal.
 
