@@ -649,6 +649,11 @@ export interface RuleActionsDto {
   addTags?: string[];
   /** A quién avisar (aviso en la app). */
   notifyUserIds?: number[];
+  /**
+   * A quién enviar un correo al momento (TAREAS-29). Manda sobre sus preferencias de correo: solo lo paran su
+   * interruptor personal y el interruptor general del admin.
+   */
+  emailUserIds?: number[];
 }
 
 export interface RuleDto {

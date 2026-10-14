@@ -1,3 +1,4 @@
+import { CorreoReglasService } from './application/correo-reglas.service';
 import { PreferenciasCorreoService } from './application/preferencias-correo.service';
 import { PrismaAlmacenPreferencias } from './infrastructure/prisma-almacen-preferencias';
 import { PerfilCorreoController } from './interface/http/perfil-correo.controller';
@@ -36,7 +37,7 @@ import { CommentsController, TasksController } from './interface/http/tasks.cont
   controllers: [PerfilCorreoController, ProjectsController, TeamsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController, RulesController, IntakeController, PublicFormController, GithubController, DevelopmentController],
   // PrismaService llega de AuthModule: uno solo para toda la API (cada instancia abre su propio pool de conexiones).
   imports: [AuthModule],
-  providers: [AvisosPorCorreoService, PreferenciasCorreoService, PrismaAlmacenPreferencias, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, RulesService, IntakeService, GithubService, CommentsService, AttachmentsService, storageProvider],
+  providers: [AvisosPorCorreoService, CorreoReglasService, PreferenciasCorreoService, PrismaAlmacenPreferencias, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, RulesService, IntakeService, GithubService, CommentsService, AttachmentsService, storageProvider],
   exports: [AccessService, TeamsService, ProjectsService, SprintsService, TasksService, NotificationsService, TemplatesService, CommentsService, AttachmentsService, ActivityService],
 })
 export class TareasModule {}

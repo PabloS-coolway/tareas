@@ -62,7 +62,7 @@ export class RulesService {
 
     const a = dto.actions ?? {};
     const actions: RuleActionsDto = {};
-    const personas = [...new Set([...(a.assigneeId ? [Number(a.assigneeId)] : []), ...limpiarSeguidores(a.addFollowerIds), ...limpiarSeguidores(a.notifyUserIds)])];
+    const personas = [...new Set([...(a.assigneeId ? [Number(a.assigneeId)] : []), ...limpiarSeguidores(a.addFollowerIds), ...limpiarSeguidores(a.notifyUserIds), ...limpiarSeguidores(a.emailUserIds)])];
     if (personas.length) {
       const activos = await this.prisma.user.count({ where: { id: { in: personas }, active: true } });
       if (activos !== personas.length) throw new BadRequestException('Alguna persona de la regla no es válida.');
@@ -79,6 +79,7 @@ export class RulesService {
     const tags = (a.addTags ?? []).map((t) => t.trim().toLowerCase()).filter(Boolean);
     if (tags.length) actions.addTags = [...new Set(tags)].slice(0, 10);
     if (a.notifyUserIds?.length) actions.notifyUserIds = limpiarSeguidores(a.notifyUserIds);
+    if (a.emailUserIds?.length) actions.emailUserIds = limpiarSeguidores(a.emailUserIds);
     if (!Object.keys(actions).length) throw new BadRequestException('La regla no hace nada: elige al menos una acción.');
 
     return { projectId: project.id, name, active: dto.active ?? true, trigger: dto.trigger, conditions: conditions as Prisma.InputJsonValue, actions: actions as Prisma.InputJsonValue };

@@ -1,5 +1,5 @@
 import { componer, type AvisoFiltrable, type CatalogoAvisos, type HorarioResumen, type Marca, type MensajeCorreo } from '@modulos/correo';
-import type { Priority } from '@yorga/contracts';
+import { PRIORITY_LABELS, type Priority, type RuleTrigger } from '@yorga/contracts';
 
 /**
  * Tipos de aviso de Tareas que pueden ir por correo, con su nombre en la pantalla y si vienen activados para quien
@@ -86,4 +86,43 @@ export function componerAviso(a: AvisoParaCorreo, marca: Marca): MensajeCorreo {
     notaPie: { texto: 'Cambia qué correos recibes', url: `${marca.url}/perfil` },
   });
   return { para: a.destinatario.email, asunto: asunto.slice(0, 200), html, texto, tipo: TIPO_EN_COLA[a.tipo] ?? 'aviso' };
+}
+
+// ---------- Correo de una regla de proyecto (TAREAS-29) ----------
+
+export const TIPO_CORREO_REGLA = 'aviso.regla-correo';
+
+export interface CorreoDeRegla {
+  regla: string;
+  disparador: RuleTrigger;
+  /** Nombre del estado en el que queda la tarea. */
+  estado: string;
+  proyecto: string;
+  tarea: { clave: string; titulo: string; prioridad: Priority; responsable: string | null };
+  destinatario: { nombre: string; email: string };
+}
+
+/**
+ * ¿Recibe el correo de la regla? La regla manda sobre sus preferencias (tipos, proyectos, prioridad, resumen): solo lo
+ * paran su interruptor personal, no estar activa, no tener correo o no ver el proyecto.
+ */
+export function motivoParaNoEnviarRegla(p: { activo: boolean; email: string; interruptorPersonal: boolean; veProyecto: boolean }): string | null {
+  if (!p.activo) return 'persona desactivada';
+  if (!p.email?.includes('@')) return 'sin dirección de correo';
+  if (!p.veProyecto) return 'no ve el proyecto';
+  if (!p.interruptorPersonal) return 'tiene apagados los avisos por correo';
+  return null;
+}
+
+/** Correo de una regla: qué ha pasado, la tarea, botón para abrirla y, al pie, por qué le llega. */
+export function componerCorreoRegla(c: CorreoDeRegla, marca: Marca): MensajeCorreo {
+  const { clave, titulo, prioridad, responsable } = c.tarea;
+  const que = c.disparador === 'CREATED' ? `se ha creado ${clave}` : `${clave} ha pasado a ${c.estado}`;
+  const { html, texto } = componer(marca, {
+    titulo: `Regla «${c.regla}»: ${que}`,
+    parrafos: [`Hola ${c.destinatario.nombre}.`, `${clave} · ${titulo}`, `Prioridad: ${PRIORITY_LABELS[prioridad]} · Responsable: ${responsable ?? 'sin responsable'}`],
+    boton: { texto: 'Abrir tarea', url: `${marca.url}/t/${clave}` },
+    notaPie: { texto: `Te llega por la regla «${c.regla}» del proyecto ${c.proyecto} (tus preferencias de correo, en Mi perfil)`, url: `${marca.url}/perfil` },
+  });
+  return { para: c.destinatario.email, asunto: `${clave} · ${titulo}`.slice(0, 200), html, texto, tipo: TIPO_CORREO_REGLA };
 }

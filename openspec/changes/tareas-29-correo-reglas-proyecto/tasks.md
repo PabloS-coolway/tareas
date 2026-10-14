@@ -6,8 +6,8 @@
 
 ## 2. Dominio y API
 
-- [ ] 2.1 `emailUserIds` en `RuleActionsDto` y validación en `RulesService` (ids limpios, personas activas, cuenta como acción). Verificación: test de la validación (persona desactivada → 400; solo esta acción → válida).
-- [ ] 2.2 `componerCorreoRegla` en el dominio (asunto, título según disparador, prioridad, responsable, botón y nota al pie). Verificación: tests jest de ambos disparadores y del escapado.
+- [x] 2.1 `emailUserIds` en `RuleActionsDto` y validación en `RulesService` (ids limpios, personas activas, cuenta como acción). Verificación: test de la validación (persona desactivada → 400; solo esta acción → válida).
+- [x] 2.2 `componerCorreoRegla` en el dominio (asunto, título según disparador, prioridad, responsable, botón y nota al pie). Verificación: tests jest de ambos disparadores y del escapado.
 - [ ] 2.3 En `ejecutarReglas`, encolar el correo para cada persona activa, con email, que ve el proyecto y con su interruptor personal y el del admin encendidos; un fallo no rompe la regla. Verificación: prueba de punta a punta en local (Postgres embebido + buzón SMTP) con una regla «al crear, Urgente»: llega a quien toca, también con preferencias que lo excluirían; no llega con el interruptor personal o el del admin apagados, ni a quien no ve el proyecto.
 
 ## 3. Web
