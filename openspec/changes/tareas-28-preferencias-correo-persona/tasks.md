@@ -14,13 +14,13 @@
 ## 3. Datos y API
 
 - [x] 3.1 Migración Prisma: tabla `email_pref`. Verificación: `npm run db:generate`, `npm run typecheck` y SQL idéntico al que genera Prisma.
-- [ ] 3.2 `GET/PUT /me/correo` (persona de la sesión, sin feature), DTOs en `@yorga/contracts`; PUT valida con `normalizar` (400 si algo no vale). Verificación: test de que la ruta no acepta id de usuario, y prueba con curl en local de que cada persona solo ve lo suyo.
-- [ ] 3.3 El trabajador aplica las preferencias al momento y prepara el resumen (`last_digest_at` como cerrojo diario), respetando el interruptor del admin. Verificación: prueba de punta a punta en local (Postgres embebido + buzón SMTP) con persona por defecto, sin menciones, solo un proyecto, prioridad mínima, resumen forzando la hora y el interruptor personal.
+- [x] 3.2 `GET/PUT /me/correo` (persona de la sesión, sin feature), DTOs en `@yorga/contracts`; PUT valida con `normalizar` (400 si algo no vale). Verificación: test de que la ruta no acepta id de usuario, y prueba con curl en local de que cada persona solo ve lo suyo.
+- [x] 3.3 El trabajador aplica las preferencias al momento y prepara el resumen (`last_digest_at` como cerrojo diario), respetando el interruptor del admin. Verificación: prueba de punta a punta en local (Postgres embebido + buzón SMTP) con persona por defecto, sin menciones, solo un proyecto, prioridad mínima, resumen forzando la hora y el interruptor personal.
 
 ## 4. Web
 
-- [ ] 4.1 Página `/perfil` (datos, «Cambiar contraseña», sección Correo) y el nombre del pie del menú como enlace. La sección Correo es un componente autocontenido (`PreferenciasCorreo`) que recibe por props el catálogo de tipos, los ámbitos (proyectos), la escala de niveles y el horario del resumen, para copiarlo tal cual a Atalaya. Verificación: Chromium en local, escritorio y móvil, sin errores de consola; guardar y recargar conserva lo elegido.
-- [ ] 4.2 Comprobaciones completas. Verificación: `npm run typecheck && npm test && npm run build` en verde.
+- [x] 4.1 Página `/perfil` (datos, «Cambiar contraseña», sección Correo) y el nombre del pie del menú como enlace. La sección Correo es un componente autocontenido (`PreferenciasCorreo`) que recibe por props el catálogo de tipos, los ámbitos (proyectos), la escala de niveles y el horario del resumen, para copiarlo tal cual a Atalaya. Verificación: Chromium en local, escritorio y móvil, sin errores de consola; guardar y recargar conserva lo elegido.
+- [x] 4.2 Comprobaciones completas. Verificación: `npm run typecheck && npm test && npm run build` en verde.
 
 ## 5. Merge del PR (caso B)
 
