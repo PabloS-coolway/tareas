@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { ArrowLeft, Bell, KanbanFill, List, Search } from 'react-bootstrap-icons';
+import { ArrowLeft, Bell, KanbanFill, List, PersonCircle, Search } from 'react-bootstrap-icons';
 import { Sidebar } from './Sidebar';
 import { useVolver } from './useVolver';
 import { useTheme } from '../useTheme';
@@ -37,6 +37,7 @@ export function AppShell() {
             <Search />
           </button>
           <Link to="/avisos" className="topbar-btn" aria-label="Avisos"><Bell /></Link>
+          <Link to="/perfil" className="topbar-btn" aria-label="Mi perfil" title="Mi perfil"><PersonCircle /></Link>
         </header>
         <Sidebar theme={theme} setTheme={setTheme} />
         {menu && <div className="menu-velo" onClick={() => setMenu(false)} aria-hidden="true" />}

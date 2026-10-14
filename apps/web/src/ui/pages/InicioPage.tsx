@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, Card, ProgressBar } from 'react-bootstrap';
+import { Alert, Card, CloseButton, ProgressBar } from 'react-bootstrap';
+import { Envelope } from 'react-bootstrap-icons';
 import { Link } from 'react-router-dom';
 import type { ActivityFeedItemDto, ResumenDto } from '@yorga/contracts';
 import { tareasGateway } from '../composition';
@@ -97,6 +98,7 @@ export function InicioPage() {
         <p className="text-secondary mb-0">{direccion ? 'Cómo va el equipo esta semana y lo tuyo.' : 'Tu semana de un vistazo.'}</p>
       </header>
       {error && <Alert variant="danger">⚠ {error}</Alert>}
+      <NovedadCorreo />
 
       {!r ? (
         <Skeleton className="skeleton-rounded" width="100%" height={220} />
@@ -133,5 +135,40 @@ export function InicioPage() {
         </>
       )}
     </div>
+  );
+}
+
+const CLAVE_NOVEDAD = 'novedad-preferencias-correo-vista';
+
+/** Novedad de TAREAS-28: se enseña hasta que la persona la cierra o entra en Mi perfil desde aquí (en este navegador). */
+function NovedadCorreo() {
+  const [visible, setVisible] = useState(() => {
+    try {
+      return localStorage.getItem(CLAVE_NOVEDAD) !== '1';
+    } catch {
+      return false; // sin almacenamiento no se podría cerrar para siempre: mejor no enseñarla
+    }
+  });
+  if (!visible) return null;
+  const vista = () => {
+    try {
+      localStorage.setItem(CLAVE_NOVEDAD, '1');
+    } catch {
+      /* sin almacenamiento */
+    }
+    setVisible(false);
+  };
+  return (
+    <Card className="novedad mb-4">
+      <Card.Body className="d-flex align-items-center gap-3 flex-wrap">
+        <span className="novedad-ico"><Envelope /></span>
+        <div className="me-auto">
+          <div className="fw-semibold">Nuevo: elige qué avisos te llegan por correo</div>
+          <div className="small text-secondary">Por tipo de aviso, por proyecto, con prioridad mínima o en un resumen diario a las 8:00.</div>
+        </div>
+        <Link to="/perfil" onClick={vista} className="btn btn-sm btn-brand">Configurar mi correo</Link>
+        <CloseButton aria-label="Cerrar la novedad" onClick={vista} />
+      </Card.Body>
+    </Card>
   );
 }

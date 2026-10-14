@@ -22,9 +22,13 @@
 - [x] 4.1 Página `/perfil` (datos, «Cambiar contraseña», sección Correo) y el nombre del pie del menú como enlace. La sección Correo es un componente autocontenido (`PreferenciasCorreo`) que recibe por props el catálogo de tipos, los ámbitos (proyectos), la escala de niveles y el horario del resumen, para copiarlo tal cual a Atalaya. Verificación: Chromium en local, escritorio y móvil, sin errores de consola; guardar y recargar conserva lo elegido.
 - [x] 4.2 Comprobaciones completas. Verificación: `npm run typecheck && npm test && npm run build` en verde.
 
+## 4b. Hacer visible «Mi perfil» (pedido por Pablo al revisarlo en producción, 14-oct-2026)
+
+- [x] 4b.1 Entrada «Mi perfil» en el menú lateral, icono de persona en la barra del móvil, botón «Preferencias de correo» en Avisos y novedad en Inicio que se cierra para siempre (guardada en el navegador, a prueba de navegadores sin almacenamiento). Verificación: Chromium en local (escritorio y móvil): las cuatro llevan a /perfil y la novedad no vuelve tras cerrarla; `npm run typecheck && npm test && npm run build`.
+
 ## 5. Merge del PR (caso B)
 
-- [ ] 5.1 Abrir el PR con la clave TAREAS-28 y mergearlo (lo hace Pablo). El resumen de las 8:00 y la entrega real solo se comprueban en producción: el cambio se mergea abierto y se archiva después.
+- [x] 5.1 Abrir el PR con la clave TAREAS-28 y mergearlo (lo hace Pablo). El resumen de las 8:00 y la entrega real solo se comprueban en producción: el cambio se mergea abierto y se archiva después.
 
 ## 6. Verificación con el negocio (en producción, después del merge)
 

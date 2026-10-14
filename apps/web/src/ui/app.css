@@ -707,3 +707,7 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 
 /* — Barra de progreso en color de marca (coherente con navegación y activos). */
 .progress-bar { background-color: var(--brand); }
+
+/* Novedad en Inicio (se cierra para siempre). */
+.novedad { border-left: 4px solid var(--brand); }
+.novedad-ico { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); font-size: 1.1rem; flex-shrink: 0; }

@@ -74,6 +74,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
     { to: '/sprints', label: 'Sprints', icon: <Flag /> },
     { to: '/calendario', label: 'Calendario', icon: <Calendar3 /> },
     { to: '/avisos', label: 'Avisos', icon: <Bell />, badge: sinLeer },
+    { to: '/perfil', label: 'Mi perfil', icon: <PersonCircle /> },
     { to: '/actividad', label: 'Actividad', icon: <Activity /> },
   ];
   const admin: NavItem[] = [
