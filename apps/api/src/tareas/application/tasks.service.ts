@@ -26,6 +26,7 @@ import { ordenDeHermanasValido, ordenPara, renumerar } from '../domain/orden';
 import { interesados, limpiarSeguidores } from '../domain/interesados';
 import { aplica, cambiosDeRegla, type EventoTarea, type Regla } from '../domain/reglas';
 import { horasDePlazo, limiteDePlazo, limpiarPlazos } from '../domain/plazos';
+import { CorreoReglasService } from './correo-reglas.service';
 import { AccessService } from './access.service';
 import { ActivityInput, ActivityService } from './activity.service';
 import { NotificationsService } from './notifications.service';
@@ -62,6 +63,7 @@ export class TasksService {
     private readonly activity: ActivityService,
     private readonly notifications: NotificationsService,
     private readonly access: AccessService,
+    private readonly correoReglas: CorreoReglasService,
   ) {}
 
   // ---------- Lectura ----------
@@ -496,6 +498,8 @@ export class TasksService {
         await this.activity.record({ taskId: id, actorId, action: 'rule', after: r.name });
         const avisar = regla.actions.notifyUserIds ?? [];
         if (avisar.length) await this.notifications.notify(avisar, 'RULE', `regla «${r.name}»: ${claveTarea(t.project.key, t.number)} · ${t.title}`, { taskId: id, actorId: null });
+        const porCorreo = regla.actions.emailUserIds ?? [];
+        if (porCorreo.length) await this.correoReglas.enviar({ name: r.name, emailUserIds: porCorreo }, id, trigger);
         await this.prisma.automationRule.update({ where: { id: r.id }, data: { runs: { increment: 1 }, lastRunAt: new Date() } });
       }
     } catch (e) {

@@ -78,6 +78,7 @@ export function ReglasPage() {
       a.priority && `poner prioridad ${PRIORITY_LABELS[a.priority].toLowerCase()}`,
       a.addTags?.length && `etiquetar ${a.addTags.map((t) => `«${t}»`).join(', ')}`,
       a.notifyUserIds?.length && `avisar a ${personas(a.notifyUserIds)}`,
+      a.emailUserIds?.length && `correo a ${personas(a.emailUserIds)}`,
     ].filter(Boolean).join(' · ');
     return { cuando, hacer };
   };
@@ -260,6 +261,11 @@ function ReglaModal({ regla, proyectos, equipo, onClose, onSaved }: { regla: Rul
           <Form.Group className="col-md-6">
             <Form.Label htmlFor="rg-notify">Avisar a</Form.Label>
             <Personas id="rg-notify" valor={a.notifyUserIds ?? []} equipo={equipo} cambiar={(v) => setA({ notifyUserIds: v.length ? v : undefined })} />
+          </Form.Group>
+          <Form.Group className="col-md-6">
+            <Form.Label htmlFor="rg-email">Enviar correo a</Form.Label>
+            <Personas id="rg-email" valor={a.emailUserIds ?? []} equipo={equipo} cambiar={(v) => setA({ emailUserIds: v.length ? v : undefined })} />
+            <Form.Text>Les llega al momento aunque hayan bajado sus avisos por correo en «Mi perfil»; solo lo para su interruptor personal.</Form.Text>
           </Form.Group>
           <Form.Group className="col-md-6" controlId="rg-tags">
             <Form.Label>Añadir etiquetas</Form.Label>
