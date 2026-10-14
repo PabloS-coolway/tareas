@@ -8,12 +8,12 @@
 
 - [x] 2.1 `emailUserIds` en `RuleActionsDto` y validación en `RulesService` (ids limpios, personas activas, cuenta como acción). Verificación: test de la validación (persona desactivada → 400; solo esta acción → válida).
 - [x] 2.2 `componerCorreoRegla` en el dominio (asunto, título según disparador, prioridad, responsable, botón y nota al pie). Verificación: tests jest de ambos disparadores y del escapado.
-- [ ] 2.3 En `ejecutarReglas`, encolar el correo para cada persona activa, con email, que ve el proyecto y con su interruptor personal y el del admin encendidos; un fallo no rompe la regla. Verificación: prueba de punta a punta en local (Postgres embebido + buzón SMTP) con una regla «al crear, Urgente»: llega a quien toca, también con preferencias que lo excluirían; no llega con el interruptor personal o el del admin apagados, ni a quien no ve el proyecto.
+- [x] 2.3 En `ejecutarReglas`, encolar el correo para cada persona activa, con email, que ve el proyecto y con su interruptor personal y el del admin encendidos; un fallo no rompe la regla. Verificación: prueba de punta a punta en local (Postgres embebido + buzón SMTP) con una regla «al crear, Urgente»: llega a quien toca, también con preferencias que lo excluirían; no llega con el interruptor personal o el del admin apagados, ni a quien no ve el proyecto.
 
 ## 3. Web
 
-- [ ] 3.1 Campo «Enviar correo a» en la pantalla de Reglas, con ayuda, y «correo a …» en el resumen de la regla. Verificación: Chromium en local (crear la regla, ver el resumen, editar y quitarla), sin errores de consola.
-- [ ] 3.2 Comprobaciones completas. Verificación: `npm run typecheck && npm test && npm run build`.
+- [x] 3.1 Campo «Enviar correo a» en la pantalla de Reglas, con ayuda, y «correo a …» en el resumen de la regla. Verificación: Chromium en local (crear la regla, ver el resumen, editar y quitarla), sin errores de consola.
+- [x] 3.2 Comprobaciones completas. Verificación: `npm run typecheck && npm test && npm run build`.
 
 ## 4. Merge del PR (caso B)
 
