@@ -17,14 +17,19 @@
 
 ## 4. Merge del PR (caso B)
 
-- [ ] 4.1 Abrir el PR con la clave TAREAS-29 y mergearlo (lo hace Pablo). La entrega real se comprueba en producción.
+- [x] 4.1 Abrir el PR con la clave TAREAS-29 y mergearlo (lo hace Pablo). La entrega real se comprueba en producción.
+  **Resultado:** PR #23 mergeada el 14-oct-2026 y desplegada.
 
 ## 5. Verificación con el negocio (en producción, después del merge)
 
-- [ ] 5.1 Criterios 1 y 2: en un proyecto de prueba o ATC, regla «al crear, Urgente» con «Enviar correo a» el usuario de prueba (Gmail de Pablo); crear una tarea urgente y comprobar que llega con el nombre de la regla y el botón.
-- [ ] 5.2 Criterio 3: con el usuario de prueba en resumen y el proyecto silenciado, llega igual; con su interruptor personal apagado, no.
-- [ ] 5.3 Criterios 4 a 6: comprobados en local y por permisos (la pantalla de Reglas ya exige gestionar proyectos).
-- [ ] 5.4 Dejar el resultado en TAREAS-29 y limpiar la regla y el usuario de prueba.
+- [x] 5.1 Criterios 1 y 2: en un proyecto de prueba o ATC, regla «al crear, Urgente» con «Enviar correo a» el usuario de prueba (Gmail de Pablo); crear una tarea urgente y comprobar que llega con el nombre de la regla y el botón.
+  **Resultado (14-oct-2026):** probado por Pablo en producción (regla «al crear, Urgente» con «Enviar correo a»; llega con el nombre de la regla y el botón).
+- [x] 5.2 Criterio 3: con el usuario de prueba en resumen y el proyecto silenciado, llega igual; con su interruptor personal apagado, no.
+  **Resultado:** probado por Pablo en producción; verificado además en local de punta a punta (llega con resumen, proyecto silenciado, sin el tipo «regla» y con prioridad mínima mayor; no llega con el interruptor personal apagado).
+- [x] 5.3 Criterios 4 a 6: comprobados en local y por permisos (la pantalla de Reglas ya exige gestionar proyectos).
+  **Resultado:** en local de punta a punta (interruptor del admin apagado: nada; persona desactivada o que no ve el proyecto: nada; 403 sin gestionar proyectos) y con tests.
+- [x] 5.4 Dejar el resultado en TAREAS-29 y limpiar la regla y el usuario de prueba.
+  **Resultado:** anotado en TAREAS-29; la regla y el usuario de prueba los limpia Pablo.
 
 ## Workflow follow-up
 
