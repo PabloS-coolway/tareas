@@ -53,3 +53,28 @@ export interface CorreoRegistroDto {
   enviadoEn: string | null;
   proximoIntento: string | null;
 }
+
+/** Preferencias de correo de la persona de la sesión (GET/PUT /me/correo). */
+export interface CorreoPreferenciasDto {
+  /** Interruptor personal: apagado, ningún aviso por correo. */
+  activo: boolean;
+  /** Claves de los tipos de aviso que quiere por correo. */
+  tipos: string[];
+  /** Proyectos: todos, solo estos o todos menos estos. */
+  ambitos: { modo: 'todos' | 'solo' | 'silenciar'; ids: number[] };
+  /** Índice en `niveles` (prioridad mínima) o null = todas. */
+  nivelMinimo: number | null;
+  modo: 'inmediato' | 'resumen';
+}
+
+/** GET /me/correo: lo guardado más lo que hace falta para pintar la pantalla. */
+export interface PerfilCorreoDto {
+  preferencias: CorreoPreferenciasDto;
+  catalogo: { clave: string; etiqueta: string; porDefecto: boolean }[];
+  /** Escala de la prioridad mínima, de menos a más. */
+  niveles: { valor: number; etiqueta: string }[];
+  /** «de lunes a viernes a las 8:00 (hora de Madrid)». */
+  horarioResumen: string;
+  /** Si el admin tiene encendidos los avisos por correo (si no, no llega nada a nadie). */
+  avisosCorreoActivos: boolean;
+}

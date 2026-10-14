@@ -25,6 +25,7 @@ import { ActividadPage } from './pages/ActividadPage';
 import { PanelPage } from './pages/PanelPage';
 import { IntegracionesPage } from './pages/IntegracionesPage';
 import { CorreoPage } from './pages/CorreoPage';
+import { PerfilPage } from './pages/PerfilPage';
 import { PlantillasPage } from './pages/PlantillasPage';
 import { TokensPage } from './pages/TokensPage';
 import { AuthProvider } from './auth/AuthContext';
@@ -63,6 +64,7 @@ export function App() {
               <Route path="/p/:key" element={<TableroPage />} />
               <Route path="/t/:key" element={<TareaPage />} />
               <Route path="/tokens" element={<TokensPage />} />
+              <Route path="/perfil" element={<PerfilPage />} />
               <Route element={<RequireFeature feature="usuarios.gestionar" />}>
                 <Route path="/usuarios" element={<UsuariosPage />} />
                 <Route path="/integraciones" element={<IntegracionesPage />} />

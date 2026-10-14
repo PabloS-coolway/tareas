@@ -28,18 +28,19 @@ model Role {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
   name         String
-  passwordHash String   @map("password_hash")
+  passwordHash String     @map("password_hash")
   /// Clave del rol (FK a role.key).
-  role         String   @default("miembro")
-  roleRef      Role     @relation(fields: [role], references: [key])
-  active       Boolean  @default(true)
+  role         String     @default("miembro")
+  roleRef      Role       @relation(fields: [role], references: [key])
+  active       Boolean    @default(true)
   /// Id del miembro en ClickUp (para mapear asignados al importar).
-  clickupId    String?  @unique @map("clickup_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  clickupId    String?    @unique @map("clickup_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  emailPref    EmailPref?
 
   apiTokens      ApiToken[]
   tasksAssigned  Task[]           @relation("assignee")
@@ -566,4 +567,27 @@ model MailMessage {
   @@index([owner, createdAt])
   @@index([createdAt])
   @@map("mail_message")
+}
+
+/// Preferencias de correo de una persona (TAREAS-28). Sin fila = valores por defecto (asignación, mención y plazo,
+/// todos los proyectos, sin prioridad mínima, al momento).
+model EmailPref {
+  userId       Int       @id @map("user_id")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Interruptor personal: apagado, ningún aviso por correo.
+  enabled      Boolean   @default(true)
+  /// Tipos de aviso que quiere por correo (claves de NotificationType).
+  types        String[]
+  /// `todos`, `solo` (solo projectIds) o `silenciar` (todos menos projectIds).
+  projectMode  String    @default("todos") @map("project_mode")
+  projectIds   Int[]     @map("project_ids")
+  /// Prioridad mínima de la tarea (LOW, NORMAL, HIGH, URGENT) o null = todas.
+  minPriority  String?   @map("min_priority")
+  /// `inmediato` o `resumen` (L-V 8:00, hora de Madrid).
+  mode         String    @default("inmediato")
+  /// Último resumen enviado: impide mandar dos el mismo día.
+  lastDigestAt DateTime? @map("last_digest_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("email_pref")
 }

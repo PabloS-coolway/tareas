@@ -82,3 +82,15 @@ describe('restablecer contraseña', () => {
     expect(avisos).toHaveLength(0);
   });
 });
+
+describe('preferencias de correo: cada uno solo las suyas', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { PerfilCorreoController } = require('../src/tareas/interface/http/perfil-correo.controller');
+  it('la ruta es /me/correo, sin id de usuario, y no pide feature (basta con sesión)', () => {
+    expect(Reflect.getMetadata('path', PerfilCorreoController)).toBe('me/correo');
+    for (const m of ['leer', 'guardar']) {
+      expect(Reflect.getMetadata('path', PerfilCorreoController.prototype[m])).toBe('/');
+      expect(Reflect.getMetadata(FEATURES_KEY, PerfilCorreoController.prototype[m])).toBeUndefined();
+    }
+  });
+});

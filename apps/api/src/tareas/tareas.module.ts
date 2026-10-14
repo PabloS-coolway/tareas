@@ -1,3 +1,6 @@
+import { PreferenciasCorreoService } from './application/preferencias-correo.service';
+import { PrismaAlmacenPreferencias } from './infrastructure/prisma-almacen-preferencias';
+import { PerfilCorreoController } from './interface/http/perfil-correo.controller';
 import { AvisosPorCorreoService } from './application/avisos-por-correo.service';
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
@@ -30,10 +33,10 @@ import { CommentsController, TasksController } from './interface/http/tasks.cont
 
 /** Proyectos, tareas, comentarios, adjuntos y actividad. */
 @Module({
-  controllers: [ProjectsController, TeamsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController, RulesController, IntakeController, PublicFormController, GithubController, DevelopmentController],
+  controllers: [PerfilCorreoController, ProjectsController, TeamsController, SprintsController, TasksController, CommentsController, AttachmentsController, NotificationsController, ViewsController, TemplatesController, RulesController, IntakeController, PublicFormController, GithubController, DevelopmentController],
   // PrismaService llega de AuthModule: uno solo para toda la API (cada instancia abre su propio pool de conexiones).
   imports: [AuthModule],
-  providers: [AvisosPorCorreoService, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, RulesService, IntakeService, GithubService, CommentsService, AttachmentsService, storageProvider],
+  providers: [AvisosPorCorreoService, PreferenciasCorreoService, PrismaAlmacenPreferencias, AccessService, TeamsService, ActivityService, NotificationsService, ViewsService, TemplatesService, ProjectsService, SprintsService, TasksService, RulesService, IntakeService, GithubService, CommentsService, AttachmentsService, storageProvider],
   exports: [AccessService, TeamsService, ProjectsService, SprintsService, TasksService, NotificationsService, TemplatesService, CommentsService, AttachmentsService, ActivityService],
 })
 export class TareasModule {}

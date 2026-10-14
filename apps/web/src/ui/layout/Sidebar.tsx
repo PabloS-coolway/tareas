@@ -166,11 +166,13 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
       <div className="sidebar-foot">
         {user && (
           <div className="sidebar-user">
-            <PersonCircle className="sidebar-user-ico" />
-            <div className="sidebar-user-info">
-              <div className="sidebar-user-name">{user.name}</div>
-              <div className="sidebar-user-role">{user.role}</div>
-            </div>
+            <NavLink to="/perfil" className="sidebar-user-link" title="Mi perfil: datos y preferencias de correo">
+              <PersonCircle className="sidebar-user-ico" />
+              <div className="sidebar-user-info">
+                <div className="sidebar-user-name">{user.name}</div>
+                <div className="sidebar-user-role">{user.role}</div>
+              </div>
+            </NavLink>
             <Button variant="link" size="sm" className="sidebar-logout" onClick={() => setCambiarPass(true)} title="Cambiar contraseña" aria-label="Cambiar contraseña">
               <Key />
             </Button>
