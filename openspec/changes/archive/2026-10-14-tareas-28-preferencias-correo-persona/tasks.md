@@ -32,12 +32,18 @@
 
 ## 6. Verificación con el negocio (en producción, después del merge)
 
-- [ ] 6.1 Criterio 1: entrar en «Mi perfil» desde el nombre del menú; sin tocar nada, los valores por defecto son asignación, mención y plazo, al momento.
-- [ ] 6.2 Criterios 2 a 4: con el usuario de prueba (Gmail de Pablo), desactivar mención, activar comentarios, «solo un proyecto» y prioridad mínima; comprobar en el registro de envíos qué sale y qué no.
-- [ ] 6.3 Criterio 5: poner el usuario de prueba en resumen; generarle avisos; comprobar que no salen sueltos y que el siguiente día laborable a las 8:00 llega un único resumen con los no leídos (y nada si se leyeron).
-- [ ] 6.4 Criterios 6 y 7: interruptor personal apagado = sin correos de avisos; el enlace del pie abre «Mi perfil».
-- [ ] 6.5 Criterio 8: comprobado por diseño (la ruta solo usa la sesión) y con una prueba con dos usuarios.
-- [ ] 6.6 Dejar el resultado de cada criterio en TAREAS-28 y limpiar los datos de prueba.
+- [x] 6.1 Criterio 1: entrar en «Mi perfil» desde el nombre del menú; sin tocar nada, los valores por defecto son asignación, mención y plazo, al momento.
+  **Resultado (14-oct-2026):** revisado por Pablo en producción; además, verificado en local de punta a punta (prueba e2e) y entradas visibles desde menú, móvil, Avisos e Inicio.
+- [x] 6.2 Criterios 2 a 4: con el usuario de prueba (Gmail de Pablo), desactivar mención, activar comentarios, «solo un proyecto» y prioridad mínima; comprobar en el registro de envíos qué sale y qué no.
+  **Resultado:** revisado por Pablo en producción; en local, de punta a punta: sin mención no llega, con comentarios sí, proyecto silenciado no llega, prioridad mínima Alta (Normal no, Urgente sí).
+- [x] 6.3 Criterio 5: poner el usuario de prueba en resumen; generarle avisos; comprobar que no salen sueltos y que el siguiente día laborable a las 8:00 llega un único resumen con los no leídos (y nada si se leyeron).
+  **Resultado:** verificado en local de punta a punta (un único resumen con solo lo no leído; ninguno más ese día, también tras reiniciar la API) y con tests del horario (L-V, 8:00 Madrid, cambio de hora, otra zona). En producción, el primer resumen posible es el jueves 15-oct-2026 a las 8:00: queda pendiente de confirmar allí (Pablo decidió cerrar sin esperarlo).
+- [x] 6.4 Criterios 6 y 7: interruptor personal apagado = sin correos de avisos; el enlace del pie abre «Mi perfil».
+  **Resultado:** revisado por Pablo en producción; en local: con el interruptor personal apagado no llega (la contraseña sí) y el enlace del pie vuelve a /perfil tras el login.
+- [x] 6.5 Criterio 8: comprobado por diseño (la ruta solo usa la sesión) y con una prueba con dos usuarios.
+  **Resultado:** por diseño (`/me/correo` sin id de usuario ni feature, con test) y en local con dos personas (cada una solo ve lo suyo; 401 sin sesión).
+- [x] 6.6 Dejar el resultado de cada criterio en TAREAS-28 y limpiar los datos de prueba.
+  **Resultado:** anotado en TAREAS-28. Limpieza del usuario de prueba en producción: a cargo de Pablo.
 
 ## Workflow follow-up
 
